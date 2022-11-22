@@ -76,46 +76,78 @@ extern "C" {
 
     unsigned int m68k_read_memory_8(unsigned int address)
     {
+        if (address >= 32_MiB) {
+            return 0;
+        }
+
         return emulator::q68MemorySpace[address];
     }
 
     unsigned int m68k_read_memory_16(unsigned int address)
     {
+        if (address >= 32_MiB) {
+            return 0;
+        }
+
         uint16_t *wordAddr = (uint16_t *)&emulator::q68MemorySpace[address];
         return boost::endian::big_to_native(*wordAddr);
     }
 
     unsigned int  m68k_read_disassembler_16(unsigned int address)
     {
+        if (address >= 32_MiB) {
+            return 0;
+        }
+
         uint16_t *wordAddr = (uint16_t *)&emulator::q68MemorySpace[address];
         return boost::endian::big_to_native(*wordAddr);
     }
 
     unsigned int m68k_read_memory_32(unsigned int address)
     {
+        if (address >= 32_MiB) {
+            return 0;
+        }
+
         uint32_t *longAddr = (uint32_t *)&emulator::q68MemorySpace[address];
         return boost::endian::big_to_native(*longAddr);
     }
 
     unsigned int m68k_read_disassembler_32(unsigned int address)
     {
+        if (address >= 32_MiB) {
+            return 0;
+        }
+
         uint32_t *longAddr = (uint32_t *)&emulator::q68MemorySpace[address];
         return boost::endian::big_to_native(*longAddr);
     }
 
     void m68k_write_memory_8(unsigned int address, unsigned int value)
     {
+        if (address >= 32_MiB) {
+            return;
+        }
+
         emulator::q68MemorySpace[address] = value;
     }
 
     void m68k_write_memory_16(unsigned int address, unsigned int value)
     {
+        if (address >= 32_MiB) {
+            return;
+        }
+
         uint16_t *wordAddr = (uint16_t *)&emulator::q68MemorySpace[address];
         *wordAddr = boost::endian::native_to_big((uint16_t)value);
     }
 
     void m68k_write_memory_32(unsigned int address, unsigned int value)
     {
+        if (address >= 32_MiB) {
+            return;
+        }
+
         uint32_t *longAddr = (uint32_t *)&emulator::q68MemorySpace[address];
         *longAddr = boost::endian::native_to_big((uint32_t)value);
     }
