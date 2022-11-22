@@ -1,0 +1,4 @@
+.vscode/
+Musashi/*.o
+Musashi/m68kmake
+Musashi/example
