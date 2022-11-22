@@ -15,6 +15,7 @@
 #include "m68k.h"
 #include "q68_events.hpp"
 #include "q68_memory.hpp"
+#include "q68_screen.hpp"
 
 namespace emulator {
 
@@ -63,6 +64,7 @@ int q68MainLoop(void *ptr)
 
         if ((now - then) > ticks) {
             then = (then + ticks);
+            q68RenderScreenFlag = true;
             m68k_set_irq(2);
         }
     }

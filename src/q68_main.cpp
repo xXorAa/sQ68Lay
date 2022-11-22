@@ -25,8 +25,11 @@ int main(int argc, char **argv)
     SDL_Thread *thread = SDL_CreateThread(emulator::q68MainLoop, "sQ68ux Emu Thread", NULL);
 
     while(1) {
-        emulator::q68UpdatePixelBuffer(emulator::q68MemorySpace + 0x20000, 0x8000, 4);
-        emulator::q68RenderScreen();
+        if (emulator::q68RenderScreen) {
+            emulator::q68UpdatePixelBuffer(emulator::q68MemorySpace + 0x20000, 0x8000, 4);
+            emulator::q68RenderScreen();
+            emulator::q68RenderScreenFlag = false;
+        }
         emulator::q68ProcessEvents();
 
         if (emulator::exitLoop) {

@@ -36,6 +36,7 @@ SDL_Texture *q68Texture;
 Uint32 sdlColors[16];
 SDL_Rect q68DestRect;
 int q68Fullscreen = 0;
+bool q68RenderScreenFlag = false;
 
 void q68ScreenInit(void)
 {
