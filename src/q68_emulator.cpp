@@ -91,8 +91,7 @@ extern "C" {
             return 0;
         }
 
-        uint16_t *wordAddr = (uint16_t *)&emulator::q68MemorySpace[address];
-        return boost::endian::big_to_native(*wordAddr);
+        return boost::endian::load_big_u16(&emulator::q68MemorySpace[address]);
     }
 
     unsigned int  m68k_read_disassembler_16(unsigned int address)
@@ -101,8 +100,7 @@ extern "C" {
             return 0;
         }
 
-        uint16_t *wordAddr = (uint16_t *)&emulator::q68MemorySpace[address];
-        return boost::endian::big_to_native(*wordAddr);
+        return boost::endian::load_big_u16(&emulator::q68MemorySpace[address]);
     }
 
     unsigned int m68k_read_memory_32(unsigned int address)
@@ -111,8 +109,7 @@ extern "C" {
             return 0;
         }
 
-        uint32_t *longAddr = (uint32_t *)&emulator::q68MemorySpace[address];
-        return boost::endian::big_to_native(*longAddr);
+        return boost::endian::load_big_u32(&emulator::q68MemorySpace[address]);
     }
 
     unsigned int m68k_read_disassembler_32(unsigned int address)
@@ -121,8 +118,7 @@ extern "C" {
             return 0;
         }
 
-        uint32_t *longAddr = (uint32_t *)&emulator::q68MemorySpace[address];
-        return boost::endian::big_to_native(*longAddr);
+        return boost::endian::load_big_u32(&emulator::q68MemorySpace[address]);
     }
 
     void m68k_write_memory_8(unsigned int address, unsigned int value)
@@ -140,8 +136,7 @@ extern "C" {
             return;
         }
 
-        uint16_t *wordAddr = (uint16_t *)&emulator::q68MemorySpace[address];
-        *wordAddr = boost::endian::native_to_big((uint16_t)value);
+        boost::endian::store_big_u16(&emulator::q68MemorySpace[address], value);
     }
 
     void m68k_write_memory_32(unsigned int address, unsigned int value)
@@ -150,8 +145,7 @@ extern "C" {
             return;
         }
 
-        uint32_t *longAddr = (uint32_t *)&emulator::q68MemorySpace[address];
-        *longAddr = boost::endian::native_to_big((uint32_t)value);
+        boost::endian::store_big_u32(&emulator::q68MemorySpace[address], value);
     }
 
 }
