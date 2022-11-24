@@ -17,4 +17,10 @@ namespace emulator {
 void q68AllocateMemory(void);
 extern uint8_t *q68MemorySpace;
 
-}
+constexpr uint32_t q68_internal_io          = 0x18000;
+constexpr uint32_t q68_internal_io_size     = 4_KiB;
+
+constexpr uint32_t q68_external_io          = 0x1C000;
+constexpr uint32_t q68_external_io_size     = 16_KiB;
+
+} // namespace emulator

@@ -8,13 +8,15 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -ggdb -Og")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ggdb -Og")
 find_package(SDL2 REQUIRED)
 
-include_directories(${CMAKE_CURRENT_LIST_DIR} include/ Musashi/ ${SDL2_INCLUDE_DIRS})
+include_directories(${CMAKE_CURRENT_LIST_DIR} include/ Musashi/ external/ ${SDL2_INCLUDE_DIRS})
 
 add_executable(sq68ux
     src/q68_main.cpp
     src/q68_emulator.cpp
     src/q68_events.cpp
+    src/q68_hardware.cpp
     src/q68_screen.cpp
+    external/sdl-ps2.c
     Musashi/m68kcpu.c
     Musashi/m68kops.c
     Musashi/m68kdasm.c
