@@ -6,8 +6,6 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -ggdb -Og")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ggdb -Og")
-Set(Boost_INSTALL_DIR /opt/homebrew/Cellar/boost/1.80.0)
-Set(Boost_INCLUDE_DIR /opt/homebrew/Cellar/boost/1.80.0/include)
 set(Boost_USE_STATIC_LIBS ON)
 find_package(Boost REQUIRED)
 
