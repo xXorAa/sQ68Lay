@@ -60,7 +60,7 @@ void q68ScreenInit(void)
 	w = 512;
 	h = 256;
 
-	std::set<std::string> desktops = {"x11", "cocoa", "windows", "wayland"};
+	std::set<std::string> desktops = {"x11", "cocoa", "windows", "wayland", "emscripten"};
 
 	if (desktops.contains(q68VideoDriver)) {
 		q68WindowMode = SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE;
