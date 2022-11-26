@@ -44,7 +44,7 @@ void q68ScreenInit(void)
 	int i, w, h;
 
 	auto q68VideoDriver = SDL_GetCurrentVideoDriver();
-	
+
 	SDL_DisplayMode q68Mode;
 	SDL_GetCurrentDisplayMode(0, &q68Mode);
 
@@ -55,7 +55,7 @@ void q68ScreenInit(void)
 		" yres " <<
 		q68Mode.h <<
 		std::endl;
-	
+
 	/* Ensure width and height are always initialised to sane values */
 	w = 512;
 	h = 256;
@@ -135,7 +135,7 @@ void q68UpdatePixelBuffer(uint8_t *q68ScreenPtr, int length, int mode)
 		SDL_LockSurface(q68Surface);
 	}
 
-	uint32_t *pixelPtr32 = (uint32_t *)q68Surface->pixels;
+	uint32_t *pixelPtr32 = (uint32_t *)q68Surface->pixels + 7;
 	uint8_t *q68ScreenPtrEnd = q68ScreenPtr + length;
 
 	while (q68ScreenPtr < q68ScreenPtrEnd) {
@@ -149,8 +149,8 @@ void q68UpdatePixelBuffer(uint8_t *q68ScreenPtr, int length, int mode)
 
 				uint32_t x = sdlColors[color];
 
-				*(pixelPtr32 + 7 - (i)) = x;
-				*(pixelPtr32 + 7 - (i + 1)) = x;
+				*pixelPtr32-- = x;
+				*pixelPtr32-- = x;
 
 				t1 >>= 2;
 				t2 >>= 2;
@@ -162,13 +162,13 @@ void q68UpdatePixelBuffer(uint8_t *q68ScreenPtr, int length, int mode)
 
 				uint32_t x = sdlColors[color];
 
-				*(pixelPtr32 + 7 - i) = x;
+				*pixelPtr32-- = x;
 
 				t1 >>= 1;
 				t2 >>= 1;
 			}
 		}
-		pixelPtr32 += 8;
+		pixelPtr32 += 16;
 	}
 
 	if (SDL_MUSTLOCK(q68Surface)) {

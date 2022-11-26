@@ -4,7 +4,6 @@
  * SPDX: GPL-2.0-only
  */
 
-#include <boost/endian/conversion.hpp>
 #include <cstdint>
 #include <filesystem>
 #include <fstream>
@@ -21,10 +20,12 @@
 namespace emulator {
 
 uint8_t *q68MemorySpace;
+uint8_t *q68ScreenSpace;
 
 void q68AllocateMemory()
 {
-    q68MemorySpace = new uint8_t[32_MiB];
+    q68MemorySpace = new uint8_t[q68_ram_size];
+    q68ScreenSpace = new uint8_t[q68_screen_size];
 }
 
 void q68LoadFile(std::string name, uint8_t *addr)
@@ -111,14 +112,17 @@ extern "C" {
             }
         }
 
+        if ((address >= emulator::q68_q40_io) &&
+            address < (emulator::q68_q40_io + emulator::q68_q40_io_size)) {
+            return emulator::q68_read_hw_8(address);
+        }
+
         return emulator::q68MemorySpace[address];
     }
 
+
     unsigned int m68k_read_memory_16(unsigned int address)
     {
-        if (address >= 32_MiB) {
-            return 0;
-        }
         if ((address >= emulator::q68_internal_io) &&
             address < (emulator::q68_internal_io + emulator::q68_internal_io_size)) {
             return emulator::q68_read_hw_16(address);
@@ -129,23 +133,29 @@ extern "C" {
             return emulator::q68_read_hw_16(address);
         }
 
-        return boost::endian::load_big_u16(&emulator::q68MemorySpace[address]);
+        if ((address >= emulator::q68_q40_io) &&
+            address < (emulator::q68_q40_io + emulator::q68_q40_io_size)) {
+            return emulator::q68_read_hw_16(address);
+        }
+
+        if (address >= emulator::q68_ram_size) {
+            return 0;
+        }
+
+        return SDL_SwapBE16(*(uint16_t *)&emulator::q68MemorySpace[address]);
     }
 
     unsigned int  m68k_read_disassembler_16(unsigned int address)
     {
-        if (address >= 32_MiB) {
+        if (address >= emulator::q68_ram_size) {
             return 0;
         }
 
-        return boost::endian::load_big_u16(&emulator::q68MemorySpace[address]);
+        return SDL_SwapBE16(*(uint16_t *)&emulator::q68MemorySpace[address]);
     }
 
     unsigned int m68k_read_memory_32(unsigned int address)
     {
-        if (address >= 32_MiB) {
-            return 0;
-        }
         if ((address >= emulator::q68_internal_io) &&
             address < (emulator::q68_internal_io + emulator::q68_internal_io_size)) {
             return emulator::q68_read_hw_32(address);
@@ -155,8 +165,16 @@ extern "C" {
             address < (emulator::q68_external_io + emulator::q68_external_io_size)) {
             return emulator::q68_read_hw_32(address);
         }
+        if ((address >= emulator::q68_q40_io) &&
+            address < (emulator::q68_q40_io + emulator::q68_q40_io_size)) {
+            return emulator::q68_read_hw_16(address);
+        }
 
-        return boost::endian::load_big_u32(&emulator::q68MemorySpace[address]);
+        if (address >= emulator::q68_ram_size) {
+            return 0;
+        }
+
+        return SDL_SwapBE32(*(uint32_t *)&emulator::q68MemorySpace[address]);
     }
 
     unsigned int m68k_read_disassembler_32(unsigned int address)
@@ -165,15 +183,11 @@ extern "C" {
             return 0;
         }
 
-        return boost::endian::load_big_u32(&emulator::q68MemorySpace[address]);
+        return SDL_SwapBE32(*(uint32_t *)&emulator::q68MemorySpace[address]);
     }
 
     void m68k_write_memory_8(unsigned int address, unsigned int value)
     {
-        if (address >= 32_MiB) {
-            return;
-        }
-
         if ((address >= emulator::q68_internal_io) &&
             address < (emulator::q68_internal_io + emulator::q68_internal_io_size)) {
             emulator::q68_write_hw_8(address, value);
@@ -187,6 +201,16 @@ extern "C" {
             if ((address < 0x1c300) || (address >0x1c358)) {
                 emulator::q68_write_hw_8(address, value);
             }
+            return;
+        }
+
+        if ((address >= emulator::q68_q40_io) &&
+            address < (emulator::q68_q40_io + emulator::q68_q40_io_size)) {
+            emulator::q68_write_hw_8(address, value);
+            return;
+        }
+
+        if (address >= emulator::q68_ram_size) {
             return;
         }
 
@@ -211,7 +235,17 @@ extern "C" {
             return;
         }
 
-        boost::endian::store_big_u16(&emulator::q68MemorySpace[address], value);
+        if ((address >= emulator::q68_q40_io) &&
+            address < (emulator::q68_q40_io + emulator::q68_q40_io_size)) {
+            emulator::q68_write_hw_16(address, value);
+            return;
+        }
+
+        if (address >= emulator::q68_ram_size) {
+            return;
+        }
+
+        *(uint16_t *)&emulator::q68MemorySpace[address] = SDL_SwapBE16(value);
     }
 
     void m68k_write_memory_32(unsigned int address, unsigned int value)
@@ -232,7 +266,17 @@ extern "C" {
             return;
         }
 
-        boost::endian::store_big_u32(&emulator::q68MemorySpace[address], value);
+        if ((address >= emulator::q68_q40_io) &&
+            address < (emulator::q68_q40_io + emulator::q68_q40_io_size)) {
+            emulator::q68_write_hw_32(address, value);
+            return;
+        }
+
+        if (address >= emulator::q68_ram_size) {
+            return;
+        }
+
+        *(uint32_t *)&emulator::q68MemorySpace[address] = SDL_SwapBE32(value);
     }
 
 }
