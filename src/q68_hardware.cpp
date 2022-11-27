@@ -14,7 +14,9 @@ namespace emulator {
 
 // ghost irq registers
 uint8_t q68_pc_intr = 0;
+uint8_t q68_mc_stat = 0;
 uint8_t q68_kbd_status = kbd_isint; // interrupt driven kbd
+uint8_t q68_q68_dmode = 0;
 
 static int key_hack_idx = 0;
 
@@ -41,6 +43,8 @@ unsigned int q68_read_hw_8(unsigned int addr)
             return kcode;
         case kbd_status:
             return q68_kbd_status;
+        case q68_dmode:
+            return q68_q68_dmode;
         default:
             break;
     }
@@ -69,6 +73,9 @@ void q68_write_hw_8(unsigned int addr, unsigned int val)
         case pc_intr:
             q68_pc_intr &= ~val;
             return;
+        case mc_stat:
+            q68_mc_stat = val;
+            return;
         case kbd_code:
             return;
         case kbd_unlock:
@@ -84,6 +91,9 @@ void q68_write_hw_8(unsigned int addr, unsigned int val)
                 }
             }
             SDL_AtomicUnlock(&q68_kbd_lock);
+            return;
+        case q68_dmode:
+            q68_q68_dmode = val;
             return;
         default:
             break;

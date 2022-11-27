@@ -108,8 +108,7 @@ extern "C" {
             }
         }
 
-        if ((address >= emulator::q68_q40_io) &&
-            address < (emulator::q68_q40_io + emulator::q68_q40_io_size)) {
+        if (address >= emulator::q68_q40_io) {
             return emulator::q68_read_hw_8(address);
         }
 
@@ -134,8 +133,7 @@ extern "C" {
             return emulator::q68_read_hw_16(address);
         }
 
-        if ((address >= emulator::q68_q40_io) &&
-            address < (emulator::q68_q40_io + emulator::q68_q40_io_size)) {
+        if (address >= emulator::q68_q40_io) {
             return emulator::q68_read_hw_16(address);
         }
 
@@ -166,8 +164,8 @@ extern "C" {
             address < (emulator::q68_external_io + emulator::q68_external_io_size)) {
             return emulator::q68_read_hw_32(address);
         }
-        if ((address >= emulator::q68_q40_io) &&
-            address < (emulator::q68_q40_io + emulator::q68_q40_io_size)) {
+
+        if (address >= emulator::q68_q40_io) {
             return emulator::q68_read_hw_16(address);
         }
 
@@ -205,8 +203,7 @@ extern "C" {
             return;
         }
 
-        if ((address >= emulator::q68_q40_io) &&
-            address < (emulator::q68_q40_io + emulator::q68_q40_io_size)) {
+        if (address >= emulator::q68_q40_io) {
             emulator::q68_write_hw_8(address, value);
             return;
         }
@@ -232,8 +229,7 @@ extern "C" {
             return;
         }
 
-        if ((address >= emulator::q68_q40_io) &&
-            address < (emulator::q68_q40_io + emulator::q68_q40_io_size)) {
+        if (address >= emulator::q68_q40_io) {
             emulator::q68_write_hw_16(address, value);
             return;
         }
@@ -259,8 +255,7 @@ extern "C" {
             return;
         }
 
-        if ((address >= emulator::q68_q40_io) &&
-            address < (emulator::q68_q40_io + emulator::q68_q40_io_size)) {
+        if (address >= emulator::q68_q40_io) {
             emulator::q68_write_hw_32(address, value);
             return;
         }

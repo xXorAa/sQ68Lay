@@ -9,6 +9,7 @@
 
 #include <SDL.h>
 
+#include "q68_hardware.hpp"
 #include "q68_screen.hpp"
 
 namespace emulator {
@@ -142,7 +143,8 @@ void q68UpdatePixelBuffer(uint8_t *q68ScreenPtr, int length, int mode)
 		int t1 = *q68ScreenPtr++;
 		int t2 = *q68ScreenPtr++;
 
-		if (mode == 8) {
+		switch (mode) {
+		case 0:
 			for (int i = 0; i < 8; i += 2) {
 				int color = ((t1 & 2) << 1) + ((t2 & 3)) +
 					((t1 & 1) << 3);
@@ -155,7 +157,8 @@ void q68UpdatePixelBuffer(uint8_t *q68ScreenPtr, int length, int mode)
 				t1 >>= 2;
 				t2 >>= 2;
 			}
-		} else {
+			break;
+		case 1:
 			for (int i = 0; i < 8; i++) {
 				int color = ((t1 & 1) << 2) + ((t2 & 1) << 1) +
 					((t1 & 1) & (t2 & 1));
@@ -167,6 +170,9 @@ void q68UpdatePixelBuffer(uint8_t *q68ScreenPtr, int length, int mode)
 				t1 >>= 1;
 				t2 >>= 1;
 			}
+			break;
+		default:
+			std::cerr << "Unsuported Mode: " << (int)emulator::q68_q68_dmode << std::endl;
 		}
 		pixelPtr32 += 16;
 	}

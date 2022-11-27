@@ -12,6 +12,7 @@
 
 #include "q68_emulator.hpp"
 #include "q68_events.hpp"
+#include "q68_hardware.hpp"
 #include "q68_memory.hpp"
 #include "q68_screen.hpp"
 
@@ -19,7 +20,7 @@ extern "C" {
 
     void renderTick() {
         if (emulator::q68RenderScreenFlag) {
-            emulator::q68UpdatePixelBuffer(emulator::q68MemorySpace + 0x20000, 0x8000, 4);
+            emulator::q68UpdatePixelBuffer(emulator::q68MemorySpace + 0x20000, 0x8000, emulator::q68_q68_dmode);
             emulator::q68RenderScreen();
             emulator::q68RenderScreenFlag = false;
         }
@@ -31,9 +32,9 @@ extern "C" {
 int main(int argc, char **argv)
 {
 #if __EMSCRIPTEN__
-    int ret = SDL_Init(SDL_INIT_EVERYTHING & ~(SDL_INIT_TIMER | SDL_INIT_HAPTIC)); 
+    int ret = SDL_Init(SDL_INIT_EVERYTHING & ~(SDL_INIT_TIMER | SDL_INIT_HAPTIC));
 #else
-    int ret = SDL_Init(SDL_INIT_EVERYTHING); 
+    int ret = SDL_Init(SDL_INIT_EVERYTHING);
 #endif
     if ( ret < 0) {
 		printf("SDL_Init Error: %s\n", SDL_GetError());
