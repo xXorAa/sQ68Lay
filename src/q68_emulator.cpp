@@ -51,7 +51,7 @@ int q68MainLoop(void *ptr)
 {
     q68LoadFile("Q68_SMSQ.bin", q68MemorySpace + 0x320000);
 
-    m68k_set_cpu_type(M68K_CPU_TYPE_68000);
+    m68k_set_cpu_type(M68K_CPU_TYPE_68000_TG68K);
     m68k_init();
     m68k_pulse_reset();
     m68k_set_reg(M68K_REG_PC, 0x320000);
@@ -94,10 +94,6 @@ extern "C" {
 
     unsigned int m68k_read_memory_8(unsigned int address)
     {
-        if (address >= 32_MiB) {
-            return 0;
-        }
-
         if ((address >= emulator::q68_internal_io) &&
             address < (emulator::q68_internal_io + emulator::q68_internal_io_size)) {
             return emulator::q68_read_hw_8(address);
@@ -116,6 +112,11 @@ extern "C" {
             address < (emulator::q68_q40_io + emulator::q68_q40_io_size)) {
             return emulator::q68_read_hw_8(address);
         }
+
+        if (address >= emulator::q68_ram_size) {
+            return 0;
+        }
+
 
         return emulator::q68MemorySpace[address];
     }
@@ -219,10 +220,6 @@ extern "C" {
 
     void m68k_write_memory_16(unsigned int address, unsigned int value)
     {
-        if (address >= 32_MiB) {
-            return;
-        }
-
         if ((address >= emulator::q68_internal_io) &&
             address < (emulator::q68_internal_io + emulator::q68_internal_io_size)) {
             emulator::q68_write_hw_16(address, value);
@@ -250,10 +247,6 @@ extern "C" {
 
     void m68k_write_memory_32(unsigned int address, unsigned int value)
     {
-        if (address >= 32_MiB) {
-            return;
-        }
-
         if ((address >= emulator::q68_internal_io) &&
             address < (emulator::q68_internal_io + emulator::q68_internal_io_size)) {
             emulator::q68_write_hw_32(address, value);
@@ -278,5 +271,4 @@ extern "C" {
 
         *(uint32_t *)&emulator::q68MemorySpace[address] = SDL_SwapBE32(value);
     }
-
 }
