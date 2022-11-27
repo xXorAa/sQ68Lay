@@ -77,6 +77,10 @@ void q68ScreenInit(int q68Mode)
 	q68DestRect.w = xRes;
 	q68DestRect.h = yRes;
 
+	SDL_SetHint(SDL_HINT_GRAB_KEYBOARD, "1");
+	SDL_SetHint(SDL_HINT_VIDEO_MINIMIZE_ON_FOCUS_LOSS, "0");
+	SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "1");
+
 	auto q68VideoDriver = SDL_GetCurrentVideoDriver();
 
 	SDL_DisplayMode q68DisplayMode;
@@ -144,10 +148,6 @@ void q68ScreenInit(int q68Mode)
 			throw std::runtime_error("Failed to Create Texture");
 		}
 	}
-
-	SDL_SetHint(SDL_HINT_GRAB_KEYBOARD, "1");
-	SDL_SetHint(SDL_HINT_VIDEO_MINIMIZE_ON_FOCUS_LOSS, "0");
-	SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "1");
 
 	for (int i = 0; i < 16; i++) {
 		sdlColors[i] = SDL_MapRGB(q68Modes[q68Mode].surface->format,
