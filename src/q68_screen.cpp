@@ -22,9 +22,9 @@ struct qlColor {
 };
 
 struct qlColor qlColors[16] = {
-	{ 0x00, 0x00, 0x00 }, { 0x00, 0x00, 0xFF }, { 0xFF, 0x00, 0x00 },
-	{ 0xFF, 0x00, 0xFF }, { 0x00, 0xFF, 0x00 }, { 0x00, 0xFF, 0xFF },
-	{ 0xFF, 0xFF, 0x00 }, { 0xFF, 0xFF, 0xFF },
+	{ 0x00, 0x00, 0x00 }, { 0x00, 0x00, 0xF8 }, { 0xF8, 0x00, 0x00 },
+	{ 0xF8, 0x00, 0xF8 }, { 0x00, 0xF8, 0x00 }, { 0x00, 0xF8, 0xF8 },
+	{ 0xF8, 0xF8, 0x00 }, { 0xF8, 0xF8, 0xF8 },
 	{ 0x3f, 0x3f, 0x3f }, { 0x00, 0x00, 0x7f }, { 0x7f, 0x00, 0x00 },
 	{ 0x7f, 0x00, 0x7f }, { 0x00, 0x7f, 0x00 }, { 0x00, 0x7f, 0x7f },
 	{ 0x7f, 0x7f, 0x00 }, { 0x7f, 0x7f, 0x7f },
@@ -49,14 +49,14 @@ struct q68Mode {
 };
 
 struct q68Mode q68Modes[8] = {
-{ 0x00020000, 32_KiB, 512, 256  },      // ql mode 8                0
-{ 0x00020000, 32_KiB, 512, 256  },      // ql mode 4                1
-{ 0xFE800000, 1_MiB, 512, 256    },      // small 16 bit screen      2
-{ 0xFE800000, 2_MiB, 1024, 512   },      // large 16 bit screen      3
+{ 0x00020000, 32_KiB, 512, 256   },      // ql mode 8                0
+{ 0x00020000, 32_KiB, 512, 256   },      // ql mode 4                1
+{ 0xFE800000, 256_KiB, 512, 256  },      // small 16 bit screen      2
+{ 0xFE800000, 1_MiB, 1024, 512   },      // large 16 bit screen      3
 { 0xFE800000, 192_KiB, 1024, 768 },      // large QL Mode 4 screen   4
-{ 0xFE800000, 1_MiB, 1024, 768   },      // auora 8 bit              5
-{ 0xFE800000, 1_MiB, 512, 384    },      // medium 16 bit screen     6
-{ 0xFE800000, 2_MiB, 1024, 768   }       // huge 16 bit              7
+{ 0xFE800000, 512_KiB, 1024, 768 },      // auora 8 bit              5
+{ 0xFE800000, 384_KiB, 512, 384    },      // medium 16 bit screen     6
+{ 0xFE800000, 1_MiB + 512_KiB, 1024, 768   }       // huge 16 bit              7
 };
 
 void q68CreateSurface(int xRes, int yRes)
@@ -162,27 +162,9 @@ void q68ScreenChangeMode(int q68Mode)
 	q68CurrentMode = q68Mode;
 }
 
-void q68UpdatePixelBuffer()
+void q68UpdatePixelBufferQL(uint8_t *q68ScreenPtr, uint8_t *q68ScreenPtrEnd)
 {
-	if (SDL_MUSTLOCK(q68Modes[q68CurrentMode].surface)) {
-		SDL_LockSurface(q68Modes[q68CurrentMode].surface);
-	}
-
 	uint32_t *pixelPtr32 = (uint32_t *)q68Modes[q68CurrentMode].surface->pixels + 7;
-	uint8_t *q68ScreenPtr;
-	uint8_t *q68ScreenPtrEnd;
-
-	switch (q68CurrentMode) {
-	case 0:
-	case 1:
-		q68ScreenPtr = q68MemorySpace + q68Modes[q68CurrentMode].base;
-		q68ScreenPtrEnd = q68ScreenPtr + q68Modes[q68CurrentMode].size;
-		break;
-	case 4:
-		q68ScreenPtr = q68ScreenSpace;
-		q68ScreenPtrEnd = q68ScreenPtr + q68Modes[q68CurrentMode].size;
-		break;
-	}
 
 	while (q68ScreenPtr < q68ScreenPtrEnd) {
 		int t1 = *q68ScreenPtr++;
@@ -221,6 +203,99 @@ void q68UpdatePixelBuffer()
 			std::cerr << "Unsuported Mode: " << (int)emulator::q68_q68_dmode << std::endl;
 		}
 		pixelPtr32 += 16;
+	}
+
+}
+
+void q68UpdatePixelBuffer33(uint16_t *q68ScreenPtr, uint16_t *q68ScreenPtrEnd)
+{
+	uint32_t *pixelPtr32 = (uint32_t *)q68Modes[q68CurrentMode].surface->pixels;
+
+	while (q68ScreenPtr < q68ScreenPtrEnd) {
+		uint16_t pixel16 = SDL_SwapBE16(*q68ScreenPtr++);
+
+		// red
+		uint8_t red = (pixel16 & 0x07C0) >> 3;
+
+		// green
+		uint8_t green = (pixel16 & 0xF800) >> 8;
+
+		// blue
+		uint8_t blue = (pixel16 & 0x003E) << 2;
+
+		uint32_t pixel32 = SDL_MapRGB(q68Modes[q68CurrentMode].surface->format, red, green, blue);
+
+		*pixelPtr32++ = pixel32;
+	}
+}
+
+void q68UpdatePixelBufferAurora(uint8_t *q68ScreenPtr, uint8_t *q68ScreenPtrEnd)
+{
+	uint32_t *pixelPtr32 = (uint32_t *)q68Modes[q68CurrentMode].surface->pixels;
+
+	while (q68ScreenPtr < q68ScreenPtrEnd) {
+		uint8_t pixel8 = *q68ScreenPtr++;
+
+		// red
+		uint8_t red = (pixel8 & (1 << 6)) >> 4;
+		red |= pixel8 & (1 << 3) >> 2;
+		red |= pixel8 & 1;
+		red *= 35;
+
+		// green
+		uint8_t green = (pixel8 & (1 << 7)) >> 5;
+		green |= (pixel8 & (1 << 4)) >> 3;
+		green |= (pixel8 & (1 << 1)) >> 1;
+		green *= 35;
+
+		// blue
+		uint8_t blue = (pixel8 & (1 << 5)) >> 3;
+		blue |= (pixel8 & (1 << 2)) >> 1;
+		blue |= pixel8 & 1;
+		blue *= 35;
+
+		uint32_t pixel32 = SDL_MapRGB(q68Modes[q68CurrentMode].surface->format, red, green, blue);
+
+		*pixelPtr32++ = pixel32;
+	}
+}
+
+void q68UpdatePixelBuffer()
+{
+	if (SDL_MUSTLOCK(q68Modes[q68CurrentMode].surface)) {
+		SDL_LockSurface(q68Modes[q68CurrentMode].surface);
+	}
+
+	uint8_t *q68ScreenPtr;
+	uint8_t *q68ScreenPtrEnd;
+
+	switch (q68CurrentMode) {
+	case 0:
+	case 1:
+		q68ScreenPtr = q68MemorySpace + q68Modes[q68CurrentMode].base;
+		q68ScreenPtrEnd = q68ScreenPtr + q68Modes[q68CurrentMode].size;
+		q68UpdatePixelBufferQL(q68ScreenPtr, q68ScreenPtrEnd);
+		break;
+	case 2:
+	case 3:
+	case 6:
+	case 7:
+		q68ScreenPtr = q68ScreenSpace;
+		q68ScreenPtrEnd = q68ScreenPtr + q68Modes[q68CurrentMode].size;
+		q68UpdatePixelBuffer33((uint16_t *)q68ScreenPtr, (uint16_t *)q68ScreenPtrEnd);
+		break;
+	case 4:
+		q68ScreenPtr = q68ScreenSpace;
+		q68ScreenPtrEnd = q68ScreenPtr + q68Modes[q68CurrentMode].size;
+		q68UpdatePixelBufferQL(q68ScreenPtr, q68ScreenPtrEnd);
+		break;
+	case 5:
+		q68ScreenPtr = q68ScreenSpace;
+		q68ScreenPtrEnd = q68ScreenPtr + q68Modes[q68CurrentMode].size;
+		q68UpdatePixelBufferAurora(q68ScreenPtr, q68ScreenPtrEnd);
+		break;
+	default:
+		std::cerr << "Unsupported Screen Mode" << std::endl;
 	}
 
 	if (SDL_MUSTLOCK(q68Modes[q68CurrentMode].surface)) {
