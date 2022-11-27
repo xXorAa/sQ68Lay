@@ -159,20 +159,6 @@ void q68ScreenInit(int q68Mode)
 
 void q68ScreenChangeMode(int q68Mode)
 {
-	/*int w = q68Modes[q68Mode].xRes;
-	int h = q68Modes[q68Mode].yRes;
-	int ow = q68Modes[q68CurrentMode].xRes;
-	int oh = q68Modes[q68CurrentMode].yRes;
-
-	std::cout << "ChangeScreenMode: " << w << "x" << h << std::endl;
-
-	if ((h != oh) || (w != ow)) {
-		//q68DeleteSurface();
-		//SDL_SetWindowSize(q68Window, w, h);
-		SDL_Init(SDL_INIT_VIDEO);
-		q68CreateSurface(w, h);
-	}*/
-
 	q68CurrentMode = q68Mode;
 }
 
