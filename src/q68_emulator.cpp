@@ -108,6 +108,12 @@ extern "C" {
             }
         }
 
+        if ((address >= emulator::q68_screen) &&
+            address < (emulator::q68_screen + emulator::q68_screen_size)) {
+
+            return emulator::q68ScreenSpace[address - emulator::q68_screen];
+        }
+
         if (address >= emulator::q68_q40_io) {
             return emulator::q68_read_hw_8(address);
         }
@@ -116,10 +122,8 @@ extern "C" {
             return 0;
         }
 
-
         return emulator::q68MemorySpace[address];
     }
-
 
     unsigned int m68k_read_memory_16(unsigned int address)
     {
@@ -135,6 +139,12 @@ extern "C" {
 
         if (address >= emulator::q68_q40_io) {
             return emulator::q68_read_hw_16(address);
+        }
+
+        if ((address >= emulator::q68_screen) &&
+            address < (emulator::q68_screen + emulator::q68_screen_size)) {
+
+            return SDL_SwapBE16(*(uint16_t *)&emulator::q68ScreenSpace[address - emulator::q68_screen]);
         }
 
         if (address >= emulator::q68_ram_size) {
@@ -163,6 +173,12 @@ extern "C" {
         if ((address >= emulator::q68_external_io) &&
             address < (emulator::q68_external_io + emulator::q68_external_io_size)) {
             return emulator::q68_read_hw_32(address);
+        }
+
+        if ((address >= emulator::q68_screen) &&
+            address < (emulator::q68_screen + emulator::q68_screen_size)) {
+
+            return SDL_SwapBE32(*(uint32_t *)&emulator::q68ScreenSpace[address - emulator::q68_screen]);
         }
 
         if (address >= emulator::q68_q40_io) {
@@ -203,6 +219,13 @@ extern "C" {
             return;
         }
 
+        if ((address >= emulator::q68_screen) &&
+            address < (emulator::q68_screen + emulator::q68_screen_size)) {
+
+            emulator::q68ScreenSpace[address - emulator::q68_screen] = value;
+            return;
+        }
+
         if (address >= emulator::q68_q40_io) {
             emulator::q68_write_hw_8(address, value);
             return;
@@ -229,6 +252,13 @@ extern "C" {
             return;
         }
 
+        if ((address >= emulator::q68_screen) &&
+            address < (emulator::q68_screen + emulator::q68_screen_size)) {
+
+            *(uint16_t *)&emulator::q68ScreenSpace[address - emulator::q68_screen] = SDL_SwapBE16(value);
+            return;
+        }
+
         if (address >= emulator::q68_q40_io) {
             emulator::q68_write_hw_16(address, value);
             return;
@@ -252,6 +282,13 @@ extern "C" {
         if ((address >= emulator::q68_external_io) &&
             address < (emulator::q68_external_io + emulator::q68_external_io_size)) {
             emulator::q68_write_hw_32(address, value);
+            return;
+        }
+
+        if ((address >= emulator::q68_screen) &&
+            address < (emulator::q68_screen + emulator::q68_screen_size)) {
+
+            *(uint32_t *)&emulator::q68ScreenSpace[address - emulator::q68_screen] = SDL_SwapBE32(value);
             return;
         }
 

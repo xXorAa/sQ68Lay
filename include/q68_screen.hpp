@@ -8,8 +8,9 @@ namespace emulator {
 
 extern bool q68RenderScreenFlag;
 
-void q68ScreenInit(void);
-void q68UpdatePixelBuffer(uint8_t *q68ScreenPtr, int length, int mode);
+void q68ScreenInit(int q68Mode);
+void q68UpdatePixelBuffer();
 void q68RenderScreen(void);
+void q68ScreenChangeMode(int q68Mode);
 
 }

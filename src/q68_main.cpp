@@ -20,7 +20,7 @@ extern "C" {
 
     void renderTick() {
         if (emulator::q68RenderScreenFlag) {
-            emulator::q68UpdatePixelBuffer(emulator::q68MemorySpace + 0x20000, 0x8000, emulator::q68_q68_dmode);
+            emulator::q68UpdatePixelBuffer();
             emulator::q68RenderScreen();
             emulator::q68RenderScreenFlag = false;
         }
@@ -42,7 +42,7 @@ int main(int argc, char **argv)
 	}
 
     emulator::q68AllocateMemory();
-    emulator::q68ScreenInit();
+    emulator::q68ScreenInit(1);
 
     SDL_Thread *thread = SDL_CreateThread(emulator::q68MainLoop, "sQ68ux Emu Thread", NULL);
 #if __EMSCRIPTEN__

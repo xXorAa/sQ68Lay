@@ -9,6 +9,7 @@
 #include <SDL.h>
 
 #include "q68_hardware.hpp"
+#include "q68_screen.hpp"
 
 namespace emulator {
 
@@ -30,7 +31,7 @@ unsigned int q68_read_hw_8(unsigned int addr)
 {
     int kcode = 0;
 
-    std::cout << "HWR8: " << std::hex << addr << std::endl;
+    //std::cout << "HWR8: " << std::hex << addr << std::endl;
     switch (addr) {
         case pc_intr:
             return q68_pc_intr;
@@ -54,21 +55,21 @@ unsigned int q68_read_hw_8(unsigned int addr)
 
 unsigned int q68_read_hw_16(unsigned int addr)
 {
-    std::cout << "HWR16: " << std::hex << addr << std::endl;
+    //std::cout << "HWR16: " << std::hex << addr << std::endl;
 
     return 0;
 }
 
 unsigned int q68_read_hw_32(unsigned int addr)
 {
-    std::cout << "HWR32: " << std::hex << addr << std::endl;
+    //std::cout << "HWR32: " << std::hex << addr << std::endl;
 
     return 0;
 }
 
 void q68_write_hw_8(unsigned int addr, unsigned int val)
 {
-    std::cout << "HWW8: " << std::hex << addr << "," << val << std::endl;
+    //std::cout << "HWW8: " << std::hex << addr << "," << val << std::endl;
     switch (addr) {
         case pc_intr:
             q68_pc_intr &= ~val;
@@ -94,6 +95,7 @@ void q68_write_hw_8(unsigned int addr, unsigned int val)
             return;
         case q68_dmode:
             q68_q68_dmode = val;
+            q68ScreenChangeMode(val & 7);
             return;
         default:
             break;
@@ -102,12 +104,12 @@ void q68_write_hw_8(unsigned int addr, unsigned int val)
 
 void q68_write_hw_16(unsigned int addr, unsigned int val)
 {
-    std::cout << "HWW16: " << std::hex << addr << "," << val << std::endl;
+    //std::cout << "HWW16: " << std::hex << addr << "," << val << std::endl;
 }
 
 void q68_write_hw_32(unsigned int addr, unsigned int val)
 {
-    std::cout << "HWW32: " << std::hex << addr << "," << val << std::endl;
+    //std::cout << "HWW32: " << std::hex << addr << "," << val << std::endl;
 }
 
 } // namespace emulator

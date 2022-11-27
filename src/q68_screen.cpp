@@ -10,6 +10,7 @@
 #include <SDL.h>
 
 #include "q68_hardware.hpp"
+#include "q68_memory.hpp"
 #include "q68_screen.hpp"
 
 namespace emulator {
@@ -32,36 +33,66 @@ struct qlColor qlColors[16] = {
 SDL_Window *q68Window;
 Uint32 q68WindowId;
 SDL_Renderer *q68Renderer;
-SDL_Surface *q68Surface;
-SDL_Texture *q68Texture;
 Uint32 sdlColors[16];
 SDL_Rect q68DestRect;
 int q68Fullscreen = 0;
 bool q68RenderScreenFlag = false;
+int q68CurrentMode;
 
-void q68ScreenInit(void)
+struct q68Mode {
+	uint32_t base;
+	uint32_t size;
+	int xRes;
+	int yRes;
+	SDL_Surface *surface;
+	SDL_Texture *texture;
+};
+
+struct q68Mode q68Modes[8] = {
+{ 0x00020000, 32_KiB, 512, 256  },      // ql mode 8                0
+{ 0x00020000, 32_KiB, 512, 256  },      // ql mode 4                1
+{ 0xFE800000, 1_MiB, 512, 256    },      // small 16 bit screen      2
+{ 0xFE800000, 2_MiB, 1024, 512   },      // large 16 bit screen      3
+{ 0xFE800000, 192_KiB, 1024, 768 },      // large QL Mode 4 screen   4
+{ 0xFE800000, 1_MiB, 1024, 768   },      // auora 8 bit              5
+{ 0xFE800000, 1_MiB, 512, 384    },      // medium 16 bit screen     6
+{ 0xFE800000, 2_MiB, 1024, 768   }       // huge 16 bit              7
+};
+
+void q68CreateSurface(int xRes, int yRes)
 {
-	Uint32 q68WindowMode;
-	int i, w, h;
+	std::cout << "CreateSurface " << xRes << " " << yRes << std::endl;
+
+}
+
+void q68ScreenInit(int q68Mode)
+{
+	q68CurrentMode = q68Mode;
+
+	// Fixed screen res for Q68 output
+	int xRes = 1024;
+	int yRes = 768;
+
+	q68DestRect.x = q68DestRect.y = 0;
+	q68DestRect.w = xRes;
+	q68DestRect.h = yRes;
 
 	auto q68VideoDriver = SDL_GetCurrentVideoDriver();
 
-	SDL_DisplayMode q68Mode;
-	SDL_GetCurrentDisplayMode(0, &q68Mode);
+	SDL_DisplayMode q68DisplayMode;
+	SDL_GetCurrentDisplayMode(0, &q68DisplayMode);
 
 	std::cout << "Video Driver " <<
 		q68VideoDriver <<
 		" xres " <<
-		q68Mode.w <<
+		q68DisplayMode.w <<
 		" yres " <<
-		q68Mode.h <<
+		q68DisplayMode.h <<
 		std::endl;
 
-	/* Ensure width and height are always initialised to sane values */
-	w = 512;
-	h = 256;
-
 	std::set<std::string> desktops = {"x11", "cocoa", "windows", "wayland", "emscripten"};
+
+	Uint32 q68WindowMode;
 
 	if (desktops.contains(q68VideoDriver)) {
 		q68WindowMode = SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE;
@@ -74,15 +105,13 @@ void q68ScreenInit(void)
 	q68Window = SDL_CreateWindow("sQ68ux",
 		SDL_WINDOWPOS_CENTERED,
 		SDL_WINDOWPOS_CENTERED,
-		w,
-		h,
+		xRes,
+		yRes,
 		q68WindowMode);
 
 	if (q68Window == NULL) {
 		throw std::runtime_error("Failed to Create Window");
 	}
-
-	q68WindowId = SDL_GetWindowID(q68Window);
 
 	q68Renderer = SDL_CreateRenderer(q68Window,
 		-1,
@@ -92,58 +121,88 @@ void q68ScreenInit(void)
 		throw std::runtime_error("Failed to Create Renderer");
 	}
 
-	SDL_RenderSetLogicalSize(q68Renderer, w, h);
+	SDL_RenderSetLogicalSize(q68Renderer, xRes, yRes);
 
-	q68DestRect.x = q68DestRect.y = 0;
-	q68DestRect.w = w;
-	q68DestRect.h = h;
+	for (int i = 0; i < 8; i++) {
+		q68Modes[i].surface = SDL_CreateRGBSurfaceWithFormat(0,
+			q68Modes[i].xRes,
+			q68Modes[i].yRes,
+			32,
+			SDL_PIXELFORMAT_RGBA32);
+
+		if (q68Modes[i].surface == NULL) {
+			throw std::runtime_error("Failed to Create Screen");
+		}
+
+		q68Modes[i].texture = SDL_CreateTexture(q68Renderer,
+			SDL_PIXELFORMAT_RGBA32,
+			SDL_TEXTUREACCESS_STREAMING,
+			q68Modes[i].xRes,
+			q68Modes[i].yRes);
+
+		if (q68Modes[i].texture == NULL) {
+			throw std::runtime_error("Failed to Create Texture");
+		}
+	}
 
 	SDL_SetHint(SDL_HINT_GRAB_KEYBOARD, "1");
 	SDL_SetHint(SDL_HINT_VIDEO_MINIMIZE_ON_FOCUS_LOSS, "0");
 	SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "1");
 
-	q68Surface = SDL_CreateRGBSurfaceWithFormat(0,
-		w,
-		h,
-		32,
-		SDL_PIXELFORMAT_RGBA32);
-
-	if (q68Surface == NULL) {
-		throw std::runtime_error("Failed to Create Screen");
-	}
-
-	q68Texture = SDL_CreateTexture(q68Renderer,
-		SDL_PIXELFORMAT_RGBA32,
-		SDL_TEXTUREACCESS_STREAMING,
-		w,
-		h);
-
-	if (q68Texture == NULL) {
-		throw std::runtime_error("Failed to Create Texture");
-	}
-
-	for (i = 0; i < 16; i++) {
-		sdlColors[i] = SDL_MapRGB(q68Surface->format,
+	for (int i = 0; i < 16; i++) {
+		sdlColors[i] = SDL_MapRGB(q68Modes[q68Mode].surface->format,
 			qlColors[i].r,
 			qlColors[i].g,
 			qlColors[i].b);
 	}
 }
 
-void q68UpdatePixelBuffer(uint8_t *q68ScreenPtr, int length, int mode)
+void q68ScreenChangeMode(int q68Mode)
 {
-	if (SDL_MUSTLOCK(q68Surface)) {
-		SDL_LockSurface(q68Surface);
+	/*int w = q68Modes[q68Mode].xRes;
+	int h = q68Modes[q68Mode].yRes;
+	int ow = q68Modes[q68CurrentMode].xRes;
+	int oh = q68Modes[q68CurrentMode].yRes;
+
+	std::cout << "ChangeScreenMode: " << w << "x" << h << std::endl;
+
+	if ((h != oh) || (w != ow)) {
+		//q68DeleteSurface();
+		//SDL_SetWindowSize(q68Window, w, h);
+		SDL_Init(SDL_INIT_VIDEO);
+		q68CreateSurface(w, h);
+	}*/
+
+	q68CurrentMode = q68Mode;
+}
+
+void q68UpdatePixelBuffer()
+{
+	if (SDL_MUSTLOCK(q68Modes[q68CurrentMode].surface)) {
+		SDL_LockSurface(q68Modes[q68CurrentMode].surface);
 	}
 
-	uint32_t *pixelPtr32 = (uint32_t *)q68Surface->pixels + 7;
-	uint8_t *q68ScreenPtrEnd = q68ScreenPtr + length;
+	uint32_t *pixelPtr32 = (uint32_t *)q68Modes[q68CurrentMode].surface->pixels + 7;
+	uint8_t *q68ScreenPtr;
+	uint8_t *q68ScreenPtrEnd;
+
+	switch (q68CurrentMode) {
+	case 0:
+	case 1:
+		q68ScreenPtr = q68MemorySpace + q68Modes[q68CurrentMode].base;
+		q68ScreenPtrEnd = q68ScreenPtr + q68Modes[q68CurrentMode].size;
+		break;
+	case 4:
+		q68ScreenPtr = q68ScreenSpace;
+		q68ScreenPtrEnd = q68ScreenPtr + q68Modes[q68CurrentMode].size;
+		break;
+	}
 
 	while (q68ScreenPtr < q68ScreenPtrEnd) {
 		int t1 = *q68ScreenPtr++;
 		int t2 = *q68ScreenPtr++;
 
-		switch (mode) {
+		switch (q68CurrentMode) {
 		case 0:
 			for (int i = 0; i < 8; i += 2) {
 				int color = ((t1 & 2) << 1) + ((t2 & 3)) +
@@ -159,6 +218,7 @@ void q68UpdatePixelBuffer(uint8_t *q68ScreenPtr, int length, int mode)
 			}
 			break;
 		case 1:
+		case 4:
 			for (int i = 0; i < 8; i++) {
 				int color = ((t1 & 1) << 2) + ((t2 & 1) << 1) +
 					((t1 & 1) & (t2 & 1));
@@ -177,8 +237,8 @@ void q68UpdatePixelBuffer(uint8_t *q68ScreenPtr, int length, int mode)
 		pixelPtr32 += 16;
 	}
 
-	if (SDL_MUSTLOCK(q68Surface)) {
-		SDL_UnlockSurface(q68Surface);
+	if (SDL_MUSTLOCK(q68Modes[q68CurrentMode].surface)) {
+		SDL_UnlockSurface(q68Modes[q68CurrentMode].surface);
 	}
 }
 
@@ -189,18 +249,15 @@ void q68RenderScreen(void)
 	int w, h;
 	SDL_PixelFormat pixelformat;
 
-	SDL_UpdateTexture(q68Texture,
+	SDL_UpdateTexture(q68Modes[q68CurrentMode].texture,
 		NULL,
-		q68Surface->pixels,
-		q68Surface->pitch);
+		q68Modes[q68CurrentMode].surface->pixels,
+		q68Modes[q68CurrentMode].surface->pitch);
 	SDL_RenderClear(q68Renderer);
-	SDL_RenderCopyEx(q68Renderer,
-		q68Texture,
+	SDL_RenderCopy(q68Renderer,
+		q68Modes[q68CurrentMode].texture,
 		NULL,
-		&q68DestRect,
-		0,
-		NULL,
-		SDL_FLIP_NONE);
+		NULL);
 	SDL_RenderPresent(q68Renderer);
 }
 
