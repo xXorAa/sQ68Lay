@@ -49,14 +49,14 @@ struct q68Mode {
 };
 
 struct q68Mode q68Modes[8] = {
-{ 0x00020000, 32_KiB, 512, 256   },      // ql mode 8                0
-{ 0x00020000, 32_KiB, 512, 256   },      // ql mode 4                1
-{ 0xFE800000, 256_KiB, 512, 256  },      // small 16 bit screen      2
-{ 0xFE800000, 1_MiB, 1024, 512   },      // large 16 bit screen      3
-{ 0xFE800000, 192_KiB, 1024, 768 },      // large QL Mode 4 screen   4
-{ 0xFE800000, 512_KiB, 1024, 768 },      // auora 8 bit              5
-{ 0xFE800000, 384_KiB, 512, 384    },      // medium 16 bit screen     6
-{ 0xFE800000, 1_MiB + 512_KiB, 1024, 768   }       // huge 16 bit              7
+{ 0x00020000, 32_KiB, 512, 256           }, // ql mode 8              0
+{ 0x00020000, 32_KiB, 512, 256           }, // ql mode 4              1
+{ 0xFE800000, 256_KiB, 512, 256          }, // small 16 bit screen    2
+{ 0xFE800000, 1_MiB, 1024, 512           }, // large 16 bit screen    3
+{ 0xFE800000, 192_KiB, 1024, 768         }, // large QL Mode 4 screen 4
+{ 0xFE800000, 512_KiB, 1024, 768         }, // auora 8 bit            5
+{ 0xFE800000, 384_KiB, 512, 384          }, // medium 16 bit screen   6
+{ 0xFE800000, 1_MiB + 512_KiB, 1024, 768 }  // huge 16 bit            7
 };
 
 void q68CreateSurface(int xRes, int yRes)
