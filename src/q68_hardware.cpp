@@ -136,7 +136,7 @@ void q68_write_hw_8(unsigned int addr, unsigned int val)
             return;
         case mc_stat:
             q68_mc_stat = val;
-            q68ScreenChangeMode(val >> 3);
+            q68ScreenChangeMode(!(val >> 3));
             return;
 #ifdef Q68_EMU
         case kbd_code:

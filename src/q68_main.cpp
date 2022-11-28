@@ -10,6 +10,7 @@
 #include <emscripten/emscripten.h>
 #endif
 
+#include "emu_options.hpp"
 #include "q68_emulator.hpp"
 #include "q68_events.hpp"
 #include "q68_hardware.hpp"
@@ -31,6 +32,10 @@ extern "C" {
 
 int main(int argc, char **argv)
 {
+    if (!options::parse(argc, argv)) {
+        return 0;
+    }
+
 #if __EMSCRIPTEN__
     int ret = SDL_Init(SDL_INIT_EVERYTHING & ~(SDL_INIT_TIMER | SDL_INIT_HAPTIC));
 #else

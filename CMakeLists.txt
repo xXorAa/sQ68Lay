@@ -17,9 +17,10 @@ else()
     find_package(SDL2 REQUIRED)
 endif()
 
-include_directories(${CMAKE_CURRENT_LIST_DIR} include/ Musashi/ external/ ${SDL2_INCLUDE_DIRS} ${Boost_INCLUDE_DIRS})
+include_directories(${CMAKE_CURRENT_LIST_DIR} include/ Musashi/ CLI11/include/ external/ ${SDL2_INCLUDE_DIRS} ${Boost_INCLUDE_DIRS})
 
 add_executable(sq68ux
+    src/emu_options.cpp
     src/q68_main.cpp
     src/q68_emulator.cpp
     src/q68_events.cpp
@@ -35,6 +36,7 @@ add_executable(sq68ux
 target_compile_options(sq68ux PRIVATE "-DQ68_EMU")
 
 add_executable(sqlay3
+    src/emu_options.cpp
     src/q68_main.cpp
     src/q68_emulator.cpp
     src/q68_events.cpp

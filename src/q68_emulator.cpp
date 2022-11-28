@@ -5,6 +5,7 @@
  */
 
 #include <cstdint>
+#include <exception>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -12,6 +13,7 @@
 #include <string>
 
 #include "m68k.h"
+#include "emu_options.hpp"
 #include "q68_events.hpp"
 #include "q68_hardware.hpp"
 #include "q68_memory.hpp"
@@ -49,12 +51,32 @@ void q68LoadFile(std::string name, uint8_t *addr)
 
 int q68MainLoop(void *ptr)
 {
+    try {
+#ifdef Q68_EMU
     q68LoadFile("Q68_SMSQ.bin", q68MemorySpace + 0x320000);
+#endif
+#ifdef QLAY_EMU
+    q68LoadFile(options::sysrom, q68MemorySpace);
+#endif
+    } catch (std::exception &e) {
+        std::cerr << "Failed to load " << e.what() << std::endl;
+        return 0;
+    }
 
+#ifdef Q68_EMU
     m68k_set_cpu_type(M68K_CPU_TYPE_68000_TG68K);
+#endif
+#ifdef QLAY_EMU
+    m68k_set_cpu_type(M68K_CPU_TYPE_68000);
+#endif
     m68k_init();
     m68k_pulse_reset();
+#ifdef Q68_EMU
     m68k_set_reg(M68K_REG_PC, 0x320000);
+#endif
+#ifdef QLAY_EMU
+    //m68k_set_reg(M68K_REG_PC, 0);
+#endif
 
     uint64_t ticks = SDL_GetPerformanceFrequency() / 50;
     uint64_t then = SDL_GetPerformanceCounter();
@@ -98,7 +120,7 @@ extern "C" {
             address < (emulator::q68_internal_io + emulator::q68_internal_io_size)) {
             return emulator::q68_read_hw_8(address);
         }
-
+#ifdef Q68_EMU
         if ((address >= emulator::q68_external_io) &&
             address < (emulator::q68_external_io + emulator::q68_external_io_size)) {
 
@@ -121,7 +143,12 @@ extern "C" {
         if (address >= emulator::q68_ram_size) {
             return 0;
         }
-
+#endif
+#ifdef QLAY_EMU
+        if (address >= options::ramsize) {
+            return 0;
+        }
+#endif
         return emulator::q68MemorySpace[address];
     }
 
@@ -131,7 +158,7 @@ extern "C" {
             address < (emulator::q68_internal_io + emulator::q68_internal_io_size)) {
             return emulator::q68_read_hw_16(address);
         }
-
+#ifdef Q68_EMU
         if ((address >= emulator::q68_external_io) &&
             address < (emulator::q68_external_io + emulator::q68_external_io_size)) {
             return emulator::q68_read_hw_16(address);
@@ -150,6 +177,12 @@ extern "C" {
         if (address >= emulator::q68_ram_size) {
             return 0;
         }
+#endif
+#ifdef QLAY_EMU
+        if (address >= options::ramsize) {
+            return 0;
+        }
+#endif
 
         return SDL_SwapBE16(*(uint16_t *)&emulator::q68MemorySpace[address]);
     }
@@ -169,7 +202,7 @@ extern "C" {
             address < (emulator::q68_internal_io + emulator::q68_internal_io_size)) {
             return emulator::q68_read_hw_32(address);
         }
-
+#ifdef Q68_EMU
         if ((address >= emulator::q68_external_io) &&
             address < (emulator::q68_external_io + emulator::q68_external_io_size)) {
             return emulator::q68_read_hw_32(address);
@@ -188,6 +221,12 @@ extern "C" {
         if (address >= emulator::q68_ram_size) {
             return 0;
         }
+#endif
+#ifdef QLAY_EMU
+        if (address >= options::ramsize) {
+            return 0;
+        }
+#endif
 
         return SDL_SwapBE32(*(uint32_t *)&emulator::q68MemorySpace[address]);
     }
@@ -208,7 +247,7 @@ extern "C" {
             emulator::q68_write_hw_8(address, value);
             return;
         }
-
+#ifdef Q68_EMU
         if ((address >= emulator::q68_external_io) &&
             address < (emulator::q68_external_io + emulator::q68_external_io_size)) {
 
@@ -234,6 +273,12 @@ extern "C" {
         if (address >= emulator::q68_ram_size) {
             return;
         }
+#endif
+#ifdef QLAY_EMU
+        if (address >= options::ramsize) {
+            return;
+        }
+#endif
 
         emulator::q68MemorySpace[address] = value;
     }
@@ -245,7 +290,7 @@ extern "C" {
             emulator::q68_write_hw_16(address, value);
             return;
         }
-
+#ifdef Q68_EMU
         if ((address >= emulator::q68_external_io) &&
             address < (emulator::q68_external_io + emulator::q68_external_io_size)) {
             emulator::q68_write_hw_16(address, value);
@@ -267,6 +312,12 @@ extern "C" {
         if (address >= emulator::q68_ram_size) {
             return;
         }
+#endif
+#ifdef QLAY_EMU
+        if (address >= options::ramsize) {
+            return;
+        }
+#endif
 
         *(uint16_t *)&emulator::q68MemorySpace[address] = SDL_SwapBE16(value);
     }
@@ -278,7 +329,7 @@ extern "C" {
             emulator::q68_write_hw_32(address, value);
             return;
         }
-
+#ifdef Q68_EMU
         if ((address >= emulator::q68_external_io) &&
             address < (emulator::q68_external_io + emulator::q68_external_io_size)) {
             emulator::q68_write_hw_32(address, value);
@@ -300,6 +351,12 @@ extern "C" {
         if (address >= emulator::q68_ram_size) {
             return;
         }
+#endif
+#ifdef QLAY_EMU
+        if (address >= options::ramsize) {
+            return;
+        }
+#endif
 
         *(uint32_t *)&emulator::q68MemorySpace[address] = SDL_SwapBE32(value);
     }
