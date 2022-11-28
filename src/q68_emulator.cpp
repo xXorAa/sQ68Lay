@@ -23,6 +23,9 @@ namespace emulator {
 
 uint8_t *q68MemorySpace;
 uint8_t *q68ScreenSpace;
+uint32_t msClk = 0;
+uint32_t msClkNextEvent = 0;
+bool doIrq;
 
 void q68AllocateMemory()
 {
@@ -30,7 +33,7 @@ void q68AllocateMemory()
     q68ScreenSpace = new uint8_t[q68_screen_size];
 }
 
-void q68LoadFile(std::string name, uint8_t *addr)
+void q68LoadFile(std::string name, uint8_t *addr, size_t fsize = 0)
 {
     //if (name[0] == '~') {
     //    name.erase(0, 1);
@@ -40,6 +43,9 @@ void q68LoadFile(std::string name, uint8_t *addr)
 
     std::filesystem::path p{name};
     auto size = std::filesystem::file_size(p);
+    if (fsize && (fsize != size)) {
+        throw std::runtime_error("File Size Mismatch");
+    }
 
     std::ifstream romFile(name, std::ios::binary);
     if (romFile.bad()) {
@@ -78,8 +84,12 @@ int q68MainLoop(void *ptr)
     //m68k_set_reg(M68K_REG_PC, 0);
 #endif
 
-    uint64_t ticks = SDL_GetPerformanceFrequency() / 50;
-    uint64_t then = SDL_GetPerformanceCounter();
+    uint64_t counterFreq = SDL_GetPerformanceFrequency();
+    uint64_t screenTick = counterFreq / 50;
+    uint64_t msTick = counterFreq / 1000;
+
+    uint64_t screenThen = SDL_GetPerformanceCounter();
+    uint64_t msThen = screenThen;
 
     while(!exitLoop) {
         bool irq = false;
@@ -88,11 +98,18 @@ int q68MainLoop(void *ptr)
 
         uint64_t now = SDL_GetPerformanceCounter();
 
-        if ((now - then) > ticks) {
-            then = (then + ticks);
+        if ((now - screenThen) > screenTick) {
+            screenThen = (screenThen + screenTick);
             q68RenderScreenFlag = true;
             q68_pc_intr |= pc_intrf;
             irq = true;
+            // checking the ms count
+            //std::cout << msClk << std::endl;
+        }
+
+        if ((now - msThen) > msTick) {
+            msThen = (msThen + msTick);
+            msClk++;
         }
 
         SDL_AtomicLock(&q68_kbd_lock);
