@@ -32,22 +32,38 @@ add_executable(sq68ux
     Musashi/softfloat/softfloat.c
     )
 
+target_compile_options(sq68ux PRIVATE "-DQ68_EMU")
+
+add_executable(sqlay3
+    src/q68_main.cpp
+    src/q68_emulator.cpp
+    src/q68_events.cpp
+    src/q68_hardware.cpp
+    src/q68_screen.cpp
+    external/sdl-ps2.c
+    Musashi/m68kcpu.c
+    Musashi/m68kops.c
+    Musashi/m68kdasm.c
+    Musashi/softfloat/softfloat.c
+    )
+
+target_compile_options(sqlay3 PRIVATE "-DQLAY_EMU")
+
 if (SDL2_LIBRARIES)
     if (${CMAKE_SYSTEM_NAME} MATCHES "Windows")
-        target_link_libraries(sq68ux -Wl,-Bstatic -L/usr/local/x86_64-w64-mingw32/lib -lSDL2main -lSDL2 -Wl,-Bdynamic -lwsock32 -lwinmm -lsetupapi -limm32 -lversion -static-libgcc)
+        set(EMU_BUILD_LIBS "-Wl,-Bstatic -L/usr/local/x86_64-w64-mingw32/lib -lSDL2main -lSDL2 -lpthread -Wl,-Bdynamic -lwsock32 -lwinmm -lsetupapi -limm32 -lversion -static-libgcc")
     else()
-        target_link_libraries(sq68ux ${SDL2_LIBRARIES})
+        set(EMU_BUILD_LIBS ${SDL2_LIBRARIES})
     endif()
 elseif(${CMAKE_SYSTEM_NAME} MATCHES "Emscripten")
-    target_link_libraries(sq68ux ${SDL2_LIBRARIES})
+    set(EMU_BUILD_LIBS ${SDL2_LIBRARIES})
 else()
-    target_link_libraries(sq68ux SDL2::SDL2)
+    set(EMU_BUILD_LIBS "SDL2::SDL2")
 endif()
 
-if (${CMAKE_SYSTEM_NAME} MATCHES "Windows")
-	target_link_libraries(sqq68ux -Wl,-Bstatic -lpthread -Wl,-Bdynamic)
-endif()
+target_link_libraries(sq68ux ${EMU_BUILD_LIBS})
+target_link_libraries(sqlay3 ${EMU_BUILD_LIBS})
 
-install(TARGETS sq68ux
+install(TARGETS sq68ux sqlay3
 	DESTINATION ${CMAKE_INSTALL_PREFIX}/bin/
 	)
