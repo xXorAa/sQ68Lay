@@ -26,6 +26,7 @@ add_executable(sq68ux
     src/q68_events.cpp
     src/q68_hardware.cpp
     src/q68_screen.cpp
+#    qlay/qlio.cpp
     external/sdl-ps2.c
     Musashi/m68kcpu.c
     Musashi/m68kops.c
@@ -42,6 +43,7 @@ add_executable(sqlay3
     src/q68_events.cpp
     src/q68_hardware.cpp
     src/q68_screen.cpp
+    qlay/qlio.cpp
     external/sdl-ps2.c
     Musashi/m68kcpu.c
     Musashi/m68kops.c
