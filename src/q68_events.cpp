@@ -10,6 +10,7 @@
 #include <vector>
 
 #include "q68_hardware.hpp"
+#include "qlay_keyboard.hpp"
 #include "sdl-ps2.h"
 
 namespace emulator {
@@ -22,6 +23,7 @@ static void q68ProcessKey(SDL_Keysym *keysym, int pressed)
 
     std::vector<uint8_t> queue(MAX_PS2_CODE_LEN);
 
+#ifdef Q68_EMU
     qlen = ps2_encode(keysym->scancode, pressed, queue.data());
 
     SDL_AtomicLock(&q68_kbd_lock);
@@ -29,7 +31,11 @@ static void q68ProcessKey(SDL_Keysym *keysym, int pressed)
         q68_kbd_queue.push(queue[i]);
     }
     SDL_AtomicUnlock(&q68_kbd_lock);
+#endif
 
+#ifdef QLAY_EMU
+    qlaykbd::processKey(keysym->sym, pressed);
+#endif
 }
 
 void q68ProcessEvents(void)
@@ -52,7 +58,7 @@ void q68ProcessEvents(void)
         break;
     default:
         break;
-    }   
+    }
 }
 
 } //namespace emulator

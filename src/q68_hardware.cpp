@@ -12,6 +12,7 @@
 
 #include "q68_hardware.hpp"
 #include "q68_screen.hpp"
+#include "qlio.hpp"
 
 namespace emulator {
 
@@ -59,6 +60,10 @@ unsigned int q68_read_hw_8(unsigned int addr)
             return (q68_update_time() >> 8) & 0xFF;
         case pc_clock + 3:
             return q68_update_time() & 0xFF;
+#ifdef QLAY_EMU
+        case pc_ipcrd:
+            return ipc::readIPC();
+#endif
         case pc_intr:
             return q68_pc_intr;
 #ifdef Q68_EMU
@@ -131,6 +136,11 @@ void q68_write_hw_8(unsigned int addr, unsigned int val)
 {
     //std::cout << "HWW8: " << std::hex << addr << "," << val << std::endl;
     switch (addr) {
+#if QLAY_EMU
+        case pc_ipcwr:
+            ipc::wr8049(addr, val);
+            return;
+#endif
         case pc_intr:
             q68_pc_intr &= ~val;
             return;

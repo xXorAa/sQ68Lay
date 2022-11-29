@@ -25,6 +25,10 @@ constexpr uint32_t pc_clock     = 0x18000;
 
 constexpr uint32_t pc_tctrl     = 0x18002;
 
+constexpr uint32_t pc_ipcwr     = 0x18003;
+
+constexpr uint32_t pc_ipcrd     = 0x18020;
+
 constexpr uint32_t pc_intr      = 0x18021;
 constexpr uint8_t pc_intrf      = 0x08;
 

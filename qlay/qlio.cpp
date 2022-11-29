@@ -16,6 +16,9 @@
 #include "emu_options.hpp"
 #include "m68k.h"
 #include "q68_emulator.hpp"
+#include "qlay_keyboard.hpp"
+
+namespace ipc {
 
 /* xternal? */
 uint8_t qliord_b(uint32_t a);
@@ -28,7 +31,7 @@ static void do_1Hz(void);
 static void do_mdv_motor(void);
 
 /* internal */
-static void wr8049(uint32_t addr, uint8_t data);
+void wr8049(uint32_t addr, uint8_t data);
 static void exec_IPCcmd(int cmd);
 static void wrvidcntl(uint8_t d);
 static void wrmdvdata(uint8_t x);
@@ -122,6 +125,24 @@ va_list l;
         res = vfprintf(stderr, fmt, l);
         va_end(l);
         return res;
+}
+
+uint8_t readIPC()
+{
+	//std::cout << "readIPC " << std::endl;
+
+	if (IPC020!=0) {
+		int t = IPC020;
+		IPC020 >>= 8;
+		if(IPC020 == 0xa5) {
+			IPC020=0; /* clear end marker */
+		}
+
+		std::cout << "t: " << std::hex << t << std::endl;
+		return (uint8_t)t & 0xff;
+	}
+
+	return 0;
 }
 
 #if 0
@@ -264,7 +285,7 @@ static void wrmdvdata(uint8_t x)
 }
 
 /*
-MDV control
+DV control
 at reset; and after data transfer of any mdv
 	(02 00) 8 times			stop all motors
 start an mdvN:
@@ -537,16 +558,19 @@ repeat for any number of bits to be received (MSB first)
 
 */
 
-static void wr8049(uint32_t addr, uint8_t data)
+void wr8049(uint32_t addr, uint8_t data)
 {
 	static int IPCrcvd = 1; /* bit marker */
 	int IPCcmd;
+
+	std::cout << "wr8049" << std::endl;
 
 	dt_event(1); /* mark this here, check delay when reading 18020 */
 	if (IPCwfc) {
 		if ((data & 0x0c) == 0x0c) {
 			IPCrcvd <<= 1;
 			IPCrcvd |= (data == 0x0c) ? 0 : 1;
+			std::cout << "IPCrcvd" << std::hex << IPCrcvd << std::endl;
 			if ((IPCrcvd & 0x10) == 0x10) {
 				IPCcmd = IPCrcvd & 0x0f;
 				IPCrcvd = 1;
@@ -556,6 +580,8 @@ static void wr8049(uint32_t addr, uint8_t data)
 			}
 		}
 	} else {
+		std::cout << "Got here" << std::endl;
+
 		/* expect 0x0e */
 		if (data != 0x0e) {
 			fpr("ERRORIPC?:%x %x ", m68k_get_reg(NULL, M68K_REG_PC), data);
@@ -657,6 +683,8 @@ static void exec_IPCcmd(int cmd)
 	static int IPCpcmd = 0x10; /* previous */
 	static int IPCbaud = 0;
 
+	std::cout << "IPCcmd " << cmd << std::endl;
+
 	if (IPCpcmd == 0x0d) { /*baudr*/
 		if (0)
 			fpr("BRC:%d ", cmd);
@@ -710,7 +738,7 @@ static void exec_IPCcmd(int cmd)
 			IPCbeeping = 1;
 			IPCpcmd = 0x10;
 			params = 0;
-			sound_process(1);
+			//sound_process(1);
 		}
 		IPCwfc = 1;
 		return;
@@ -751,8 +779,12 @@ static void exec_IPCcmd(int cmd)
 	case 1: /* get interrupt status */
 		/*fpr("GI ");*/
 		IPCreturn = 0;
-		//if (keys_available() || k_press())
-		//	IPCreturn |= 0x01;
+		SDL_AtomicLock(&qlaykbd::qlay_kbd_lock);
+		std::cout << "Buffer Size: " << qlaykbd::keyBuffer.size() << std::endl;
+		if (qlaykbd::keyBuffer.size() || qlaykbd::keysPressed) {
+			IPCreturn |= 0x01;
+		}
+		SDL_AtomicUnlock(&qlaykbd::qlay_kbd_lock);
 		//if (use_debugger || fakeF1)
 		//	IPCreturn |= 0x01; /* fake kbd interrupt */
 		if (IPCbeeping)
@@ -811,20 +843,22 @@ static void exec_IPCcmd(int cmd)
 		break;
 	case 8: /* read keyboard */
 	{
-#if 0
+		std::cout << "Read Keyboard" << std::endl;
 		int key;
 		static int lastkey = 0;
 		/*fpr("C8 ");*/
 		IPCreturn = 0;
 		IPCcnt = 4;
-		if (keys_available()) { /* just double check */
-			key = get_next_key();
+		SDL_AtomicLock(&qlaykbd::qlay_kbd_lock);
+		if (qlaykbd::keyBuffer.size()) { /* just double check */
+			key = qlaykbd::keyBuffer.front();
+			qlaykbd::keyBuffer.pop();
 			lastkey = key;
 			/*fpr("Dec %x ",key);*/
 			IPCreturn = decode_key(key);
 			IPCcnt = 16;
 		} else {
-			if (k_press()) { /* still pressed: autorepeat */
+			if (qlaykbd::keysPressed) { /* still pressed: autorepeat */
 				/*fpr("Dec KP ");*/
 				IPCreturn = 0x8; /* just the repeat bit */
 				IPCcnt = 4;
@@ -835,6 +869,8 @@ static void exec_IPCcmd(int cmd)
 */
 			}
 		}
+		SDL_AtomicUnlock(&qlaykbd::qlay_kbd_lock);
+#if 0
 		if (use_debugger || fakeF1) {
 			IPCreturn =
 				0x1039; /* 1 char, no spec.key, F1=39, F2=3b */
@@ -905,7 +941,7 @@ static int dt_event(int dt_type)
 	return rv;
 }
 
-void init_QL()
+void initIPC()
 {
 	init_mdvs();
 	mdv_select(0);
@@ -936,12 +972,12 @@ void init_mdvs()
 
 		std::cout << "MDV: " << mdvName << std::endl;
 
-		mdrive[i].name[0] = '\0';
+		//mdrive[i].name[0] = "";
 		mdrive[i].present = 0;
 		mdrive[i].sector = 0;
 		mdrive[i].wrprot = 0;
 
-		if(mdvName.find("R:")) {
+		if(mdvName.find("R:") == 0) {
 			if (mdvName.size() == 2) {
 				continue;
 			}
@@ -955,10 +991,13 @@ void init_mdvs()
 		mdvname = mdvName;
 		QLrddisk();
 		mdrive[i].present = mdvpresent;
+
+		i++;
 	}
 
-	if (i == 0)
+	if (i == 0) {
 		fpr("No micro drives found\n");
+	}
 }
 
 /* write diskimage in mdv[] to a file */
@@ -1275,3 +1314,5 @@ static void do_tx()
 {
 	REG18020tx &= ~0x02; /* clear tx busy bit: byte is transmitted */
 }
+
+} // namespace ipc

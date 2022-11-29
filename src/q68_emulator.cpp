@@ -18,6 +18,7 @@
 #include "q68_hardware.hpp"
 #include "q68_memory.hpp"
 #include "q68_screen.hpp"
+#include "qlio.hpp"
 
 namespace emulator {
 
@@ -81,6 +82,7 @@ int q68MainLoop(void *ptr)
     m68k_set_reg(M68K_REG_PC, 0x320000);
 #endif
 #ifdef QLAY_EMU
+    ipc::initIPC();
     //m68k_set_reg(M68K_REG_PC, 0);
 #endif
 
@@ -94,7 +96,7 @@ int q68MainLoop(void *ptr)
     while(!exitLoop) {
         bool irq = false;
 
-        m68k_execute(100000);
+        m68k_execute(50000);
 
         uint64_t now = SDL_GetPerformanceCounter();
 
@@ -104,7 +106,7 @@ int q68MainLoop(void *ptr)
             q68_pc_intr |= pc_intrf;
             irq = true;
             // checking the ms count
-            //std::cout << msClk << std::endl;
+            //std::cout << "msClk: " << std::dec << msClk << std::endl;
         }
 
         if ((now - msThen) > msTick) {
@@ -112,12 +114,14 @@ int q68MainLoop(void *ptr)
             msClk++;
         }
 
+#ifdef Q68_EMU
         SDL_AtomicLock(&q68_kbd_lock);
         if (q68_kbd_queue.size()) {
             q68_kbd_status |= kbd_rcv;
             irq = true;
         }
         SDL_AtomicUnlock(&q68_kbd_lock);
+#endif
 
         if (irq) {
             m68k_set_irq(2);
