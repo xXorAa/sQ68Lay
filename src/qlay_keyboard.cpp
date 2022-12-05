@@ -99,6 +99,7 @@ std::map<int, qlKey> qlMapDefault = {
     { SDLK_RALT, {QL_ALT, 0}},
     // composed keys
     { SDLK_BACKSPACE, {QL_CTRL | QL_LEFT, 0}},
+    { SDLK_DELETE, {QL_CTRL | QL_RIGHT, 0}},
 };
 
 std::vector<bool> keyState(0x800);
