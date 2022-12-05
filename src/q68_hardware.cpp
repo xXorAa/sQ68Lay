@@ -62,7 +62,9 @@ unsigned int q68_read_hw_8(unsigned int addr)
             return q68_update_time() & 0xFF;
 #ifdef QLAY_EMU
         case pc_ipcrd:
-            return ipc::readIPC();
+        case pc_trak1:
+        case pc_trak2:
+            return ipc::readQLHw(addr);
 #endif
         case pc_intr:
             return q68_pc_intr;
@@ -97,7 +99,6 @@ unsigned int q68_read_hw_8(unsigned int addr)
 unsigned int q68_read_hw_16(unsigned int addr)
 {
     //std::cout << "HWR16: " << std::hex << addr << std::endl;
-
     switch(addr) {
         case pc_clock:
             return q68_update_time() >> 16;
@@ -137,8 +138,14 @@ void q68_write_hw_8(unsigned int addr, unsigned int val)
     //std::cout << "HWW8: " << std::hex << addr << "," << val << std::endl;
     switch (addr) {
 #if QLAY_EMU
+        case pc_tctrl:
+            ipc::wrZX8302(val);
+            return;
         case pc_ipcwr:
             ipc::wr8049(addr, val);
+            return;
+        case pc_mctrl:
+            ipc::wrmdvcntl(val);
             return;
 #endif
         case pc_intr:
@@ -148,6 +155,11 @@ void q68_write_hw_8(unsigned int addr, unsigned int val)
             q68_mc_stat = val;
             q68ScreenChangeMode(!(val >> 3));
             return;
+#ifdef QLAY_EMU
+        case pc_trak1:
+            ipc::writeMdvSer(val);
+            return;
+#endif
 #ifdef Q68_EMU
         case kbd_code:
             return;

@@ -6,6 +6,7 @@
 
 #include <cstdint>
 #include <queue>
+#include <SDL.h>
 
 namespace emulator {
 
@@ -27,10 +28,15 @@ constexpr uint32_t pc_tctrl     = 0x18002;
 
 constexpr uint32_t pc_ipcwr     = 0x18003;
 
+constexpr uint32_t pc_mctrl     = 0x18020;
+
 constexpr uint32_t pc_ipcrd     = 0x18020;
 
 constexpr uint32_t pc_intr      = 0x18021;
-constexpr uint8_t pc_intrf      = 0x08;
+constexpr uint8_t pc_intrf      = (1 << 3);
+constexpr uint8_t pc_intrg      = (1 << 0);
+constexpr uint32_t pc_trak1     = 0x18022; //byte microdrive read track 1
+constexpr uint32_t pc_trak2     = 0x18023; //byte microdrive read track 2
 
 constexpr uint32_t mc_stat      = 0x18063;
 constexpr uint8_t mc_stat_mode  = 1 << 3;

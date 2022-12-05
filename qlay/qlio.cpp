@@ -16,9 +16,12 @@
 #include "emu_options.hpp"
 #include "m68k.h"
 #include "q68_emulator.hpp"
+#include "q68_hardware.hpp"
 #include "qlay_keyboard.hpp"
 
 namespace ipc {
+
+uint32_t qlay1msec = 7500;
 
 /* xternal? */
 uint8_t qliord_b(uint32_t a);
@@ -33,11 +36,10 @@ static void do_mdv_motor(void);
 /* internal */
 void wr8049(uint32_t addr, uint8_t data);
 static void exec_IPCcmd(int cmd);
-static void wrvidcntl(uint8_t d);
 static void wrmdvdata(uint8_t x);
-static void wrmdvcntl(uint8_t x);
+void wrmdvcntl(uint8_t x);
 static void wrserdata(uint8_t x);
-static void wrZX8302(uint8_t x);
+void wrZX8302(uint8_t x);
 static int decode_key(int key);
 static void QLwrdisk(void);
 static void QLrddisk(void);
@@ -127,22 +129,93 @@ va_list l;
         return res;
 }
 
-uint8_t readIPC()
-{
-	//std::cout << "readIPC " << std::endl;
+static int pulse=0;
+static int bcnt=0;
 
-	if (IPC020!=0) {
-		int t = IPC020;
-		IPC020 >>= 8;
-		if(IPC020 == 0xa5) {
-			IPC020=0; /* clear end marker */
+uint8_t readQLHw(uint32_t addr)
+{
+	if (addr == 0x18020) {
+		if (IPC020!=0) {
+			int t = IPC020;
+			IPC020 >>= 8;
+			if(IPC020 == 0xa5) {
+				IPC020=0; /* clear end marker */
+			}
+
+			return (uint8_t)t & 0xff;
 		}
 
-		std::cout << "t: " << std::hex << t << std::endl;
-		return (uint8_t)t & 0xff;
+		{
+			int t;
+			t = dt_event(0);
+			if (t < 42) {
+				return 0;
+			}
+		}
+
+		if ((ZXmode&0x10)==0) { /* TXSER mode */
+			return REG18020tx;
+		}
+
+		if(mdvmotor==0) { /* no motor running, return NOP */
+			return 0x0;
+		} else { /* return MDV responses */
+			if (!mdvpresent) {
+				return(0);
+			}
+			if (mdvwrite == 0) {
+			  	if ((mdvghstate==0)||(mdvghstate==2)) {
+						/* find GAP?? */
+						if(pulse==0) {
+							if (mdvghstate==0) mdv_next_sect();
+							pulse++; return(0x1); /*gap*/
+						}
+						if(pulse<0x18) {pulse++; return(0x0); }
+						pulse=0;
+						mdvghstate++;
+						if (mdvghstate==1) { /* skip preamble */
+							mdvixb=12;
+						} else mdvixb=40;
+						bcnt=0;
+						return(0x00);
+				}
+				if(mdvghstate==1) { /* read header */
+					bcnt++;
+					if (bcnt<0x10) return(0x04); /* read buf read */
+					mdvghstate=2;
+					bcnt=0;
+					return(0x04); /* read buf ready */
+				}
+				if(mdvghstate==3) { /* read sector */
+					bcnt++;
+					if (bcnt<0x264) return(0x04);
+					mdvghstate=0;
+					bcnt=0;
+					return(0x04);
+				}
+			}
+		}
+	}
+
+	if ((addr == emulator::pc_trak1) || (addr == emulator::pc_trak2)) {
+		if ((mdvixb == 0x2c) && (mdvdoub2 == 1)&&(dt_event(1) < 750)) {/*970730*/
+			mdvixb += 8; /* skip preamb */
+			mdvdoub2 = 0;
+		}
+		mdvixb = mdvixb % SECTLEN; /* justincase*/
+		mdvixb++;
+		return mdv[mdvixs * SECTLEN + mdvixb - 1];
 	}
 
 	return 0;
+}
+
+void writeMdvSer(uint8_t data) {
+	if ((ZXmode&0x18)==0x10) {
+		wrmdvdata(data);
+	} else {
+		wrserdata(data);
+	}
 }
 
 #if 0
@@ -169,7 +242,7 @@ int p=0,q=0; /*debug*/
 			if(IPC020==0xa5)IPC020=0; /* clear end marker */
 			return (uint8_t)t&0xff;
 		}
-		{ int t;t=dt_event(0); if (t<7) return(0); }/*970730*/
+		{ int t;t=dt_event(0); if (t<70) return(0); }/*970730*/
 /*082g*/
 		if ((ZXmode&0x10)==0) { /* TXSER mode */
 if(0)			fpr("R020tx%d ",REG18020tx);
@@ -219,7 +292,8 @@ if(p)					fpr("BC%03x ",bcnt);
 			}
 		}
 	}
-	if ((a==0x18022)||(a==0x18023)) {
+
+	if ((a==pc_trak1)||(a==pc_trak2)) {
 if(p)fpr("*D*%d %02x %03x ",mdvghstate,mdvixs,mdvixb);
 		if ((mdvixb==0x2c)&&(mdvdoub2==1)&&(dt_event(1)<125)) {/*970730*/
 if(0)fpr("< ");
@@ -258,7 +332,6 @@ return;
 		else wrserdata(d);
 	}
 	if (a==0x18023) {if(p)fpr("W023:%02x ",d);}
-	if (a==0x18063) wrvidcntl(d);
 	// Jimmy (0094)- Correction of warning C4098: 'qliowr_b' : 'void' function returning a value
 	// return wrmouse(a,d);  BECOMES:
 	if ((a&0xffffff00)==0x1bf00) {wrmouse(a,d);return;}
@@ -310,7 +383,7 @@ read sector:
 	(02 02) indication to skip PLL sequence: 6*00,2*ff
 */
 
-static void wrmdvcntl(uint8_t x)
+void wrmdvcntl(uint8_t x)
 {
 	static int mdvcnt = 0;
 	static int mdvcntls = 0;
@@ -324,10 +397,11 @@ static void wrmdvcntl(uint8_t x)
 	if (p)
 		fpr("*M* ");
 	tmp = dt_event(1);
-	if (tmp > 25) { /*970730*/
+
+	if (tmp > 150) { /*970730*/
 		//	if (tmp>120) { /*zkul980620*/
 		if (p)
-			fpr("p%d x%d; %d>25 %ld\n", pcntl, x, tmp, emulator::msClk);
+			fpr("p%d x%d; %d>25 %ld\n", pcntl, x, tmp, emulator::cycles());
 		mdvcnt = 0;
 		mcnt = 0;
 		mdvdoub2 = 0;
@@ -342,14 +416,14 @@ static void wrmdvcntl(uint8_t x)
 		//	if ((pcntl==2)&&((x==0)||(x==1))) {
 		if (mdvwra) { /* stopping motor: first write to OS disk now */
 			mdvwra = 0;
-			QLwrdisk();
+			//QLwrdisk();
 		}
 		if (mcnt) {
 			currdrive++;
 			mdv_select(currdrive);
 		}
 		mdvcnt++;
-		/*		fpr("T%d ",emulator::msClk);*/
+		/*		fpr("T%d ",emulator::cycle);*/
 	}
 	if ((pcntl == 3) && (x == 1)) {
 		mcnt = 1;
@@ -398,6 +472,7 @@ static void mdv_select(int drive)
 	mdvghstate = 0;
 	mdvdoub2 = 0;
 	mdvwra = 0;
+
 	if (drive == 0) {
 		mdvname[0] = '\0';
 		mdvpresent = 0;
@@ -445,27 +520,12 @@ static void mdv_next_sect()
 }
 
 /*18002*/
-static void wrZX8302(uint8_t d)
+void wrZX8302(uint8_t d)
 {
 	if (0)
 		fpr("WZX2:%02x:%x ", d, m68k_get_reg(NULL, M68K_REG_PC));
 
 	ZXmode = d & 0x18;
-	if (0)
-		switch (ZXmode) {
-		case 0x0:
-			fpr("ZXSER1 ");
-			break;
-		case 0x8:
-			fpr("ZXSER2 ");
-			break;
-		case 0x10:
-			fpr("ZXMDV ");
-			break;
-		case 0x18:
-			fpr("ZXNET ");
-			break;
-		}
 	switch (d & 7) {
 	case 7:
 		ZXbaud = 75;
@@ -506,25 +566,12 @@ static void wrserdata(uint8_t d)
 	if (p)
 		fpr("ST%02x(%c) ", d, d);
 	if (p)
-		fpr("ST%ld ", emulator::msClk);
+		fpr("ST%ld ", emulator::cycles());
 	REG18020tx |= 0x02; /* set busy */
-	etx = emulator::msClk + 10000 /
-			      ZXbaud; /* clear busy after 10 bits transmitted */
+	etx = emulator::cycles() + 10000*qlay1msec / ZXbaud; /* clear busy after 10 bits transmitted */
 	eval_next_event();
 	if (p)
 		fpr("ETX%ld ", etx);
-}
-
-static void wrvidcntl(uint8_t d)
-{
-	/*
-18063 is write only (Quasar p.618)
-bit 1: 0: screen on, 1: screen off
-bit 3: 0: mode 512, 1: mode 256
-bit 7: 0: base=0x20000, 1: base=0x28000
-*/
-	/*fpr("VM %02x ",d);*/
-	//do_scrmode(d);
 }
 
 /*
@@ -563,14 +610,11 @@ void wr8049(uint32_t addr, uint8_t data)
 	static int IPCrcvd = 1; /* bit marker */
 	int IPCcmd;
 
-	std::cout << "wr8049" << std::endl;
-
 	dt_event(1); /* mark this here, check delay when reading 18020 */
 	if (IPCwfc) {
 		if ((data & 0x0c) == 0x0c) {
 			IPCrcvd <<= 1;
 			IPCrcvd |= (data == 0x0c) ? 0 : 1;
-			std::cout << "IPCrcvd" << std::hex << IPCrcvd << std::endl;
 			if ((IPCrcvd & 0x10) == 0x10) {
 				IPCcmd = IPCrcvd & 0x0f;
 				IPCrcvd = 1;
@@ -580,7 +624,6 @@ void wr8049(uint32_t addr, uint8_t data)
 			}
 		}
 	} else {
-		std::cout << "Got here" << std::endl;
 
 		/* expect 0x0e */
 		if (data != 0x0e) {
@@ -683,8 +726,6 @@ static void exec_IPCcmd(int cmd)
 	static int IPCpcmd = 0x10; /* previous */
 	static int IPCbaud = 0;
 
-	std::cout << "IPCcmd " << cmd << std::endl;
-
 	if (IPCpcmd == 0x0d) { /*baudr*/
 		if (0)
 			fpr("BRC:%d ", cmd);
@@ -780,7 +821,6 @@ static void exec_IPCcmd(int cmd)
 		/*fpr("GI ");*/
 		IPCreturn = 0;
 		SDL_AtomicLock(&qlaykbd::qlay_kbd_lock);
-		std::cout << "Buffer Size: " << qlaykbd::keyBuffer.size() << std::endl;
 		if (qlaykbd::keyBuffer.size() || qlaykbd::keysPressed) {
 			IPCreturn |= 0x01;
 		}
@@ -843,7 +883,6 @@ static void exec_IPCcmd(int cmd)
 		break;
 	case 8: /* read keyboard */
 	{
-		std::cout << "Read Keyboard" << std::endl;
 		int key;
 		static int lastkey = 0;
 		/*fpr("C8 ");*/
@@ -924,20 +963,20 @@ static void exec_IPCcmd(int cmd)
 	IPCpcmd = cmd;
 }
 
-/* return how many emulator::msClks past previous dt_event() call */
+/* return how many emulator::cycles past previous dt_event() call */
 /* dt_type=0 will read only since last update; 1 will update time */
 static int dt_event(int dt_type)
 {
 	static uint32_t prevevent = 0x80000000;
 	uint32_t rv;
 	/* this is wrong?? see QABS 970801 */
-	if (emulator::msClk < prevevent)
-		rv = prevevent - emulator::msClk;
+	if (emulator::cycles() < prevevent)
+		rv = prevevent - emulator::cycles();
 	else
-		rv = emulator::msClk - prevevent;
+		rv = emulator::cycles() - prevevent;
 	/*fpr("DT%d ",rv);*/
 	if (dt_type)
-		prevevent = emulator::msClk;
+		prevevent = emulator::cycles();
 	return rv;
 }
 
@@ -952,8 +991,7 @@ void initIPC()
 	ser_rcv_init();
 	//start_speaker();
 	qlclkoff = 0;
-	emulator::msClk = 0;
-	emulator::msClkNextEvent = 0;
+	emulator::cycleNextEvent = 0;
 }
 
 void QL_exit()
@@ -969,8 +1007,6 @@ void init_mdvs()
 		if (i > NUMOFDRIVES) {
 			break;
 		}
-
-		std::cout << "MDV: " << mdvName << std::endl;
 
 		//mdrive[i].name[0] = "";
 		mdrive[i].present = 0;
@@ -1042,28 +1078,30 @@ uint32_t	d50,dmdv,dmouse,dsound,dtx;
 #define QMIN(a,b) ( (a)<(b) ? (a) : (b) )
 #define QABSD(a,b) ( (a)-(b) )
 
-	d50=QABSD(e50,emulator::msClk);
-	dmdv=QABSD(emdv,emulator::msClk);
-	dmouse=QABSD(emouse,emulator::msClk);
-	dsound=QABSD(esound,emulator::msClk);
-	dtx=QABSD(etx,emulator::msClk);
-	emulator::msClk_next_event=emulator::msClk+QMIN(QMIN(QMIN(dsound,dtx),d50),QMIN(dmouse,dmdv));
+	d50=QABSD(e50,emulator::cycle);
+	dmdv=QABSD(emdv,emulator::cycle);
+	dmouse=QABSD(emouse,emulator::cycle);
+	dsound=QABSD(esound,emulator::cycle);
+	dtx=QABSD(etx,emulator::cycle);
+	emulator::cycle_next_event=emulator::cycle+QMIN(QMIN(QMIN(dsound,dtx),d50),QMIN(dmouse,dmdv));
 */
 	uint32_t dc, dmin;
-	dmin = e50 - emulator::msClk;
-	dc = emdv - emulator::msClk;
+	dmin = e50 - emulator::cycles();
+	dc = emdv - emulator::cycles();
 	if (dc < dmin)
 		dmin = dc;
-	dc = emouse - emulator::msClk;
+#if 0
+	dc = emouse - emulator::cycle;
 	if (dc < dmin)
 		dmin = dc;
-	dc = esound - emulator::msClk;
+	dc = esound - emulator::cycle;
 	if (dc < dmin)
 		dmin = dc;
-	dc = etx - emulator::msClk;
+#endif
+	dc = etx - emulator::cycles();
 	if (dc < dmin)
 		dmin = dc;
-	emulator::msClkNextEvent = emulator::msClk + dmin;
+	emulator::cycleNextEvent = emulator::cycles() + dmin;
 }
 
 /* a simple brute force implementation that works just fine ... */
@@ -1073,35 +1111,44 @@ void do_next_event()
 
 	uint8_t intmask = (m68k_get_reg(NULL, M68K_REG_SR) >> 8) & 7;
 	e = 0;
-	if (emulator::msClk == emdv) { /* MDV gap interrupt, 31 msec */
+	if (emulator::cycles()>=e50) { /* 50Hz interrupt, 20 msec */
+        // do_50Hz();
+		//m68k_set_irq(2);
+		emulator::doIrq = true;
+		emulator::q68_pc_intr |= emulator::pc_intrf;
+        e50=emulator::cycles() + (20 * qlay1msec);
+        e++;
+        if(0)fpr("I5 ");
+    }
+	if (emulator::cycles() >= emdv) { /* MDV gap interrupt, 31 msec */
 		if (intmask < 2) {
 			do_mdv_motor();
 		}
-		emdv = emulator::msClk + 5; // Jimmy 093 - To increase MDV Speed ! - 5 -> 31
+		emdv = emulator::cycles() + (5 * qlay1msec); // Jimmy 093 - To increase MDV Speed ! - 5 -> 31
 		e++;
 		if (0)
 			fpr("IM ");
 	}
 #if 0
-	if (emulator::msClk == emouse) { /* mouse interrupt, x msec */
+	if (emulator::cycle == emouse) { /* mouse interrupt, x msec */
 		do_mouse_xm();
-		emouse = emulator::msClk + 2;
+		emouse = emulator::cycle + 2 * qlay1msec;
 		e++;
 		if (0)
 			fpr("IMo ");
 	}
 #endif
 #if 0
-	if (emulator::msClk == esound) {
-		esound = emulator::msClk + sound_process(0);
+	if (emulator::cycle == esound) {
+		esound = emulator::cycle + sound_process(0);
 		e++;
 		if (0)
 			fpr("IS ");
 	}
 #endif
-	if (emulator::msClk == etx) {
+	if (emulator::cycles() == etx) {
 		do_tx();
-		etx = emulator::msClk - 1; /* nothing more */
+		etx = emulator::cycles() - 1; /* nothing more */
 		e++;
 		if (0)
 			fpr("ITX ");
@@ -1111,7 +1158,7 @@ void do_next_event()
 	eval_next_event();
 
 	if (!e) {
-		fpr("\nError NoE c: %d ", emulator::msClk);
+		fpr("\nError NoE c: %d ", emulator::cycles());
 		fpr("e: %d %d %d %d %d\n", e50, emdv, emouse, esound, etx);
 	}
 }
@@ -1179,7 +1226,7 @@ static int sound_process(int initbeep)
 		if (pitch1<pitch2) if (cpstep>0) cpstep-=cpstep;
 */
 		/* get me started */
-		esound = emulator::msClk + 1; /* next emulator::msClk we will start */
+		esound = emulator::cycle + 1; /* next emulator::cycle we will start */
 		eval_next_event();
 		return 1; /* return value is actually don't care now */
 	}
@@ -1286,28 +1333,20 @@ static void do_1Hz(void)
 		if (first) {
 			first = 0;
 		} else {
-			fpr("%d ", emulator::msClk - pcycle);
+			fpr("%d ", emulator::cycles() - pcycle);
 		}
-		pcycle = emulator::msClk;
+		pcycle = emulator::cycles();
 	}
 }
 
 static void do_mdv_motor()
 {
 	if (mdvmotor) {
-		REG18021 |= 0x01;
+		emulator::q68_pc_intr |= 0x01;
 		emulator::doIrq = true;
 		dt_event(1); /* set time stamp */
 	}
 	return;
-
-	/*970708: only interrupt at end of sector, ISR will assume header first */
-	if (mdvmotor && (mdvghstate == 0)) { /* add ==0 for other mvds!! */
-		/*fpr("+M ");*/
-		emulator::doIrq = true;
-		REG18021 |= 0x01;
-		fpr("M%d ", mdvghstate);
-	}
 }
 
 static void do_tx()

@@ -26,6 +26,15 @@ uint8_t *q68MemorySpace;
 uint8_t *q68ScreenSpace;
 uint32_t msClk = 0;
 uint32_t msClkNextEvent = 0;
+
+uint64_t cycleTick;
+
+uint32_t cyclesThen = 0;
+
+uint32_t msCyclesNow;
+
+uint32_t cycleNextEvent;
+
 bool doIrq;
 
 void q68AllocateMemory()
@@ -83,36 +92,44 @@ int q68MainLoop(void *ptr)
 #endif
 #ifdef QLAY_EMU
     ipc::initIPC();
-    //m68k_set_reg(M68K_REG_PC, 0);
 #endif
 
     uint64_t counterFreq = SDL_GetPerformanceFrequency();
     uint64_t screenTick = counterFreq / 50;
-    uint64_t msTick = counterFreq / 1000;
+    uint64_t msTick = counterFreq / 10000;
 
     uint64_t screenThen = SDL_GetPerformanceCounter();
     uint64_t msThen = screenThen;
 
+#ifdef QLAY_EMU
+    int ql_loops = 0;
+#endif
+
     while(!exitLoop) {
         bool irq = false;
 
+#ifdef Q68_EMU
         m68k_execute(50000);
-
+#endif
         uint64_t now = SDL_GetPerformanceCounter();
 
+#ifdef Q68_EMU
         if ((now - screenThen) > screenTick) {
             screenThen = (screenThen + screenTick);
             q68RenderScreenFlag = true;
             q68_pc_intr |= pc_intrf;
             irq = true;
-            // checking the ms count
-            //std::cout << "msClk: " << std::dec << msClk << std::endl;
         }
+#endif
 
+#ifdef QLAY_EMU
         if ((now - msThen) > msTick) {
             msThen = (msThen + msTick);
             msClk++;
+            m68k_execute(750);
+            cyclesThen += 750;
         }
+#endif
 
 #ifdef Q68_EMU
         SDL_AtomicLock(&q68_kbd_lock);
@@ -121,14 +138,20 @@ int q68MainLoop(void *ptr)
             irq = true;
         }
         SDL_AtomicUnlock(&q68_kbd_lock);
-#endif
 
         if (irq) {
             m68k_set_irq(2);
+            irq = false;
         }
+#endif
     }
 
     return 0;
+}
+
+uint32_t cycles()
+{
+    return cyclesThen + m68k_cycles_run();
 }
 
 }
@@ -137,6 +160,8 @@ extern "C" {
 
     unsigned int m68k_read_memory_8(unsigned int address)
     {
+        //std::cout << std::setfill('0') << std::setw(4) << address << std::endl;
+
         if ((address >= emulator::q68_internal_io) &&
             address < (emulator::q68_internal_io + emulator::q68_internal_io_size)) {
             return emulator::q68_read_hw_8(address);
@@ -254,7 +279,7 @@ extern "C" {
 
     unsigned int m68k_read_disassembler_32(unsigned int address)
     {
-        if (address >= 32_MiB) {
+        if (address >= emulator::q68_ram_size) {
             return 0;
         }
 
@@ -380,5 +405,26 @@ extern "C" {
 #endif
 
         *(uint32_t *)&emulator::q68MemorySpace[address] = SDL_SwapBE32(value);
+    }
+
+    void emu_hook_pc(unsigned int pc)
+    {
+#ifdef QLAY_EMU
+        if (emulator::cycles() >= emulator::cycleNextEvent) {
+            ipc::do_next_event();
+        }
+
+        if (emulator::doIrq) {
+            if (emulator::q68_pc_intr & emulator::pc_intrf) {
+                emulator::q68RenderScreenFlag = true;
+            }
+            m68k_set_irq(2);
+            emulator::doIrq = 0;
+        }
+
+        //char disBuf[256];
+        //m68k_disassemble(disBuf, pc, M68K_CPU_TYPE_68000);
+        //std::cout << std::hex << std::setfill('0') << std::setw(4) << pc << " " << disBuf << std::endl;
+#endif
     }
 }
