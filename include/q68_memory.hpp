@@ -21,7 +21,10 @@ extern uint8_t *q68ScreenSpace;
 constexpr uint32_t q68_ram_size             = 0x01C00000;
 
 constexpr uint32_t q68_internal_io          = 0x18000;
-constexpr uint32_t q68_internal_io_size     = 4_KiB;
+constexpr uint32_t q68_internal_io_size     = 0x100;
+
+constexpr uint32_t qlay_nfa_io              = 0x18100;
+constexpr uint32_t qlay_nfa_io_size         = 0x300;
 
 constexpr uint32_t q68_external_io          = 0x1C000;
 constexpr uint32_t q68_external_io_size     = 16_KiB;

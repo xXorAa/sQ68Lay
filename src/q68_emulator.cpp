@@ -18,6 +18,7 @@
 #include "q68_hardware.hpp"
 #include "q68_memory.hpp"
 #include "q68_screen.hpp"
+#include "qldisk.hpp"
 #include "qlio.hpp"
 
 namespace emulator {
@@ -73,6 +74,7 @@ int q68MainLoop(void *ptr)
 #endif
 #ifdef QLAY_EMU
     q68LoadFile(options::sysrom, q68MemorySpace);
+    q68LoadFile(options::romport, q68MemorySpace + 48_KiB);
 #endif
     } catch (std::exception &e) {
         std::cerr << "Failed to load " << e.what() << std::endl;
@@ -92,6 +94,7 @@ int q68MainLoop(void *ptr)
 #endif
 #ifdef QLAY_EMU
     ipc::initIPC();
+    qldisk::init_qldisk();
 #endif
 
     uint64_t counterFreq = SDL_GetPerformanceFrequency();
@@ -166,6 +169,12 @@ extern "C" {
             address < (emulator::q68_internal_io + emulator::q68_internal_io_size)) {
             return emulator::q68_read_hw_8(address);
         }
+#ifdef QLAY_EMU
+        if ((address >= emulator::qlay_nfa_io) &&
+            address < (emulator::qlay_nfa_io + emulator::qlay_nfa_io_size)) {
+            return qldisk::rdnfa(address);
+        }
+#endif
 #ifdef Q68_EMU
         if ((address >= emulator::q68_external_io) &&
             address < (emulator::q68_external_io + emulator::q68_external_io_size)) {
@@ -293,6 +302,13 @@ extern "C" {
             emulator::q68_write_hw_8(address, value);
             return;
         }
+#ifdef QLAY_EMU
+        if ((address >= emulator::qlay_nfa_io) &&
+            address < (emulator::qlay_nfa_io + emulator::qlay_nfa_io_size)) {
+            qldisk::wrnfa(address, value);
+            emulator::q68MemorySpace[address] = value;
+        }
+#endif
 #ifdef Q68_EMU
         if ((address >= emulator::q68_external_io) &&
             address < (emulator::q68_external_io + emulator::q68_external_io_size)) {

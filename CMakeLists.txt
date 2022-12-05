@@ -45,6 +45,7 @@ add_executable(sqlay3
     src/q68_screen.cpp
     src/qlay_keyboard.cpp
     qlay/qlio.cpp
+    qlay/qldisk.cpp
     external/sdl-ps2.c
     Musashi/m68kcpu.c
     Musashi/m68kops.c

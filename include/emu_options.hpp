@@ -11,8 +11,10 @@ namespace options {
 
 #ifdef QLAY_EMU
 extern std::string sysrom;
+extern std::string romport;
 extern uint32_t ramsize;
 extern std::vector<std::string> mdvFiles;
+extern std::vector<std::string> drives;
 
 #endif
 
