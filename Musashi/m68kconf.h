@@ -161,9 +161,9 @@
 /* If ON, CPU will call the instruction hook callback before every
  * instruction.
  */
-#define M68K_INSTRUCTION_HOOK         OPT_OFF
-#define M68K_INSTRUCTION_CALLBACK(pc) sqlux_hook_pc(pc)
-
+#define M68K_INSTRUCTION_HOOK         OPT_SPECIFY_HANDLER
+#define M68K_INSTRUCTION_CALLBACK(pc) emu_hook_pc(pc)
+void emu_hook_pc(unsigned int);
 
 /* If ON, the CPU will emulate the 4-byte prefetch queue of a real 68000 */
 #define M68K_EMULATE_PREFETCH       OPT_OFF
