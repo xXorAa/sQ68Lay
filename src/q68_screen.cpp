@@ -39,6 +39,13 @@ int q68Fullscreen = 0;
 bool q68RenderScreenFlag = false;
 int q68CurrentMode;
 
+#ifdef Q68_EMU
+static const char* emuName="sQ68ux";
+#endif
+#ifdef QLAY_EMU
+static const char* emuName="sQLay3";
+#endif
+
 struct q68Mode {
 	uint32_t base;
 	uint32_t size;
@@ -106,7 +113,7 @@ void q68ScreenInit(int q68Mode)
 		q68WindowMode = SDL_WINDOW_FULLSCREEN_DESKTOP;
 	}
 
-	q68Window = SDL_CreateWindow("sQ68ux",
+	q68Window = SDL_CreateWindow(emuName,
 		SDL_WINDOWPOS_CENTERED,
 		SDL_WINDOWPOS_CENTERED,
 		xRes,
