@@ -108,8 +108,6 @@ std::queue<int> keyBuffer;
 
 void processKey(int scancode, bool pressed)
 {
-    std::cout << "Scancode: " << std::hex << scancode << std::endl;
-
     auto keyi = qlMapDefault.find(scancode);
 
     // Exit here if no key found
@@ -118,8 +116,6 @@ void processKey(int scancode, bool pressed)
     }
 
     auto qlKey = keyi->second.keycode;
-
-    std::cout << "QLKey " << std::hex << qlKey << std::endl;
 
     // Key is already pressed
     if (keyState[qlKey] == pressed) {
