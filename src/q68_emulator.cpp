@@ -74,7 +74,9 @@ int q68MainLoop(void *ptr)
 #endif
 #ifdef QLAY_EMU
     q68LoadFile(options::sysrom, q68MemorySpace);
-    q68LoadFile(options::romport, q68MemorySpace + 48_KiB);
+    if (options::romport.size()) {
+        q68LoadFile(options::romport, q68MemorySpace + 48_KiB);
+    }
 #endif
     } catch (std::exception &e) {
         std::cerr << "Failed to load " << e.what() << std::endl;
