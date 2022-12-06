@@ -168,7 +168,7 @@ uint8_t readQLHw(uint32_t addr)
 						/* find GAP?? */
 						if(pulse==0) {
 							if (mdvghstate==0) mdv_next_sect();
-							pulse++; return(0x1); /*gap*/
+							pulse++; return(0x8); /*gap*/
 						}
 						if(pulse<0x18) {pulse++; return(0x0); }
 						pulse=0;
