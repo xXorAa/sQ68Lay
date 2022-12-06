@@ -764,7 +764,7 @@ static void exec_IPCcmd(int cmd)
 	if (IPCpcmd == 0x09) { /*keyrow*/
 		int row;
 		row = cmd;
-		//IPCreturn = get_keyrow(row);
+		IPCreturn = qlaykbd::getKeyrow(row);
 		IPCcnt = 8;
 		cmd = 0x10;
 	}

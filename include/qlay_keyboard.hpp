@@ -14,6 +14,7 @@ extern int keysPressed;
 
 extern SDL_SpinLock qlay_kbd_lock;
 
+uint8_t getKeyrow(uint8_t row);
 void processKey(int scancode, bool pressed);
 
 } // namespace qlaykbd

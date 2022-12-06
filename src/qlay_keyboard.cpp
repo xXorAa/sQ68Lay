@@ -106,6 +106,22 @@ std::vector<bool> keyState(0x800);
 int keysPressed;
 std::queue<int> keyBuffer;
 
+uint8_t getKeyrow(uint8_t row)
+{
+        row &= 7;
+        row = 7 - row;
+        row <<= 3;
+
+        uint8_t rv = 0;
+        for(int b = 7; b > -1; b--) {
+            rv<<=1;
+            if(keyState[row + b]) {
+                rv++;
+            }
+        }
+        return rv;
+}
+
 void processKey(int scancode, bool pressed)
 {
     auto keyi = qlMapDefault.find(scancode);
