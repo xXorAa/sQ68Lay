@@ -205,6 +205,10 @@ extern "C" {
         if (address >= options::ramsize) {
             return 0;
         }
+
+        if ((address >= 128_KiB) && (address < 256_KiB)) {
+            m68k_modify_timeslice(-6);
+        }
 #endif
         return emulator::q68MemorySpace[address];
     }
@@ -238,6 +242,10 @@ extern "C" {
 #ifdef QLAY_EMU
         if (address >= options::ramsize) {
             return 0;
+        }
+
+        if ((address >= 128_KiB) && (address < 256_KiB)) {
+            m68k_modify_timeslice(-6);
         }
 #endif
 
@@ -282,6 +290,10 @@ extern "C" {
 #ifdef QLAY_EMU
         if (address >= options::ramsize) {
             return 0;
+        }
+
+        if ((address >= 128_KiB) && (address < 256_KiB)) {
+            m68k_modify_timeslice(-6);
         }
 #endif
 
@@ -342,6 +354,10 @@ extern "C" {
         if (address >= options::ramsize) {
             return;
         }
+
+        if ((address >= 128_KiB) && (address < 256_KiB)) {
+            m68k_modify_timeslice(-6);
+        }
 #endif
 
         emulator::q68MemorySpace[address] = value;
@@ -381,6 +397,10 @@ extern "C" {
         if (address >= options::ramsize) {
             return;
         }
+
+        if ((address >= 128_KiB) && (address < 256_KiB)) {
+            m68k_modify_timeslice(-6);
+        }
 #endif
 
         *(uint16_t *)&emulator::q68MemorySpace[address] = SDL_SwapBE16(value);
@@ -419,6 +439,10 @@ extern "C" {
 #ifdef QLAY_EMU
         if (address >= options::ramsize) {
             return;
+        }
+
+        if ((address >= 128_KiB) && (address < 256_KiB)) {
+            m68k_modify_timeslice(-6);
         }
 #endif
 
