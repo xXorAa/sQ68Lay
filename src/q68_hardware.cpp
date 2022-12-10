@@ -104,6 +104,11 @@ unsigned int q68_read_hw_16(unsigned int addr)
             return q68_update_time() >> 16;
         case pc_clock + 2:
             return q68_update_time() & 0xFFFF;
+// Minerva uses move.w to read pc_ipcrd and pc_intr at same time
+#ifdef QLAY_EMU
+        case pc_ipcrd:
+            return (ipc::readQLHw(addr)<<8) + q68_pc_intr;
+#endif
 #ifdef Q68_EMU
         case q68_timer:
             return q68_update_hires() >> 16;
