@@ -33,8 +33,9 @@ constexpr uint32_t pc_mctrl     = 0x18020;
 constexpr uint32_t pc_ipcrd     = 0x18020;
 
 constexpr uint32_t pc_intr      = 0x18021;
-constexpr uint8_t pc_intrf      = (1 << 3);
 constexpr uint8_t pc_intrg      = (1 << 0);
+constexpr uint8_t pc_intri      = (1 << 1);
+constexpr uint8_t pc_intrf      = (1 << 3);
 constexpr uint32_t pc_trak1     = 0x18022; //byte microdrive read track 1
 constexpr uint32_t pc_trak2     = 0x18023; //byte microdrive read track 2
 
