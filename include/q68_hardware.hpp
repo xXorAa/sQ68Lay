@@ -3,11 +3,24 @@
  *
  * SPDX: GPL-2.0-only
  */
+#pragma once
 
 #include <cstdint>
 #include <queue>
 #include <SDL.h>
 
+// Some macros for IO bytes to 16/32
+#define BytesToU16(a,b) (           \
+      (uint16_t)(a) << 8            \
+    | (uint16_t)(b)                 \
+)
+
+#define BytesToU32(a,b,c,d) (       \
+      (uint32_t)(a) << 24           \
+    | (uint32_t)(b) << 16           \
+    | (uint32_t)(c) << 8            \
+    | (uint32_t)(d)                 \
+)
 namespace emulator {
 
 extern uint8_t q68_mc_stat;
