@@ -3,6 +3,7 @@
  *
  * SPDX: GPL-2.0-only
  */
+#pragma once
 
 constexpr std::size_t operator""_KiB(unsigned long long int x) {
   return 1024ULL * x;
