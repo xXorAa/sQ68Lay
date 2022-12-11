@@ -217,16 +217,19 @@ extern "C" {
     {
         if ((address >= emulator::q68_internal_io) &&
             address < (emulator::q68_internal_io + emulator::q68_internal_io_size)) {
-            return emulator::q68_read_hw_16(address);
+            return BytesToU16(emulator::q68_read_hw_8(address),
+                              emulator::q68_read_hw_8(address+1));
         }
 #ifdef Q68_EMU
         if ((address >= emulator::q68_external_io) &&
             address < (emulator::q68_external_io + emulator::q68_external_io_size)) {
-            return emulator::q68_read_hw_16(address);
+            return BytesToU16(emulator::q68_read_hw_8(address),
+                              emulator::q68_read_hw_8(address+1));
         }
 
         if (address >= emulator::q68_q40_io) {
-            return emulator::q68_read_hw_16(address);
+            return BytesToU16(emulator::q68_read_hw_8(address),
+                              emulator::q68_read_hw_8(address+1));
         }
 
         if ((address >= emulator::q68_screen) &&
@@ -265,22 +268,31 @@ extern "C" {
     {
         if ((address >= emulator::q68_internal_io) &&
             address < (emulator::q68_internal_io + emulator::q68_internal_io_size)) {
-            return emulator::q68_read_hw_32(address);
+            return BytesToU32(emulator::q68_read_hw_8(address),
+                              emulator::q68_read_hw_8(address+1),
+                              emulator::q68_read_hw_8(address+2),
+                              emulator::q68_read_hw_8(address+3));
         }
 #ifdef Q68_EMU
         if ((address >= emulator::q68_external_io) &&
             address < (emulator::q68_external_io + emulator::q68_external_io_size)) {
-            return emulator::q68_read_hw_32(address);
+            return BytesToU32(emulator::q68_read_hw_8(address),
+                              emulator::q68_read_hw_8(address+1),
+                              emulator::q68_read_hw_8(address+2),
+                              emulator::q68_read_hw_8(address+3));
+        }
+
+        if (address >= emulator::q68_q40_io) {
+            return BytesToU32(emulator::q68_read_hw_8(address),
+                              emulator::q68_read_hw_8(address+1),
+                              emulator::q68_read_hw_8(address+2),
+                              emulator::q68_read_hw_8(address+3));
         }
 
         if ((address >= emulator::q68_screen) &&
             address < (emulator::q68_screen + emulator::q68_screen_size)) {
 
             return SDL_SwapBE32(*(uint32_t *)&emulator::q68ScreenSpace[address - emulator::q68_screen]);
-        }
-
-        if (address >= emulator::q68_q40_io) {
-            return emulator::q68_read_hw_16(address);
         }
 
         if (address >= emulator::q68_ram_size) {

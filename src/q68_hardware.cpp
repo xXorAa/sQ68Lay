@@ -96,48 +96,6 @@ unsigned int q68_read_hw_8(unsigned int addr)
     return 0;
 }
 
-unsigned int q68_read_hw_16(unsigned int addr)
-{
-    //std::cout << "HWR16: " << std::hex << addr << std::endl;
-    switch(addr) {
-        case pc_clock:
-            return q68_update_time() >> 16;
-        case pc_clock + 2:
-            return q68_update_time() & 0xFFFF;
-// Minerva uses move.w to read pc_ipcrd and pc_intr at same time
-#ifdef QLAY_EMU
-        case pc_ipcrd:
-            return (ipc::readQLHw(addr)<<8) + q68_pc_intr;
-#endif
-#ifdef Q68_EMU
-        case q68_timer:
-            return q68_update_hires() >> 16;
-        case q68_timer + 2:
-            return q68_update_hires() & 0xFFFF;
-#endif
-        default:
-            break;
-    }
-    return 0;
-}
-
-unsigned int q68_read_hw_32(unsigned int addr)
-{
-    //std::cout << "HWR32: " << std::hex << addr << std::endl;
-    switch (addr) {
-        case pc_clock:
-            return q68_update_time();
-            break;
-#ifdef Q68_EMU
-        case q68_timer:
-            return q68_update_hires();
-#endif
-        default:
-            break;
-    }
-    return 0;
-}
-
 void q68_write_hw_8(unsigned int addr, unsigned int val)
 {
     //std::cout << "HWW8: " << std::hex << addr << "," << val << std::endl;
