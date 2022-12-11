@@ -379,13 +379,15 @@ extern "C" {
     {
         if ((address >= emulator::q68_internal_io) &&
             address < (emulator::q68_internal_io + emulator::q68_internal_io_size)) {
-            emulator::q68_write_hw_16(address, value);
+            emulator::q68_write_hw_8(address, U16Byte(0,value));
+            emulator::q68_write_hw_8(address+1, U16Byte(1,value));
             return;
         }
 #ifdef Q68_EMU
         if ((address >= emulator::q68_external_io) &&
             address < (emulator::q68_external_io + emulator::q68_external_io_size)) {
-            emulator::q68_write_hw_16(address, value);
+            emulator::q68_write_hw_8(address, U16Byte(0,value));
+            emulator::q68_write_hw_8(address+1, U16Byte(1,value));
             return;
         }
 
@@ -397,7 +399,8 @@ extern "C" {
         }
 
         if (address >= emulator::q68_q40_io) {
-            emulator::q68_write_hw_16(address, value);
+            emulator::q68_write_hw_8(address, U16Byte(0,value));
+            emulator::q68_write_hw_8(address+1, U16Byte(1,value));
             return;
         }
 
@@ -422,13 +425,19 @@ extern "C" {
     {
         if ((address >= emulator::q68_internal_io) &&
             address < (emulator::q68_internal_io + emulator::q68_internal_io_size)) {
-            emulator::q68_write_hw_32(address, value);
+            emulator::q68_write_hw_8(address, U32Byte(0,value));
+            emulator::q68_write_hw_8(address+1, U32Byte(1,value));
+            emulator::q68_write_hw_8(address+2, U32Byte(2,value));
+            emulator::q68_write_hw_8(address+3, U32Byte(3,value));
             return;
         }
 #ifdef Q68_EMU
         if ((address >= emulator::q68_external_io) &&
             address < (emulator::q68_external_io + emulator::q68_external_io_size)) {
-            emulator::q68_write_hw_32(address, value);
+            emulator::q68_write_hw_8(address, U32Byte(0,value));
+            emulator::q68_write_hw_8(address+1, U32Byte(1,value));
+            emulator::q68_write_hw_8(address+2, U32Byte(2,value));
+            emulator::q68_write_hw_8(address+3, U32Byte(3,value));
             return;
         }
 
@@ -440,7 +449,10 @@ extern "C" {
         }
 
         if (address >= emulator::q68_q40_io) {
-            emulator::q68_write_hw_32(address, value);
+            emulator::q68_write_hw_8(address, U32Byte(0,value));
+            emulator::q68_write_hw_8(address+1, U32Byte(1,value));
+            emulator::q68_write_hw_8(address+2, U32Byte(2,value));
+            emulator::q68_write_hw_8(address+3, U32Byte(3,value));
             return;
         }
 

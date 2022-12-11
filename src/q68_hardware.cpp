@@ -150,14 +150,4 @@ void q68_write_hw_8(unsigned int addr, unsigned int val)
     }
 }
 
-void q68_write_hw_16(unsigned int addr, unsigned int val)
-{
-    //std::cout << "HWW16: " << std::hex << addr << "," << val << std::endl;
-}
-
-void q68_write_hw_32(unsigned int addr, unsigned int val)
-{
-    //std::cout << "HWW32: " << std::hex << addr << "," << val << std::endl;
-}
-
 } // namespace emulator

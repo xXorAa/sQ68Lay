@@ -21,6 +21,15 @@
     | (uint32_t)(c) << 8            \
     | (uint32_t)(d)                 \
 )
+
+#define U16Byte(a,b) (              \
+    (uint8_t)(b >> (8 * (1 - a)))   \
+)
+
+#define U32Byte(a,b) (              \
+    (uint8_t)(b >> (8 * (3 - a)))   \
+)
+
 namespace emulator {
 
 extern uint8_t q68_mc_stat;
