@@ -15,12 +15,27 @@ else()
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -ggdb -Og")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ggdb -Og")
     find_package(SDL2 REQUIRED)
+    find_package(PkgConfig REQUIRED)
+    pkg_search_module(GLIB REQUIRED glib-2.0)
+
+    include_directories(${GLIB_INCLUDE_DIRS})
+    link_directories(${GLIB_LIBRARY_DIRS})
 endif()
 
-include_directories(${CMAKE_CURRENT_LIST_DIR} include/ Musashi/ CLI11/include/ external/ qlay/ ${SDL2_INCLUDE_DIRS} ${Boost_INCLUDE_DIRS})
+include_directories(${CMAKE_CURRENT_LIST_DIR} include/ Musashi/ CLI11/include/ args/src/ inih/ external/ qlay/ ${SDL2_INCLUDE_DIRS} ${Boost_INCLUDE_DIRS})
+
+find_package(Git)
+add_custom_target( SubmarineGitVersion
+    COMMAND ${CMAKE_COMMAND}
+        -D GIT_EXECUTABLE=${GIT_EXECUTABLE}
+        -D INPUT_FILE=${CMAKE_CURRENT_SOURCE_DIR}/version.c.in
+        -D OUTPUT_FILE=${CMAKE_CURRENT_BINARY_DIR}/version.c
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/generate_version.cmake
+)
 
 add_executable(sq68ux
     src/emu_options.cpp
+    src/emulator_options.c
     src/q68_main.cpp
     src/q68_emulator.cpp
     src/q68_events.cpp
@@ -28,22 +43,29 @@ add_executable(sq68ux
     src/q68_screen.cpp
 #    qlay/qlio.cpp
     external/sdl-ps2.c
+    args/src/args.c
+    inih/ini.c
     Musashi/m68kcpu.c
     Musashi/m68kops.c
     Musashi/m68kdasm.c
     Musashi/softfloat/softfloat.c
+    ${CMAKE_CURRENT_BINARY_DIR}/version.c
     )
 
-target_compile_options(sq68ux PRIVATE "-DQ68_EMU")
+add_dependencies(sq68ux SubmarineGitVersion)
+target_compile_options(sq68ux PRIVATE -DQ68_EMU -DEMU_STR="sq68ux")
 
 add_executable(sqlay3
     src/emu_options.cpp
+    src/emulator_options.c
     src/q68_main.cpp
     src/q68_emulator.cpp
     src/q68_events.cpp
     src/q68_hardware.cpp
     src/q68_screen.cpp
     src/qlay_keyboard.cpp
+    args/src/args.c
+    inih/ini.c
     qlay/qlio.cpp
     qlay/qldisk.cpp
     external/sdl-ps2.c
@@ -51,9 +73,11 @@ add_executable(sqlay3
     Musashi/m68kops.c
     Musashi/m68kdasm.c
     Musashi/softfloat/softfloat.c
+    ${CMAKE_CURRENT_BINARY_DIR}/version.c
     )
 
-target_compile_options(sqlay3 PRIVATE "-DQLAY_EMU")
+add_dependencies(sqlay3 SubmarineGitVersion)
+target_compile_options(sqlay3 PRIVATE -DQLAY_EMU -DEMU_STR="sqlay3")
 
 if (SDL2_LIBRARIES)
     if (${CMAKE_SYSTEM_NAME} MATCHES "Windows")
@@ -67,8 +91,8 @@ else()
     set(EMU_BUILD_LIBS "SDL2::SDL2")
 endif()
 
-target_link_libraries(sq68ux ${EMU_BUILD_LIBS})
-target_link_libraries(sqlay3 ${EMU_BUILD_LIBS})
+target_link_libraries(sq68ux ${EMU_BUILD_LIBS} ${GLIB_LIBRARIES})
+target_link_libraries(sqlay3 ${EMU_BUILD_LIBS} ${GLIB_LIBRARIES})
 
 install(TARGETS sq68ux sqlay3
 	DESTINATION ${CMAKE_INSTALL_PREFIX}/bin/
