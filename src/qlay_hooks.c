@@ -1,6 +1,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 
+#include "emulator_options.h"
 #include "m68k.h"
 
 unsigned int cyclesThen = 0;
@@ -23,7 +24,9 @@ void emu_hook_pc(unsigned int pc)
 		doIrq = false;
 	}
 
-	char disBuf[256];
-	m68k_disassemble(disBuf, pc, M68K_CPU_TYPE_68000);
-	printf("%04X %s\n", pc, disBuf);
+	if (emulatorOptionInt("trace")) {
+		char disBuf[256];
+		m68k_disassemble(disBuf, pc, M68K_CPU_TYPE_68000);
+		printf("%04X %s\n", pc, disBuf);
+	}
 }

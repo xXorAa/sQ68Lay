@@ -92,6 +92,7 @@ struct emuOpts emuOptions[] = {
 {"exprom", "c", "address@romfile eg C000@NFA.rom", EMU_OPT_DEV, 0, NULL, NULL},
 {"sysrom", "r", "system rom", EMU_OPT_CHAR, 0, "JS.rom"},
 {"drive", "l", "nfa file (upto 8 times)", EMU_OPT_DEV, 0 ,NULL, NULL},
+{"trace", "", "enable tracing", EMU_OPT_INT, 0, NULL, NULL},
 #endif //QLAY_EMU
 
 {NULL},
