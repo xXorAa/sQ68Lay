@@ -882,7 +882,7 @@ static void exec_IPCcmd(int cmd)
 		/*fpr("C8 ");*/
 		IPCreturn = 0;
 		IPCcnt = 4;
-
+		printf("Read Keyboard %d\n", g_queue_get_length(qlayKeyBuffer));
 		if (g_queue_get_length(qlayKeyBuffer)) { /* just double check */
 			key = GPOINTER_TO_INT(g_queue_pop_head(qlayKeyBuffer));
 			lastkey = key;
@@ -1120,8 +1120,8 @@ void do_next_event()
 	if (cycles()>=e50) { /* 50Hz interrupt, 20 msec */
         // do_50Hz();
 		//m68k_set_irq(2);
-		doIrq = true;
-		EMU_PC_INTR |= PC_INTRF;
+		//doIrq = true;
+		//EMU_PC_INTR |= PC_INTRF;
         e50=cycles() + (20 * qlay1msec);
         e++;
         if(0)fpr("I5 ");
@@ -1347,6 +1347,9 @@ static void do_1Hz(void)
 
 static void do_mdv_motor()
 {
+	EMU_PC_INTR |= 0x01;
+	doIrq = true;
+
 	if (mdvmotor) {
 		EMU_PC_INTR |= 0x01;
 		doIrq = true;
