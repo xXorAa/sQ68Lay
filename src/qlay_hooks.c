@@ -3,6 +3,7 @@
 
 #include "emulator_options.h"
 #include "m68k.h"
+#include "qlay_ipc.h"
 
 unsigned int cyclesThen = 0;
 unsigned int cycleNextEvent = 0;
@@ -16,7 +17,7 @@ unsigned int cycles()
 void emu_hook_pc(unsigned int pc)
 {
 	if (cycles() >= cycleNextEvent) {
-		//ipc_do_next_event();
+		do_next_event();
 	}
 
 	if (doIrq) {
