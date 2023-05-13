@@ -13,7 +13,7 @@
 #include <string>
 
 #include "m68k.h"
-#include "emu_options.hpp"
+#include "emulator_options.h"
 #include "q68_events.hpp"
 #include "q68_hardware.hpp"
 #include "q68_memory.hpp"
@@ -44,38 +44,21 @@ void q68AllocateMemory()
     q68ScreenSpace = new uint8_t[q68_screen_size];
 }
 
-void q68LoadFile(std::string name, uint8_t *addr, size_t fsize = 0)
-{
-    //if (name[0] == '~') {
-    //    name.erase(0, 1);
-    //    name.insert(0, "/");
-    //    name.insert(0, homedir);
-    //}
-
-    std::filesystem::path p{name};
-    auto size = std::filesystem::file_size(p);
-    if (fsize && (fsize != size)) {
-        throw std::runtime_error("File Size Mismatch");
-    }
-
-    std::ifstream romFile(name, std::ios::binary);
-    if (romFile.bad()) {
-        throw std::runtime_error("File NOT Found");
-    }
-    romFile.read((char *)addr, size);
-    romFile.close();
-}
-
 int q68MainLoop(void *ptr)
 {
+    char *exprom;
+    int  expromCount;
+
     try {
 #ifdef Q68_EMU
     q68LoadFile("Q68_SMSQ.bin", q68MemorySpace + 0x320000);
 #endif
 #ifdef QLAY_EMU
-    q68LoadFile(options::sysrom, q68MemorySpace);
-    if (options::romport.size()) {
-        q68LoadFile(options::romport, q68MemorySpace + 48_KiB);
+    q68LoadFile(emulatorOptionString("sysrom"), q68MemorySpace);
+
+    expromCount = emulatorOptionDevCount("exprom");
+    if (expromCount) {
+        q68LoadFile(emulatorOptionDev("exprom", 0), q68MemorySpace + 48_KiB);
     }
 #endif
     } catch (std::exception &e) {
@@ -200,10 +183,9 @@ extern "C" {
         }
 #endif
 #ifdef QLAY_EMU
-        if (address >= options::ramsize) {
+        if (address >= 256_KiB) {
             return 0;
         }
-
         if ((address >= 128_KiB) && (address < 256_KiB)) {
             //m68k_modify_timeslice(-2);
         }
@@ -287,10 +269,6 @@ extern "C" {
         }
 #endif
 #ifdef QLAY_EMU
-        if (address >= options::ramsize) {
-            return;
-        }
-
         if ((address >= 128_KiB) && (address < 256_KiB)) {
             m68k_modify_timeslice(-6);
         }

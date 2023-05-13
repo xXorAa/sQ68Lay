@@ -18,6 +18,7 @@
 #include "q68_screen.hpp"
 
 extern "C" {
+#include "emulator_options.h"
 
     void renderTick() {
         if (emulator::q68RenderScreenFlag) {
@@ -32,9 +33,7 @@ extern "C" {
 
 int main(int argc, char **argv)
 {
-    if (!options::parse(argc, argv)) {
-        return 0;
-    }
+    emulatorOptionParse(argc, argv);
 
 #if __EMSCRIPTEN__
     int ret = SDL_Init(SDL_INIT_EVERYTHING & ~(SDL_INIT_TIMER | SDL_INIT_HAPTIC));

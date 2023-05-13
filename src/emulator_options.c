@@ -114,30 +114,6 @@ void replaceX(GString *fileString) {
 	g_string_replace(fileString, "%x", pidStr->str, 0);
 }
 
-static bool fileExists(const GString *fileString)
-{
-	struct stat statBuf;
-	int ret;
-
-	ret = stat(fileString->str, &statBuf);
-	if (ret < 0) {
-		return false;
-	}
-	return true;
-}
-
-static bool isDirectory(const GString *fileString)
-{
-	struct stat statBuf;
-	int ret;
-
-	ret = stat(fileString->str, &statBuf);
-	if (ret < 0) {
-		return false;
-	}
-	return S_ISDIR(statBuf.st_mode);
-}
-
 /*
 void deviceInstall(sds *device, int count)
 {
@@ -388,7 +364,7 @@ void emulatorOptionsRemove()
 	ap_free(parser);
 }
 
-char *emulatorOptionString(const char *name)
+const char *emulatorOptionString(const char *name)
 {
 	int i;
 
@@ -426,6 +402,46 @@ int emulatorOptionInt(const char *name)
 	}
 
 	return 0;
+}
+
+int emulatorOptionDevCount(const char *name) {
+	int i, count;
+
+	count = ap_count(parser, name);
+
+	i = 0;
+	while (emuOptions[i].option != NULL) {
+		if (strcmp(emuOptions[i].option, name) == 0) {
+			if (emuOptions->list != NULL) {
+				count += g_list_length(emuOptions->list);
+			}
+		}
+
+		i++;
+	}
+
+	return count;
+}
+
+const char *emulatorOptionDev(const char *name, int idx)
+{
+	int i;
+
+	if (idx < ap_count(parser, name)) {
+		return ap_get_str_value_at_index(parser, name, idx);
+	}
+
+	idx -= ap_count(parser, name);
+
+	while (emuOptions[i].option != NULL) {
+		if (strcmp(emuOptions[i].option, name) == 0) {
+			if (emuOptions[i].list != NULL) {
+				return g_list_nth_data(emuOptions[i].list, idx);
+			}
+		}
+	}
+
+	return NULL;
 }
 
 int emulatorOptionArgc()
