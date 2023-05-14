@@ -7,6 +7,7 @@
 #include <glib.h>
 #include <SDL.h>
 
+#include "qlay_hooks.h"
 #include "qlay_keyboard.h"
 #include "qlkeys.h"
 
@@ -130,6 +131,13 @@ void emulatorProcessKey(int scancode, bool pressed)
 	int qlKey;
 	int i = 0;
 
+	if ((scancode == SDLK_F12) && pressed) {
+		if (!trace) {
+			trace = true;
+		} else {
+			trace = false;
+		}
+	}
 	while (qlMapDefault[i].sdlKey != 0) {
 		if (qlMapDefault[i].sdlKey == scancode) {
 			break;

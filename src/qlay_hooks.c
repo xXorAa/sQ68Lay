@@ -7,7 +7,8 @@
 
 unsigned int cyclesThen = 0;
 unsigned int cycleNextEvent = 0;
-bool doIrq;
+bool doIrq = false;
+bool trace = false;
 
 unsigned int cycles()
 {
@@ -25,7 +26,7 @@ void emu_hook_pc(unsigned int pc)
 		doIrq = false;
 	}
 
-	if (emulatorOptionInt("trace")) {
+	if (trace) {
 		char disBuf[256];
 		m68k_disassemble(disBuf, pc, M68K_CPU_TYPE_68000);
 		printf("%04X %s\n", pc, disBuf);
