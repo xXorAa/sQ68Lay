@@ -187,7 +187,6 @@ void emulatorProcessKey(int keysym, __attribute__ ((unused)) int scancode, bool 
 				qlKey += 0x400;
 			g_queue_push_tail(qlayKeyBuffer,
 					  GINT_TO_POINTER(qlKey));
-			printf("queuesize %d\n", g_queue_get_length(qlayKeyBuffer));
 		} else {
 			if ((qlKey & 0x780) != qlKey) {
 				g_queue_push_tail(
