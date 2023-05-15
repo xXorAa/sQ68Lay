@@ -266,9 +266,7 @@ static int iniHandler(__attribute__ ((unused)) void* user, __attribute__ ((unuse
 				emuOptions[i].intVal = atoi(value);
 				return 0;
 			} else if (emuOptions[i].type == EMU_OPT_DEV) {
-				if (emuOptions[i].list == NULL) {
-					emuOptions[i].list = g_list_append(emuOptions[i].list, strdup(value));
-				}
+				emuOptions[i].list = g_list_append(emuOptions[i].list, strdup(value));
 			}
 
 			return 1;
@@ -421,8 +419,8 @@ int emulatorOptionDevCount(const char *name) {
 	i = 0;
 	while (emuOptions[i].option != NULL) {
 		if (strcmp(emuOptions[i].option, name) == 0) {
-			if (emuOptions->list != NULL) {
-				count += g_list_length(emuOptions->list);
+			if (emuOptions[i].list != NULL) {
+				count += g_list_length(emuOptions[i].list);
 			}
 		}
 
@@ -448,6 +446,7 @@ const char *emulatorOptionDev(const char *name, int idx)
 				return g_list_nth_data(emuOptions[i].list, idx);
 			}
 		}
+		i++;
 	}
 
 	return NULL;
