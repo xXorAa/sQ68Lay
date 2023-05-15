@@ -14,6 +14,7 @@
 #include "emulator_memory.h"
 #include "emulator_options.h"
 #include "m68k.h"
+#include "qlay_disk.h"
 
 static uint8_t *qlayMemSpace = NULL;
 static size_t qlayMemSize = 0;
@@ -54,19 +55,19 @@ unsigned int m68k_read_memory_8(unsigned int address)
 		return qlHardwareRead8(address);
 	}
 
-	/*
+
 	if ((QLAY_NFA_IO) &&
 	    address < (QLAY_NFA_IO + QLAY_NFA_IO_SIZE)) {
-		return nfaRead8(address);
+		return rdnfa(address);
 	}
-	*/
+
 	if (address >= qlayMemSize) {
 		return 0;
 	}
 
 	// Add some contension for BBQL ram
 	if ((address >= KB(128)) && (address < KB(256))) {
-		//m68k_modify_timeslice(-2);
+		extraCycles += 2;
 	}
 
 	return qlayMemSpace[address];
@@ -115,20 +116,19 @@ void m68k_write_memory_8(unsigned int address, unsigned int value)
 		return;
 	}
 
-/*
-	if ((address >= emulator::qlay_nfa_io) &&
-	    address < (emulator::qlay_nfa_io + emulator::qlay_nfa_io_size)) {
-		qldisk::wrnfa(address, value);
-		emulator::q68MemorySpace[address] = value;
+
+	if ((address >= QLAY_NFA_IO) &&
+	    address < (QLAY_NFA_IO + QLAY_NFA_IO_SIZE)) {
+		wrnfa(address, value);
+		qlayMemSpace[address] = value;
 	}
-*/
 
 	if (address >= qlayMemSize) {
 		return;
 	}
 
 	if ((address >= KB(128)) && (address < KB(256))) {
-		//m68k_modify_timeslice(-6);
+		extraCycles += 2;
 	}
 
 	qlayMemSpace[address] = value;
@@ -136,14 +136,14 @@ void m68k_write_memory_8(unsigned int address, unsigned int value)
 
 void m68k_write_memory_16(unsigned int address, unsigned int value)
 {
-	m68k_modify_timeslice(-4);
+	extraCycles += 4;
 	m68k_write_memory_8(address + 0, (value >> 8) & 0xFF);
 	m68k_write_memory_8(address + 1, (value >> 0) & 0xFF);
 }
 
 void m68k_write_memory_32(unsigned int address, unsigned int value)
 {
-	m68k_modify_timeslice(-12);
+	extraCycles += 12;
 	m68k_write_memory_8(address + 0, (value >> 24) & 0xFF);
 	m68k_write_memory_8(address + 1, (value >> 16) & 0xFF);
 	m68k_write_memory_8(address + 2, (value >> 8) & 0xFF);
