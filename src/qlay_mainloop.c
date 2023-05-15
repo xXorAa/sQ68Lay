@@ -46,7 +46,7 @@ int emulatorMainLoop(void)
 	uint64_t counterFreq = SDL_GetPerformanceFrequency();
 	uint64_t msTick = counterFreq / 10000;
 
-	printf("msTick %llu\n", msTick);
+	printf("msTick %" PRIu64 "\n", msTick);
 
 	uint64_t screenThen = SDL_GetPerformanceCounter();
 	uint64_t msThen = screenThen;

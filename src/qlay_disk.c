@@ -35,7 +35,9 @@ static int fnum2fname(int drivenr, int fnum, char* fname);
 static int fnum2dirname(int drivenr, char* fname);
 
 static void print_byte(uint8_t val);
+#if 0
 static void print_open(void);
+#endif
 static void print_close(void);
 
 #define END_CMD 0x00
@@ -479,6 +481,7 @@ void wrserpar(uint32_t a, uint8_t d)
 		print_byte(d);
 }
 
+#if 0
 static void print_open(void)
 {
 	// prttmp = fopen(prtname, "wb");
@@ -488,22 +491,24 @@ static void print_open(void)
 	// 	prtopen = 1;
 	//}
 }
-
+#endif 
 static void print_close(void)
 {
 	fclose(prttmp);
 	prtopen = 0;
 }
 
-static void print_byte(uint8_t val)
+static void print_byte(__attribute__ ((unused)) uint8_t val)
 {
+	/*
 	if (prtopen == 0)
 		print_open();
 	if (prtopen == 1) {
 		fputc(val, prttmp);
 		fflush(prttmp);
-		if (val == 0x1A) { /* eof ^Z */
+		if (val == 0x1A) {
 			print_close();
 		}
 	}
+	*/
 }
