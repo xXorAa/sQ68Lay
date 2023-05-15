@@ -4,7 +4,7 @@
 #define EMULATOR_SCREEN_H
 
 void emulatorScreenInit(int screenMode);
-void emulatorUpdatePixelBuffer();
+void emulatorUpdatePixelBuffer(void);
 void emulatorRenderScreen(void);
 void emulatorScreenChangeMode(int qlMode);
 

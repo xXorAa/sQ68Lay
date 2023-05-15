@@ -46,14 +46,14 @@ struct qlMode {
 };
 
 struct qlMode qlModes[8] = {
-{ 0x00020000, KB(32), 512, 256           }, // ql mode 8              0
-{ 0x00020000, KB(32), 512, 256           }, // ql mode 4              1
-{ 0xFE800000, KB(256), 512, 256          }, // small 16 bit screen    2
-{ 0xFE800000, MB(1), 1024, 512           }, // large 16 bit screen    3
-{ 0xFE800000, KB(192), 1024, 768         }, // large QL Mode 4 screen 4
-{ 0xFE800000, KB(512), 1024, 768         }, // auora 8 bit            5
-{ 0xFE800000, KB(384), 512, 384          }, // medium 16 bit screen   6
-{ 0xFE800000, MB(1) + KB(512), 1024, 768 }  // huge 16 bit            7
+{ 0x00020000, KB(32), 512, 256           , NULL, NULL}, // ql mode 8              0
+{ 0x00020000, KB(32), 512, 256           , NULL, NULL}, // ql mode 4              1
+{ 0xFE800000, KB(256), 512, 256          , NULL, NULL}, // small 16 bit screen    2
+{ 0xFE800000, MB(1), 1024, 512           , NULL, NULL}, // large 16 bit screen    3
+{ 0xFE800000, KB(192), 1024, 768         , NULL, NULL}, // large QL Mode 4 screen 4
+{ 0xFE800000, KB(512), 1024, 768         , NULL, NULL}, // auora 8 bit            5
+{ 0xFE800000, KB(384), 512, 384          , NULL, NULL}, // medium 16 bit screen   6
+{ 0xFE800000, MB(1) + KB(512), 1024, 768 , NULL, NULL}  // huge 16 bit            7
 };
 
 const char* const desktops = "x11,cocoa,windows,wayland,emscripten";
@@ -252,7 +252,7 @@ void emulatorUpdatePixelBufferAurora(uint8_t *emulatorScreenPtr, uint8_t *emulat
 	}
 }
 
-void emulatorUpdatePixelBuffer()
+void emulatorUpdatePixelBuffer(void)
 {
 	if (SDL_MUSTLOCK(qlModes[emulatorCurrentMode].surface)) {
 		SDL_LockSurface(qlModes[emulatorCurrentMode].surface);
@@ -297,11 +297,6 @@ void emulatorUpdatePixelBuffer()
 
 void emulatorRenderScreen(void)
 {
-	void *texture_buffer;
-	int pitch;
-	int w, h;
-	SDL_PixelFormat pixelformat;
-
 	SDL_UpdateTexture(qlModes[emulatorCurrentMode].texture,
 		NULL,
 		qlModes[emulatorCurrentMode].surface->pixels,

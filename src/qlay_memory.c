@@ -10,6 +10,7 @@
 #include <stdlib.h>
 
 #include "emulator_hardware.h"
+#include "emulator_mainloop.h"
 #include "emulator_memory.h"
 #include "emulator_options.h"
 #include "m68k.h"
@@ -17,17 +18,17 @@
 static uint8_t *qlayMemSpace = NULL;
 static size_t qlayMemSize = 0;
 
-uint8_t *emulatorMemorySpace()
+uint8_t *emulatorMemorySpace(void)
 {
 	return qlayMemSpace;
 }
 
-uint8_t *emulatorScreenSpace()
+uint8_t *emulatorScreenSpace(void)
 {
 	return NULL;
 }
 
-int emulatorInitMemory()
+int emulatorInitMemory(void)
 {
 	// ROM 64K and IO space 64K added to ramsize
 	qlayMemSize = KB(emulatorOptionInt("ramsize")) + KB(128);
@@ -73,7 +74,7 @@ unsigned int m68k_read_memory_8(unsigned int address)
 
 unsigned int m68k_read_memory_16(unsigned int address)
 {
-	m68k_modify_timeslice(-4);
+	extraCycles += 4;
 	return m68k_read_memory_8(address) << 8 |
 	       m68k_read_memory_8(address + 1);
 }
@@ -89,7 +90,7 @@ unsigned int m68k_read_disassembler_16(unsigned int address)
 
 unsigned int m68k_read_memory_32(unsigned int address)
 {
-	m68k_modify_timeslice(-12);
+	extraCycles += 12;
 	return m68k_read_memory_8(address) << 24 |
 	       m68k_read_memory_8(address + 1) << 16 |
 	       m68k_read_memory_8(address + 2) << 8 |

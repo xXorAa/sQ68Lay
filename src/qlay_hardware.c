@@ -15,9 +15,7 @@
 uint8_t EMU_PC_INTR = 0;
 uint8_t EMU_MC_STAT = 0;
 
-static uint8_t keys[3] = { 0x1c, 0xF0, 0x1C };
-
-static uint32_t qlayUpdateTime()
+static uint32_t qlayUpdateTime(void)
 {
 	struct timeval tv;
 	gettimeofday(&tv, NULL);
@@ -27,9 +25,6 @@ static uint32_t qlayUpdateTime()
 
 uint8_t qlHardwareRead8(unsigned int addr)
 {
-	int kcode = 0;
-
-	//std::cout << "HWR8: " << std::hex << addr << std::endl;
 	switch (addr) {
 	case PC_CLOCK:
 		return qlayUpdateTime() >> 24;

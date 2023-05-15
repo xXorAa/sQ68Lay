@@ -14,19 +14,22 @@
 #include "emulator_options.h"
 #include "emulator_screen.h"
 #include "m68k.h"
+#include "qlay_disk.h"
 #include "qlay_hooks.h"
 #include "qlay_ipc.h"
 #include "qlay_keyboard.h"
 
 int msClk = 0;
 
+unsigned int extraCycles;
+
 int emulatorMainLoop(void)
 {
-	char *exprom;
 	int expromCount;
 
 	emulatorLoadFile(emulatorOptionString("sysrom"), &emulatorMemorySpace()[0], 0);
 
+	// TODO: add proper exprom handling
 	expromCount = emulatorOptionDevCount("exprom");
 	if (expromCount) {
 		emulatorLoadFile(emulatorOptionDev("exprom", 0), &emulatorMemorySpace()[KB(48)], 0);
@@ -38,37 +41,52 @@ int emulatorMainLoop(void)
 
 	qlayInitKbd();
 	qlayInitIPC();
-	//qlayInitDisk();
+	qlayInitDisk();
 
 	uint64_t counterFreq = SDL_GetPerformanceFrequency();
-	uint64_t screenTick = counterFreq / 50;
 	uint64_t msTick = counterFreq / 10000;
+
+	printf("msTick %llu\n", msTick);
 
 	uint64_t screenThen = SDL_GetPerformanceCounter();
 	uint64_t msThen = screenThen;
 
-	int ql_loops = 0;
+	uint64_t cyclesNow = 0;
+	uint64_t cyclesThen = 0;
+
+	uint64_t cycles50hz = 150000;
+
+	do_next_event();
 
 	while (!exitLoop) {
+		while ((cyclesNow - cyclesThen) < 750) {
+			cyclesNow += m68k_execute(1);
+
+			if (cyclesNow >= cycleNextEvent) {
+				//do_next_event();
+			}
+
+			if (cyclesNow >= cycles50hz) {
+				emulatorUpdatePixelBuffer();
+				emulatorRenderScreen();
+				emulatorProcessEvents();
+
+				EMU_PC_INTR |= PC_INTRF;
+				m68k_set_irq(2);
+
+				cycles50hz += 150000;
+			}
+		}
+
+		cyclesThen = cyclesNow;
+
+		/* wait for next 0.1ms */
 		uint64_t now = SDL_GetPerformanceCounter();
-
-		if ((now - msThen) > msTick) {
-			msThen = (msThen + msTick);
-			msClk++;
-			m68k_execute(750);
-			cyclesThen += 750;
+		while ((now - msThen) < msTick) {
+			now = SDL_GetPerformanceCounter();
 		}
 
-		if ((now - screenThen) > screenTick){
-			emulatorUpdatePixelBuffer();
-			emulatorRenderScreen();
-			emulatorProcessEvents();
-
-			EMU_PC_INTR |= PC_INTRF;
-			doIrq = true;
-
-			screenThen += screenTick;
-		}
+		msThen = now;
 	}
 
 	return 0;

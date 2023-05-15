@@ -12,7 +12,11 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpedantic"
 #include "args.h"
+#pragma GCC diagnostic pop
+
 #include "ini.h"
 #include "version.h"
 
@@ -88,14 +92,14 @@ struct emuOpts emuOptions[] = {
 #endif //SQLUX_EMU
 
 #ifdef QLAY_EMU
-{"ramsize", "m", "amount of ram in K (max 8192)", EMU_OPT_INT, 128, NULL},
+{"ramsize", "m", "amount of ram in K (max 8192)", EMU_OPT_INT, 128, NULL, NULL},
 {"exprom", "c", "address@romfile eg C000@NFA.rom", EMU_OPT_DEV, 0, NULL, NULL},
-{"sysrom", "r", "system rom", EMU_OPT_CHAR, 0, "JS.rom"},
+{"sysrom", "r", "system rom", EMU_OPT_CHAR, 0, "JS.rom", NULL},
 {"drive", "l", "nfa file (upto 8 times)", EMU_OPT_DEV, 0 ,NULL, NULL},
 {"trace", "", "enable tracing", EMU_OPT_INT, 0, NULL, NULL},
 #endif //QLAY_EMU
 
-{NULL},
+{NULL, NULL, NULL, 0, 0, NULL, NULL},
 };
 
 
@@ -243,7 +247,7 @@ void deviceInstall(sds *device, int count)
 }
 */
 
-static int iniHandler(void* user, const char* section, const char* name,
+static int iniHandler(__attribute__ ((unused)) void* user, __attribute__ ((unused)) const char* section, const char* name,
                    const char* value)
 {
 	int i;
@@ -360,7 +364,7 @@ int emulatorOptionParse(int argc, char **argv)
 	return 0;
 }
 
-void emulatorOptionsRemove()
+void emulatorOptionsRemove(void)
 {
 	ap_free(parser);
 }
@@ -426,7 +430,7 @@ int emulatorOptionDevCount(const char *name) {
 
 const char *emulatorOptionDev(const char *name, int idx)
 {
-	int i;
+	int i = 0;
 
 	if (idx < ap_count(parser, name)) {
 		return ap_get_str_value_at_index(parser, name, idx);
@@ -445,7 +449,7 @@ const char *emulatorOptionDev(const char *name, int idx)
 	return NULL;
 }
 
-int emulatorOptionArgc()
+int emulatorOptionArgc(void)
 {
 	return ap_count_args(parser);
 }

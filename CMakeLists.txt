@@ -61,6 +61,7 @@ add_executable(sqlay3
     src/emulator_main.c
     src/emulator_options.c
     src/emulator_screen.c
+    src/qlay_disk.c
     src/qlay_memory.c
     src/qlay_hardware.c
     src/qlay_hooks.c
@@ -77,7 +78,8 @@ add_executable(sqlay3
     )
 
 add_dependencies(sqlay3 SubmarineGitVersion)
-target_compile_options(sqlay3 PRIVATE -DQLAY_EMU -DEMU_STR="sqlay3")
+target_compile_options(sqlay3 PRIVATE -DQLAY_EMU -DEMU_STR="sqlay3" -Wall -Wextra -Wpedantic -Werror)
+set_source_files_properties(args/src/args.c Musashi/m68kcpu.c PROPERTIES COMPILE_FLAGS -Wno-pedantic)
 
 if (SDL2_LIBRARIES)
     if (${CMAKE_SYSTEM_NAME} MATCHES "Windows")

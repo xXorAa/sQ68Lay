@@ -7,6 +7,6 @@
 
 int emulatorMainLoop(void);
 
-extern bool doIrq;
+extern unsigned int extraCycles;
 
 #endif /* EMULATOR_MAINLOOP_H */

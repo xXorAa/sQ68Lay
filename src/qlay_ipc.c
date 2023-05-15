@@ -26,31 +26,24 @@ void qliowr_b(uint32_t a, uint8_t d);
 void QL_exit(void);
 
 /* internal */
-static void do_1Hz(void);
 static void do_mdv_motor(void);
 
 /* internal */
-void wr8049(uint32_t addr, uint8_t data);
+void wr8049(uint8_t data);
 static void exec_IPCcmd(int cmd);
 static void wrmdvdata(uint8_t x);
 void wrmdvcntl(uint8_t x);
 static void wrserdata(uint8_t x);
 void wrZX8302(uint8_t x);
 static int decode_key(int key);
-static void QLwrdisk(void);
 static void QLrddisk(void);
 static void mdv_next_sect(void);
 static void init_mdvs(void);
 static int dt_event(int dt_type);
 static void mdv_select(int drive);
-static uint8_t rdmouse(uint32_t a);
-static void wrmouse(uint32_t a, uint8_t d);
 static void init_events(void);
 static void eval_next_event(void);
-static int sound_process(int);
 static void do_tx(void);
-static int get_next_ser(void);
-static void sclck(int, int);
 static void ser_rcv_init(void);
 static int ser_rcv_dequeue(int ch);
 static int ser_rcv_size(int ch);
@@ -73,12 +66,6 @@ static int IPCchan = 0; /* 0: SER1, 1: SER2 */
 static uint8_t ser_rcv_buf[2][SER_RCV_LEN];
 static int ser_rcv_1st[2];
 static int ser_rcv_fill[2];
-
-static uint8_t Mdirreg = 0; /* mouse direction */
-static uint8_t Mbutreg = 0; /* mouse buttons */
-static int Mcount = 0; /* mouse interrupt repeat counter */
-static int Mavail = 0; /* is the mouse detected, required and available? */
-/* signal when mouse ints should occur */
 
 uint32_t e50, emdv, emouse, esound, etx; /* events */
 
@@ -382,7 +369,6 @@ read sector:
 void wrmdvcntl(uint8_t x)
 {
 	static int mdvcnt = 0;
-	static int mdvcntls = 0;
 	static int currdrive = 0;
 	static int mcnt = 0;
 	static int pcntl = -1;
@@ -510,7 +496,7 @@ void update_LED()
 }
 #endif
 
-static void mdv_next_sect()
+static void mdv_next_sect(void)
 {
 	mdvixs = (mdvixs + 1) % NOSECTS;
 }
@@ -552,7 +538,7 @@ void wrZX8302(uint8_t d)
 
 static void wrserdata(uint8_t d)
 {
-	int ch;
+	__attribute__ ((unused)) int ch;
 	int p = 0;
 
 	ch = 0;
@@ -601,7 +587,7 @@ repeat for any number of bits to be received (MSB first)
 
 */
 
-void wr8049(uint32_t addr, uint8_t data)
+void wr8049(uint8_t data)
 {
 	static int IPCrcvd = 1; /* bit marker */
 	int IPCcmd;
@@ -878,14 +864,12 @@ static void exec_IPCcmd(int cmd)
 	case 8: /* read keyboard */
 	{
 		int key;
-		static int lastkey = 0;
 		/*fpr("C8 ");*/
 		IPCreturn = 0;
 		IPCcnt = 4;
 		printf("Read Keyboard %d\n", g_queue_get_length(qlayKeyBuffer));
 		if (g_queue_get_length(qlayKeyBuffer)) { /* just double check */
 			key = GPOINTER_TO_INT(g_queue_pop_head(qlayKeyBuffer));
-			lastkey = key;
 			/*fpr("Dec %x ",key);*/
 			IPCreturn = decode_key(key);
 			IPCcnt = 16;
@@ -972,7 +956,7 @@ static int dt_event(int dt_type)
 	return rv;
 }
 
-void qlayInitIPC()
+void qlayInitIPC(void)
 {
 	init_mdvs();
 	mdv_select(0);
@@ -986,13 +970,12 @@ void qlayInitIPC()
 	cycleNextEvent = 0;
 }
 
-void QL_exit()
+void QL_exit(void)
 {
 }
 /** Externalis�e par Jimmy **/
-void init_mdvs()
+void init_mdvs(void)
 {
-	char *p;
 	int i = 0;
 	int noDrives = emulatorOptionDevCount("drive");
 
@@ -1047,37 +1030,18 @@ void init_mdvs()
 	}
 }
 
-/* write diskimage in mdv[] to a file */
-static void QLwrdisk()
-{
-#if 0
-	FILE *qldisk;
-	int addr;
-
-	//fpr("Try write %s ",mdvname);
-	if (mdvwp)
-		return; /* don't write to OS */
-	qldisk = fopen(mdvname, "wb");
-	for (addr = 0; addr < NOSECTS * SECTLEN; addr++) {
-		putc(mdv[addr], qldisk);
-	}
-	fclose(qldisk);
-	//fpr("Wrote %s ",mdvname);
-#endif
-}
-
 /* read diskimage from file to mdv[] */
-static void QLrddisk()
+static void QLrddisk(void)
 {
 	emulatorLoadFile(mdvname, mdv, NOSECTS * SECTLEN);
 }
 
-void init_events()
+void init_events(void)
 {
 	e50 = emdv = emouse = esound = etx = 0;
 }
 
-void eval_next_event()
+void eval_next_event(void)
 {
 	/*
 uint32_t	d50,dmdv,dmouse,dsound,dtx;
@@ -1111,7 +1075,7 @@ uint32_t	d50,dmdv,dmouse,dsound,dtx;
 }
 
 /* a simple brute force implementation that works just fine ... */
-void do_next_event()
+void do_next_event(void)
 {
 	int e;
 
@@ -1282,43 +1246,7 @@ static int sound_process(int initbeep)
 }
 #endif
 
-static uint8_t rdmouse(uint32_t a)
-{
-	/*fpr("RM%x ",a);*/
-	if (a == 0x1bfbc) {
-		return Mdirreg;
-	}
-	if (a == 0x1bf9c) {
-		if (Mbutreg == 1)
-			return 0x10;
-		if (Mbutreg == 2)
-			return 0x20;
-		if (Mbutreg == 3)
-			return 0x30; /*untested*/
-	}
-	if (a == 0x1bf9d) {
-#if 0
-		if (opt_use_mouse) {
-			Mavail = 1; /* add other criteria...*/
-			return 1; /* mouse detection */
-		} else {
-			return 0;
-		}
-#endif
-	}
-	if (a == 0x1bfbe) {
-		/* ext int ackn 292 */
-		return 0;
-	}
-	return 0;
-}
-
-static void wrmouse(uint32_t a, uint8_t d)
-{
-	fpr("WM%x %x ", a, d);
-}
-
-int irq_level()
+int irq_level(void)
 {
 	if (REG18021 & 0x1f)
 		return 2;
@@ -1326,39 +1254,20 @@ int irq_level()
 		return -1;
 }
 
-static void do_1Hz(void)
+static void do_mdv_motor(void)
 {
-	static uint32_t qtime = 0, pcycle = 0;
-	static int first = 1;
-	uint32_t pctime;
-
-	pctime = (uint32_t)time(0);
-	if (qtime != pctime) {
-		/* one real second has passed since last call */
-		qtime = pctime;
-		if (first) {
-			first = 0;
-		} else {
-			fpr("%d ", cycles() - pcycle);
-		}
-		pcycle = cycles();
-	}
-}
-
-static void do_mdv_motor()
-{
-	EMU_PC_INTR |= 0x01;
+	//EMU_PC_INTR |= 0x01;
 	doIrq = true;
 
 	if (mdvmotor) {
-		EMU_PC_INTR |= 0x01;
+		//_IEMU_PCNTR |= 0x01;
 		doIrq = true;
 		dt_event(1); /* set time stamp */
 	}
 	return;
 }
 
-static void do_tx()
+static void do_tx(void)
 {
 	REG18020tx &= ~0x02; /* clear tx busy bit: byte is transmitted */
 }
