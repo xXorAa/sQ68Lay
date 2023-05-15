@@ -33,27 +33,29 @@ add_custom_target( SubmarineGitVersion
         -P ${CMAKE_CURRENT_SOURCE_DIR}/generate_version.cmake
 )
 
-#add_executable(sq68ux
-#    src/emu_options.cpp
-#    src/emulator_options.c
-#    src/q68_main.cpp
-#    src/q68_emulator.cpp
-#    src/q68_events.cpp
-#    src/q68_hardware.cpp
-#    src/q68_screen.cpp
-#    qlay/qlio.cpp
-#    external/sdl-ps2.c
-#    args/src/args.c
-#    inih/ini.c
-#    Musashi/m68kcpu.c
-#    Musashi/m68kops.c
-#    Musashi/m68kdasm.c
-#    Musashi/softfloat/softfloat.c
-#    ${CMAKE_CURRENT_BINARY_DIR}/version.c
-#    )
+add_executable(sq68ux
+    src/emulator_events.c
+    src/emulator_files.c
+    src/emulator_main.c
+    src/emulator_options.c
+    src/emulator_screen.c
+    src/q68_hardware.c
+    src/q68_hooks.c
+    src/q68_keyboard.c
+    src/q68_mainloop.c
+    src/q68_memory.c
+    external/sdl-ps2.c
+    args/src/args.c
+    inih/ini.c
+    Musashi/m68kcpu.c
+    Musashi/m68kops.c
+    Musashi/m68kdasm.c
+    Musashi/softfloat/softfloat.c
+    ${CMAKE_CURRENT_BINARY_DIR}/version.c
+    )
 
-#add_dependencies(sq68ux SubmarineGitVersion)
-#target_compile_options(sq68ux PRIVATE -DQ68_EMU -DEMU_STR="sq68ux")
+add_dependencies(sq68ux SubmarineGitVersion)
+target_compile_options(sq68ux PRIVATE -DQ68_EMU -DEMU_STR="sq68ux" -Wall -Wextra -Wpedantic -Werror)
 
 add_executable(sqlay3
     src/emulator_events.c
@@ -93,7 +95,7 @@ else()
     set(EMU_BUILD_LIBS "SDL2::SDL2")
 endif()
 
-#target_link_libraries(sq68ux ${EMU_BUILD_LIBS} ${GLIB_LIBRARIES})
+target_link_libraries(sq68ux ${EMU_BUILD_LIBS} ${GLIB_LIBRARIES})
 target_link_libraries(sqlay3 ${EMU_BUILD_LIBS} ${GLIB_LIBRARIES})
 
 install(TARGETS sqlay3

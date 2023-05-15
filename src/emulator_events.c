@@ -26,10 +26,10 @@ void emulatorProcessEvents(void)
 		exitLoop = 1;
 		break;
 	case SDL_KEYDOWN:
-		emulatorProcessKey(event.key.keysym.sym, 1);
+		emulatorProcessKey(event.key.keysym.sym, event.key.keysym.scancode, 1);
 		break;
 	case SDL_KEYUP:
-		emulatorProcessKey(event.key.keysym.sym, 0);
+		emulatorProcessKey(event.key.keysym.sym, event.key.keysym.scancode, 0);
 		break;
 	default:
 		break;

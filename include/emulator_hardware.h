@@ -53,5 +53,6 @@ void qlHardwareWrite8(unsigned int addr, uint8_t val);
 
 /* Shadow registers */
 extern uint8_t EMU_PC_INTR;
+extern uint8_t Q68_KBD_STATUS;
 
 #endif /* EMULATOR_HARDWARE_H */

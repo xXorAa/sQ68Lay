@@ -126,12 +126,12 @@ uint8_t qlayGetKeyrow(uint8_t row)
 	return rv;
 }
 
-void emulatorProcessKey(int scancode, bool pressed)
+void emulatorProcessKey(int keysym, __attribute__ ((unused)) int scancode, bool pressed)
 {
 	int qlKey;
 	int i = 0;
 
-	if ((scancode == SDLK_F12) && pressed) {
+	if ((keysym == SDLK_F12) && pressed) {
 		if (!trace) {
 			trace = true;
 		} else {
@@ -139,7 +139,7 @@ void emulatorProcessKey(int scancode, bool pressed)
 		}
 	}
 	while (qlMapDefault[i].sdlKey != 0) {
-		if (qlMapDefault[i].sdlKey == scancode) {
+		if (qlMapDefault[i].sdlKey == keysym) {
 			break;
 		}
 

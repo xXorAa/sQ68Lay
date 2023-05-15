@@ -12,7 +12,7 @@ int emulatorInitMemory(void);
 #define KB(x)				((size_t) (x) << 10)
 #define MB(x)				((size_t) (x) << 20)
 
-#define Q68_RAM_SIZE			0x01C00000
+#define Q68_RAM_SIZE			MB(28)
 
 #define QL_INTERNAL_IO			0x18000
 #define QL_INTERNAL_IO_SIZE		0x100
@@ -29,4 +29,5 @@ int emulatorInitMemory(void);
 #define Q68_Q40_IO			0xFF000000
 #define Q68_Q40_IO_SIZE			MB(16)
 
+#define Q68_SMSQE_ADDR			0x320000
 #endif /* EMULATOR_MEMORY_H */
