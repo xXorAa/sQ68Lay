@@ -1257,11 +1257,11 @@ int irq_level(void)
 static void do_mdv_motor(void)
 {
 	//EMU_PC_INTR |= 0x01;
-	doIrq = true;
+	//doIrq = true;
 
 	if (mdvmotor) {
 		//_IEMU_PCNTR |= 0x01;
-		doIrq = true;
+		//doIrq = true;
 		dt_event(1); /* set time stamp */
 	}
 	return;

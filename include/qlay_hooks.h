@@ -9,7 +9,6 @@ unsigned int cycles(void);
 
 extern unsigned int cycleNextEvent;
 extern unsigned int cyclesThen;
-extern bool doIrq;
 extern bool trace;
 
 #endif /* QLAY_HOOKS_H */

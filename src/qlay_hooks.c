@@ -6,7 +6,6 @@
 #include "qlay_ipc.h"
 
 unsigned int cycleNextEvent = 0;
-bool doIrq = false;
 bool trace = false;
 
 unsigned int cycles(void)
