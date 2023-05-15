@@ -15,7 +15,9 @@
 #include "emulator_options.h"
 #include "m68k.h"
 
-static const char* winfn[8];
+static const char* winfn[8] = {
+"", "", "", "", "", "", "", ""
+};
 
 /* internal */
 static int wrnfafile(int drivenr, int filenum, int sectnum, int bytenum,
@@ -86,7 +88,6 @@ void qlayInitDisk(void)
 
 		if (!(strncmp(drive, "win", 3) == 0) || !isdigit(drive[3]) ||
 			(drive[4] != '@')) {
-			fprintf(stderr, "skipping non mdv %s\n", drive);
 			continue;
 		}
 
@@ -94,7 +95,7 @@ void qlayInitDisk(void)
 		drvName = drive + 5;
 
 		if (drvNum >= MAXDRIVE) {
-			fprintf(stderr, "Invalid MDV num %d\n", drvNum);
+			fprintf(stderr, "Invalid WIN num %d\n", drvNum);
 			continue;
 		}
 
@@ -106,8 +107,10 @@ void qlayInitDisk(void)
 	}
 
 	if (i == 0) {
-		printf("No win drives found\n");
+		printf("No WIN drives found\n");
 	}
+
+	filename = calloc(256, 1);
 }
 
 void exit_qldisk(void)
@@ -250,13 +253,10 @@ uint8_t rdnfa(uint32_t addr)
 
 int drvcfgnfa(int drivenr)
 {
-	if (drivenr == 1)
-		return 1; /* win1_ always there */
 	if (strlen(winfn[drivenr - 1]))
 		return 1;
 	else
 		return 0;
-	//	if (winpresent[drivenr-1]) return 1; else return 0;
 }
 
 int wrnfafile(int drivenr, int filenum, int sectnum, int bytenum, int bytecnt)
@@ -491,7 +491,7 @@ static void print_open(void)
 	// 	prtopen = 1;
 	//}
 }
-#endif 
+#endif
 static void print_close(void)
 {
 	fclose(prttmp);
