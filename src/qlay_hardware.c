@@ -55,7 +55,7 @@ void qlHardwareWrite8(unsigned int addr, uint8_t val)
 		wrZX8302(val);
 		return;
 	case PC_IPCWR:
-		wr8049(addr, val);
+		wr8049(val);
 		return;
 	case PC_MCTRL:
 		wrmdvcntl(val);
