@@ -19,7 +19,7 @@ static uint8_t q68_mc_stat = 0;
 uint8_t Q68_KBD_STATUS = KBD_ISINT; // interrupt driven kbd
 static uint8_t q68_q68_dmode = 0;
 
-static uint32_t q68_update_time()
+static uint32_t q68_update_time(void)
 {
 	struct timeval tv;
 	gettimeofday(&tv, NULL);
@@ -27,7 +27,7 @@ static uint32_t q68_update_time()
 	return tv.tv_sec + QDOS_TIME;
 }
 
-static uint32_t q68_update_hires()
+static uint32_t q68_update_hires(void)
 {
     uint64_t freq = SDL_GetPerformanceFrequency();
 
