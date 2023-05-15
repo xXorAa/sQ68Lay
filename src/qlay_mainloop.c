@@ -60,7 +60,9 @@ int emulatorMainLoop(void)
 
 	while (!exitLoop) {
 		while ((cyclesNow - cyclesThen) < 750) {
-			cyclesNow += m68k_execute(1);
+
+			extraCycles = 0;
+			cyclesNow += m68k_execute(1) + extraCycles;
 
 			if (cyclesNow >= cycleNextEvent) {
 				//do_next_event();
