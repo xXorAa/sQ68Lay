@@ -867,7 +867,6 @@ static void exec_IPCcmd(int cmd)
 		/*fpr("C8 ");*/
 		IPCreturn = 0;
 		IPCcnt = 4;
-		printf("Read Keyboard %d\n", g_queue_get_length(qlayKeyBuffer));
 		if (g_queue_get_length(qlayKeyBuffer)) { /* just double check */
 			key = GPOINTER_TO_INT(g_queue_pop_head(qlayKeyBuffer));
 			/*fpr("Dec %x ",key);*/
