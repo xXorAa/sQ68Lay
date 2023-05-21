@@ -5,6 +5,8 @@
  */
 #pragma once
 
+#include <stdint.h>
+
 #ifndef EMULATOR_HARDWARE_H
 #define EMULATOR_HARDWARE_H
 

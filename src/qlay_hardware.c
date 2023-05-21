@@ -9,6 +9,7 @@
 
 #include "emulator_hardware.h"
 #include "emulator_screen.h"
+#include "m68k.h"
 #include "qlay_ipc.h"
 
 // ghost irq registers

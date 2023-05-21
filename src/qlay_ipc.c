@@ -17,7 +17,7 @@
 #include "qlay_hooks.h"
 #include "qlay_keyboard.h"
 
-uint32_t qlay1msec = 7500;
+uint32_t qlay1msec = 7500 / 16;
 
 /* xternal? */
 uint8_t qliord_b(uint32_t a);
@@ -991,7 +991,7 @@ void init_mdvs(void)
 		}
 
 		mdvNum = drive[3] - '1';
-		mdvName = drive + 4;
+		mdvName = drive + 5;
 
 		if (mdvNum >= NUMOFDRIVES) {
 			fprintf(stderr, "Invalid MDV num %d\n", mdvNum);
@@ -1067,9 +1067,9 @@ uint32_t	d50,dmdv,dmouse,dsound,dtx;
 	if (dc < dmin)
 		dmin = dc;
 #endif
-	dc = etx - cycles();
-	if (dc < dmin)
-		dmin = dc;
+//	dc = etx - cycles();
+//	if (dc < dmin)
+//		dmin = dc;
 	cycleNextEvent = cycles() + dmin;
 }
 
@@ -1255,12 +1255,9 @@ int irq_level(void)
 
 static void do_mdv_motor(void)
 {
-	//EMU_PC_INTR |= 0x01;
-	//doIrq = true;
-
 	if (mdvmotor) {
-		//_IEMU_PCNTR |= 0x01;
-		//doIrq = true;
+		EMU_PC_INTR |= 0x01;
+		doIrq = true;
 		dt_event(1); /* set time stamp */
 	}
 	return;

@@ -5,6 +5,7 @@
  */
 
 #include <SDL.h>
+#include <stdint.h>
 
 #include "emulator_events.h"
 #include "emulator_files.h"
@@ -22,6 +23,14 @@
 int msClk = 0;
 
 unsigned int extraCycles;
+
+uint64_t cyclesNow = 0;
+bool doIrq = false;
+
+uint64_t cycles(void)
+{
+	return cyclesNow/16;
+}
 
 int emulatorMainLoop(void)
 {
@@ -49,7 +58,6 @@ int emulatorMainLoop(void)
 	uint64_t screenThen = SDL_GetPerformanceCounter();
 	uint64_t msThen = screenThen;
 
-	uint64_t cyclesNow = 0;
 	uint64_t cyclesThen = 0;
 
 	uint64_t cycles50hz = 150000;
@@ -62,8 +70,8 @@ int emulatorMainLoop(void)
 			extraCycles = 0;
 			cyclesNow += m68k_execute(1) + extraCycles;
 
-			if (cyclesNow >= cycleNextEvent) {
-				//do_next_event();
+			if (cycles() >= cycleNextEvent) {
+				do_next_event();
 			}
 
 			if (cyclesNow >= cycles50hz) {
@@ -72,10 +80,15 @@ int emulatorMainLoop(void)
 				emulatorProcessEvents();
 
 				EMU_PC_INTR |= PC_INTRF;
-				m68k_set_irq(2);
+				doIrq = true;
 
 				cycles50hz += 150000;
 			}
+		}
+
+		if (doIrq) {
+			m68k_set_irq(2);
+			doIrq = false;
 		}
 
 		cyclesThen = cyclesNow;

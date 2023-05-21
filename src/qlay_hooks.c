@@ -8,12 +8,6 @@
 unsigned int cycleNextEvent = 0;
 bool trace = false;
 
-unsigned int cycles(void)
-{
-//    return cyclesThen + m68k_cycles_run();
-	return 0;
-}
-
 void emu_hook_pc(unsigned int pc)
 {
 	if (trace) {

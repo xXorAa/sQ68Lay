@@ -5,8 +5,6 @@
 
 #include <stdbool.h>
 
-unsigned int cycles(void);
-
 extern unsigned int cycleNextEvent;
 extern unsigned int cyclesThen;
 extern bool trace;
