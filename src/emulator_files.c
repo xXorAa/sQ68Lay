@@ -4,7 +4,7 @@
  * SPDX: GPL-2.0-only
  */
 
-#include <fcntl.h>
+#include <glib.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdint.h>
@@ -53,31 +53,27 @@ size_t emulatorFileSize(const char* name)
 
 void emulatorLoadFile(const char* name, uint8_t* addr, size_t wantSize)
 {
-	size_t fileSize;
-	int file;
+	gchar *contents;
+	gsize length;
+	GError *error = NULL;
 
-	//if (name[0] == '~') {
-	//    name.erase(0, 1);
-	//    name.insert(0, "/");
-	//    name.insert(0, homedir);
-	//}
-
-	if (!emulatorFileExists(name)) {
-		fprintf(stderr, "File Not Found %s\n", name);
+	g_file_get_contents (name, &contents, &length, &error);
+	if (error != NULL) {
+		fprintf (stderr, "Unable to read file: %s\n", error->message);
+		g_error_free (error);
 		return;
 	}
 
-	fileSize = emulatorFileSize(name);
-
 	if (wantSize != 0) {
-		if (fileSize != wantSize) {
+		if (length != wantSize) {
 			fprintf(stderr, "File Size Mismatch %s %zu != %zu",
-				name, wantSize, fileSize);
+				name, wantSize, length);
+			g_free(contents);
+			g_error_free(error);
 			return;
 		}
 	}
 
-	file = open(name, O_RDONLY | O_BINARY);
-	read(file, addr, fileSize);
-	close(file);
+	memcpy(addr, contents, length);
+	g_free(contents);
 }
