@@ -29,5 +29,6 @@ int emulatorInitMemory(void);
 #define Q68_Q40_IO			0xFF000000
 #define Q68_Q40_IO_SIZE			MB(16)
 
+#define Q68_SYSROM_ADDR			0x0
 #define Q68_SMSQE_ADDR			0x320000
 #endif /* EMULATOR_MEMORY_H */

@@ -22,7 +22,17 @@ uint32_t msClkNextEvent = 0;
 
 int emulatorMainLoop(void)
 {
-	emulatorLoadFile(emulatorOptionString("smsqe"), &emulatorMemorySpace()[Q68_SMSQE_ADDR], 0);
+	const char *smsqe = emulatorOptionString("smsqe");
+	const char *sysrom = emulatorOptionString("sysrom");
+
+	uint32_t initPc = 0;
+
+	if (strlen(smsqe) > 0) {
+		emulatorLoadFile(smsqe, &emulatorMemorySpace()[Q68_SMSQE_ADDR], 0);
+		initPc = 0x32000;
+	} else if (strlen(sysrom) > 0) {
+		emulatorLoadFile(sysrom, &emulatorMemorySpace()[Q68_SYSROM_ADDR], 0);
+	}
 
 	// Initialise keyboard
 	q68_kbd_queue = g_queue_new();
@@ -30,7 +40,9 @@ int emulatorMainLoop(void)
 	m68k_set_cpu_type(M68K_CPU_TYPE_68000_TG68K);
 	m68k_init();
 	m68k_pulse_reset();
-	m68k_set_reg(M68K_REG_PC, 0x320000);
+	if (initPc) {
+		m68k_set_reg(M68K_REG_PC, initPc);
+	}
 
 	uint64_t counterFreq = SDL_GetPerformanceFrequency();
 	uint64_t screenTick = counterFreq / 50;
