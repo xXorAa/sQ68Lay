@@ -217,7 +217,7 @@ void m68k_write_memory_16(unsigned int address, unsigned int value)
 
 	if ((address >= Q68_SCREEN) &&
 	    address < (Q68_SCREEN + Q68_SCREEN_SIZE)) {
-		*(uint16_t *)&q68ScreenSpace[address] = SDL_SwapBE16(value);
+		*(uint16_t *)&q68ScreenSpace[address - Q68_SCREEN] = SDL_SwapBE16(value);
 		return;
 	}
 
@@ -259,7 +259,7 @@ void m68k_write_memory_32(unsigned int address, unsigned int value)
 
 	if ((address >= Q68_SCREEN) &&
 	    address < (Q68_SCREEN + Q68_SCREEN_SIZE)) {
-		*(uint32_t *)&q68ScreenSpace[address] = SDL_SwapBE32(value);
+		*(uint32_t *)&q68ScreenSpace[address - Q68_SCREEN] = SDL_SwapBE32(value);
 		return;
 	}
 
