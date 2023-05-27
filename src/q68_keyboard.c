@@ -10,15 +10,21 @@
 #include "emulator_events.h"
 #include "emulator_hardware.h"
 #include "emulator_keyboard.h"
+#include "q68_hooks.h"
 #include "sdl-ps2.h"
 
 // keyboard lock and queue
 GQueue* q68_kbd_queue;
 
-void emulatorProcessKey(__attribute__ ((unused)) int keysym, int scancode, bool pressed)
+void emulatorProcessKey(int keysym, int scancode, bool pressed)
 {
 	int qlen = 0;
 	uint8_t queue[MAX_PS2_CODE_LEN];
+
+	if ((keysym == SDLK_F12) && pressed) {
+		trace ^= 1;
+		return;
+	}
 
 	qlen = ps2_encode(scancode, pressed, queue);
 
