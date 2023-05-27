@@ -32,12 +32,13 @@ int emulatorMainLoop(void)
 		initPc = 0x32000;
 	} else if (strlen(sysrom) > 0) {
 		emulatorLoadFile(sysrom, &emulatorMemorySpace()[Q68_SYSROM_ADDR], 0);
+		romProtect = true;
 	}
 
 	// Initialise keyboard
 	q68_kbd_queue = g_queue_new();
 
-	m68k_set_cpu_type(M68K_CPU_TYPE_68000_TG68K);
+	m68k_set_cpu_type(M68K_CPU_TYPE_68000);
 	m68k_init();
 	m68k_pulse_reset();
 	if (initPc) {
