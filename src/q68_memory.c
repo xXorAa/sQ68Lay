@@ -17,6 +17,7 @@
 
 static uint8_t *q68MemorySpace = NULL;
 static uint8_t *q68ScreenSpace = NULL;
+bool romProtect = false;
 
 uint8_t *emulatorMemorySpace(void)
 {
@@ -163,6 +164,10 @@ unsigned int m68k_read_disassembler_32(unsigned int address)
 
 void m68k_write_memory_8(unsigned int address, unsigned int value)
 {
+	if (romProtect && (address <= Q68_ROM_SIZE)) {
+		return;
+	}
+
 	if ((address >= QL_INTERNAL_IO) &&
 	    address < (QL_INTERNAL_IO + QL_INTERNAL_IO_SIZE)) {
 		qlHardwareWrite8(address, value);
@@ -198,6 +203,10 @@ void m68k_write_memory_8(unsigned int address, unsigned int value)
 
 void m68k_write_memory_16(unsigned int address, unsigned int value)
 {
+	if (romProtect && (address <= Q68_ROM_SIZE)) {
+		return;
+	}
+
 	if ((address >= QL_INTERNAL_IO) &&
 	    address < (QL_INTERNAL_IO + QL_INTERNAL_IO_SIZE)) {
 		qlHardwareWrite8(address, value >> 8);
@@ -236,6 +245,10 @@ void m68k_write_memory_16(unsigned int address, unsigned int value)
 
 void m68k_write_memory_32(unsigned int address, unsigned int value)
 {
+	if (romProtect && (address <= Q68_ROM_SIZE)) {
+		return;
+	}
+
 	if ((address >= QL_INTERNAL_IO) &&
 	    address < (QL_INTERNAL_IO + QL_INTERNAL_IO_SIZE)) {
 		qlHardwareWrite8(address, value >> 24);

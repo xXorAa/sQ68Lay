@@ -4,14 +4,17 @@
 #define EMULATOR_MEMORY_H
 
 #include <stddef.h>
+#include <stdbool.h>
 
 uint8_t *emulatorMemorySpace(void);
 uint8_t *emulatorScreenSpace(void);
 int emulatorInitMemory(void);
+extern bool romProtect;
 
 #define KB(x)				((size_t) (x) << 10)
 #define MB(x)				((size_t) (x) << 20)
 
+#define Q68_ROM_SIZE			KB(96)
 #define Q68_RAM_SIZE			MB(28)
 
 #define QL_INTERNAL_IO			0x18000
