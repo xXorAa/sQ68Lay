@@ -15,18 +15,6 @@
 #include <emscripten/emscripten.h>
 #endif
 
-/*
-void renderTick()
-{
-	if (emulator::q68RenderScreenFlag) {
-		emulator::q68UpdatePixelBuffer();
-		emulator::q68RenderScreen();
-		emulator::q68RenderScreenFlag = false;
-	}
-	emulator::q68ProcessEvents();
-}
-*/
-
 int main(int argc, char **argv)
 {
 	emulatorOptionParse(argc, argv);
