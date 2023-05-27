@@ -102,11 +102,11 @@ struct emuOpts emuOptions[] = {
 #ifdef Q68_EMU
 {"smsqe", "", "smsqe image to load (at 0x32000)", EMU_OPT_CHAR, 0, NULL, NULL},
 {"sysrom", "r", "system rom to load (at 0x0)", EMU_OPT_CHAR, 0, NULL, NULL},
+{"trace", "", "enable tracing", EMU_OPT_INT, 0, NULL, NULL},
 #endif
 
 {NULL, NULL, NULL, 0, 0, NULL, NULL},
 };
-
 
 static ArgParser* parser;
 
