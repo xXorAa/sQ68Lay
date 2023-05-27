@@ -798,10 +798,6 @@ void m68k_set_cpu_type(unsigned int cpu_type)
 			CYC_RESET        = 132;
 			HAS_PMMU	 = 0;
 			return;
-		case M68K_CPU_TYPE_68000_TG68K:
-			m68k_set_cpu_type(M68K_CPU_TYPE_68000);
-			CPU_ADDRESS_MASK = 0xffffffff;
-			return;
 		case M68K_CPU_TYPE_SCC68070:
 			m68k_set_cpu_type(M68K_CPU_TYPE_68010);
 			CPU_ADDRESS_MASK = 0xffffffff;
