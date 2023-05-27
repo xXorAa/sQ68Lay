@@ -15,6 +15,7 @@
 #include "emulator_options.h"
 #include "emulator_screen.h"
 #include "m68k.h"
+#include "q68_hooks.h"
 #include "q68_keyboard.h"
 
 uint32_t msClk = 0;
@@ -29,10 +30,14 @@ int emulatorMainLoop(void)
 
 	if (strlen(smsqe) > 0) {
 		emulatorLoadFile(smsqe, &emulatorMemorySpace()[Q68_SMSQE_ADDR], 0);
-		initPc = 0x32000;
+		initPc = Q68_SMSQE_ADDR;
 	} else if (strlen(sysrom) > 0) {
 		emulatorLoadFile(sysrom, &emulatorMemorySpace()[Q68_SYSROM_ADDR], 0);
 		romProtect = true;
+	}
+
+	if (emulatorOptionInt("trace")) {
+		trace = true;
 	}
 
 	// Initialise keyboard
