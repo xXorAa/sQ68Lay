@@ -46,10 +46,7 @@ unsigned int m68k_read_memory_8(unsigned int address)
 
 	if ((address >= QL_EXTERNAL_IO) &&
 	    address < (QL_EXTERNAL_IO + QL_EXTERNAL_IO_SIZE)) {
-		// temp disable MMC
-		if ((address < 0x1c300) || (address > 0x1c358)) {
-			return qlHardwareRead8(address);
-		}
+		return qlHardwareRead8(address);
 	}
 
 	if ((address >= Q68_SCREEN) &&
@@ -78,11 +75,8 @@ unsigned int m68k_read_memory_16(unsigned int address)
 
 	if ((address >= QL_EXTERNAL_IO) &&
 	    address < (QL_EXTERNAL_IO + QL_EXTERNAL_IO_SIZE)) {
-		// temp disable MMC
-		if ((address < 0x1c300) || (address > 0x1c358)) {
-			return ((uint16_t)qlHardwareRead8(address) << 8) |
-			       qlHardwareRead8(address + 1);
-		}
+		return ((uint16_t)qlHardwareRead8(address) << 8) |
+		       qlHardwareRead8(address + 1);
 	}
 
 	if ((address >= Q68_SCREEN) &&
@@ -124,13 +118,10 @@ unsigned int m68k_read_memory_32(unsigned int address)
 
 	if ((address >= QL_EXTERNAL_IO) &&
 	    address < (QL_EXTERNAL_IO + QL_EXTERNAL_IO_SIZE)) {
-		// temp disable MMC
-		if ((address < 0x1c300) || (address > 0x1c358)) {
-			return ((uint32_t)qlHardwareRead8(address) << 24) |
-			       ((uint32_t)qlHardwareRead8(address + 1) << 16) |
-			       ((uint32_t)qlHardwareRead8(address + 2) << 8) |
-			       ((uint32_t)qlHardwareRead8(address + 3) << 0);
-		}
+		return ((uint32_t)qlHardwareRead8(address) << 24) |
+		       ((uint32_t)qlHardwareRead8(address + 1) << 16) |
+		       ((uint32_t)qlHardwareRead8(address + 2) << 8) |
+		       ((uint32_t)qlHardwareRead8(address + 3) << 0);
 	}
 
 	if ((address >= Q68_SCREEN) &&
@@ -176,10 +167,7 @@ void m68k_write_memory_8(unsigned int address, unsigned int value)
 
 	if ((address >= QL_EXTERNAL_IO) &&
 	    address < (QL_EXTERNAL_IO + QL_EXTERNAL_IO_SIZE)) {
-		// temp disable MMC
-		if ((address < 0x1c300) || (address > 0x1c358)) {
-			qlHardwareWrite8(address, value);
-		}
+		qlHardwareWrite8(address, value);
 		return;
 	}
 
@@ -216,17 +204,15 @@ void m68k_write_memory_16(unsigned int address, unsigned int value)
 
 	if ((address >= QL_EXTERNAL_IO) &&
 	    address < (QL_EXTERNAL_IO + QL_EXTERNAL_IO_SIZE)) {
-		// temp disable MMC
-		if ((address < 0x1c300) || (address > 0x1c358)) {
-			qlHardwareWrite8(address, value >> 8);
-			qlHardwareWrite8(address + 1, value & 0xFF);
-		}
+		qlHardwareWrite8(address, value >> 8);
+		qlHardwareWrite8(address + 1, value & 0xFF);
 		return;
 	}
 
 	if ((address >= Q68_SCREEN) &&
 	    address < (Q68_SCREEN + Q68_SCREEN_SIZE)) {
-		*(uint16_t *)&q68ScreenSpace[address - Q68_SCREEN] = SDL_SwapBE16(value);
+		*(uint16_t *)&q68ScreenSpace[address - Q68_SCREEN] =
+			SDL_SwapBE16(value);
 		return;
 	}
 
@@ -260,19 +246,17 @@ void m68k_write_memory_32(unsigned int address, unsigned int value)
 
 	if ((address >= QL_EXTERNAL_IO) &&
 	    address < (QL_EXTERNAL_IO + QL_EXTERNAL_IO_SIZE)) {
-		// temp disable MMC
-		if ((address < 0x1c300) || (address > 0x1c358)) {
-			qlHardwareWrite8(address, value >> 24);
-			qlHardwareWrite8(address, (value >> 16) & 0xFF);
-			qlHardwareWrite8(address, (value >> 8) & 0xFF);
-			qlHardwareWrite8(address + 3, value & 0xFF);
-		}
+		qlHardwareWrite8(address, value >> 24);
+		qlHardwareWrite8(address, (value >> 16) & 0xFF);
+		qlHardwareWrite8(address, (value >> 8) & 0xFF);
+		qlHardwareWrite8(address + 3, value & 0xFF);
 		return;
 	}
 
 	if ((address >= Q68_SCREEN) &&
 	    address < (Q68_SCREEN + Q68_SCREEN_SIZE)) {
-		*(uint32_t *)&q68ScreenSpace[address - Q68_SCREEN] = SDL_SwapBE32(value);
+		*(uint32_t *)&q68ScreenSpace[address - Q68_SCREEN] =
+			SDL_SwapBE32(value);
 		return;
 	}
 
