@@ -12,6 +12,7 @@
 #include "emulator_hardware.h"
 #include "emulator_screen.h"
 #include "q68_keyboard.h"
+#include "q68_sd.h"
 
 // ghost irq registers
 uint8_t EMU_PC_INTR = 0;
@@ -29,80 +30,90 @@ static uint32_t q68_update_time(void)
 
 static uint32_t q68_update_hires(void)
 {
-    uint64_t freq = SDL_GetPerformanceFrequency();
+	uint64_t freq = SDL_GetPerformanceFrequency();
 
-    return SDL_GetPerformanceCounter() / (freq / 40000000);
+	return SDL_GetPerformanceCounter() / (freq / 40000000);
 }
 
 uint8_t qlHardwareRead8(unsigned int addr)
 {
-    switch (addr) {
-        case PC_CLOCK:
-            return q68_update_time() >> 24;
-        case PC_CLOCK + 1:
-            return (q68_update_time() >> 16) & 0xFF;
-        case PC_CLOCK + 2:
-            return (q68_update_time() >> 8) & 0xFF;
-        case PC_CLOCK + 3:
-            return q68_update_time() & 0xFF;
-        case PC_INTR:
-            return EMU_PC_INTR;
-        case Q68_TIMER:
-            return q68_update_hires() >> 24;
-        case Q68_TIMER + 1:
-            return (q68_update_hires() >> 16) & 0xFF;
-        case Q68_TIMER + 2:
-            return (q68_update_hires() >> 8) & 0xFF;
-        case Q68_TIMER + 3:
-            return q68_update_hires() & 0xFF;
-        case KBD_CODE:
-	{
+	switch (addr) {
+	case PC_CLOCK:
+		return q68_update_time() >> 24;
+	case PC_CLOCK + 1:
+		return (q68_update_time() >> 16) & 0xFF;
+	case PC_CLOCK + 2:
+		return (q68_update_time() >> 8) & 0xFF;
+	case PC_CLOCK + 3:
+		return q68_update_time() & 0xFF;
+	case PC_INTR:
+		return EMU_PC_INTR;
+	case Q68_TIMER:
+		return q68_update_hires() >> 24;
+	case Q68_TIMER + 1:
+		return (q68_update_hires() >> 16) & 0xFF;
+	case Q68_TIMER + 2:
+		return (q68_update_hires() >> 8) & 0xFF;
+	case Q68_TIMER + 3:
+		return q68_update_hires() & 0xFF;
+	case KBD_CODE: {
 		if (g_queue_get_length(q68_kbd_queue)) {
-			return GPOINTER_TO_INT(g_queue_peek_head(q68_kbd_queue));
+			return GPOINTER_TO_INT(
+				g_queue_peek_head(q68_kbd_queue));
 		}
 
 		return 0;
 	}
-        case KBD_STATUS:
-            return Q68_KBD_STATUS;
-        case Q68_DMODE:
-            return q68_q68_dmode;
-        default:
-            break;
-    }
+	case KBD_STATUS:
+		return Q68_KBD_STATUS;
+	case Q68_MMC1_READ:
+	case Q68_MMC1_READ + 1: {
+		uint8_t res = q68ProcessSDResponse(0);
+		return res;
+	}
+	case Q68_DMODE:
+		return q68_q68_dmode;
+	default:
+		break;
+	}
 
-    return 0;
+	return 0;
 }
 
 void qlHardwareWrite8(unsigned int addr, uint8_t val)
 {
-    switch (addr) {
-        case PC_INTR:
-            EMU_PC_INTR &= ~val;
-            return;
-        case MC_STAT:
-            q68_mc_stat = val;
-            emulatorScreenChangeMode(!(val >> 3));
-            return;
-        case KBD_CODE:
-            return;
-        case KBD_UNLOCK:
-            if (val & KBD_ACKN) {
-                // code is acknowledged so remove it
-                if(g_queue_get_length(q68_kbd_queue)) {
-                    g_queue_pop_head(q68_kbd_queue);
-                }
-                // if the queue is empty clear the interrupt
-                if (!g_queue_get_length(q68_kbd_queue)) {
-                    Q68_KBD_STATUS &= ~KBD_ACKN;
-                }
-            }
-            return;
-        case Q68_DMODE:
-            q68_q68_dmode = val;
-            emulatorScreenChangeMode(val & 7);
-            return;
-        default:
-            break;
-    }
+	switch (addr) {
+	case PC_INTR:
+		EMU_PC_INTR &= ~val;
+		return;
+	case MC_STAT:
+		q68_mc_stat = val;
+		emulatorScreenChangeMode(!(val >> 3));
+		return;
+	case KBD_CODE:
+		return;
+	case KBD_UNLOCK:
+		if (val & KBD_ACKN) {
+			// code is acknowledged so remove it
+			if (g_queue_get_length(q68_kbd_queue)) {
+				g_queue_pop_head(q68_kbd_queue);
+			}
+			// if the queue is empty clear the interrupt
+			if (!g_queue_get_length(q68_kbd_queue)) {
+				Q68_KBD_STATUS &= ~KBD_ACKN;
+			}
+		}
+		return;
+	case Q68_MMC1_WRIT:
+		q68ProcessSDCmd(0, val);
+		break;
+	case Q68_MMC1_XFER:
+		break;
+	case Q68_DMODE:
+		q68_q68_dmode = val;
+		emulatorScreenChangeMode(val & 7);
+		return;
+	default:
+		break;
+	}
 }
