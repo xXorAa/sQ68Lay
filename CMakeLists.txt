@@ -44,6 +44,7 @@ add_executable(sq68ux
     src/q68_keyboard.c
     src/q68_mainloop.c
     src/q68_memory.c
+    src/q68_sd.c
     external/sdl-ps2.c
     args/src/args.c
     inih/ini.c
