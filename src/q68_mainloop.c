@@ -17,6 +17,7 @@
 #include "m68k.h"
 #include "q68_hooks.h"
 #include "q68_keyboard.h"
+#include "q68_sd.h"
 
 uint32_t msClk = 0;
 uint32_t msClkNextEvent = 0;
@@ -39,6 +40,8 @@ int emulatorMainLoop(void)
 	if (emulatorOptionInt("trace")) {
 		trace = true;
 	}
+
+	q68InitSD();
 
 	// Initialise keyboard
 	q68_kbd_queue = g_queue_new();
