@@ -48,6 +48,15 @@
 #define KBD_RCV				(1 << 0)
 #define KBD_ISINT			(1 << 7)
 
+// Q68 SDHC
+#define Q68_MMC1_CS			0x1c300
+#define Q68_MMC1_CLK			0x1c304
+#define Q68_MMC1_DIN			0x1c308
+#define Q68_MMC1_DOUT			0x1c30c
+#define Q68_MMC1_READ			0x1c310
+#define Q68_MMC1_WRIT			0x1c314
+#define Q68_MMC1_XFER			0x1c318
+
 #define Q68_DMODE			0xff000018
 
 uint8_t qlHardwareRead8(unsigned int addr);
