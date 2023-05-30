@@ -32,6 +32,7 @@ add_custom_target( SubmarineGitVersion
         -D OUTPUT_FILE=${CMAKE_CURRENT_BINARY_DIR}/version.c
         -P ${CMAKE_CURRENT_SOURCE_DIR}/generate_version.cmake
 )
+set_source_files_properties( ${CMAKE_CURRENT_BINARY_DIR}/version.c PROPERTIES GENERATED TRUE)
 
 add_executable(sq68ux
     src/emulator_events.c
