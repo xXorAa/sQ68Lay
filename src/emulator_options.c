@@ -21,15 +21,29 @@
 #include "version.h"
 
 
+#ifdef Q68_EMU
 static const char * const helpTextInit = "\n\
-Usage: sqlux [OPTIONS] [args...]\n\
+Usage: sq68ux [OPTIONS] [args...]\n\
 \n\
 Positionals:\n\
   args                        Arguments passed to QDOS\n\
 \n\
 Options:\n\
   -h,--help                   Print this help message and exit\n\
-  -f,--CONFIG [sqlux.ini]     Read an ini file\n";
+  -f,--CONFIG [sq68ux.ini]    Read an ini file\n";
+#endif
+
+#ifdef QLAY_EMU
+static const char * const helpTextInit = "\n\
+Usage: sqlay3 [OPTIONS] [args...]\n\
+\n\
+Positionals:\n\
+  args                        Arguments passed to QDOS\n\
+\n\
+Options:\n\
+  -h,--help                   Print this help message and exit\n\
+  -f,--CONFIG [sqlay3.ini]    Read an ini file\n";
+#endif
 
 static const char * const helpTextTail = "\
   --version                   version number\n";
