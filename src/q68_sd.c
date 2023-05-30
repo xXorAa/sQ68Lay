@@ -65,8 +65,12 @@ void q68ProcessSDCmd(__attribute__ ((unused))int sd, uint8_t cmdByte)
 
 		uint32_t block = SDL_SwapBE32(*(uint32_t *)&sd1CmdBuf[2]);
 
-		memcpy(&sd1RespBuf[1], g_mapped_file_get_contents(sd1File) + (block * 512), 512);
-
+		// Make sure we do not exceed mapped file limits
+		if (((gsize)block * 512) < (g_mapped_file_get_length(sd1File) - 512)) {
+			memcpy(&sd1RespBuf[1], g_mapped_file_get_contents(sd1File) + (block * 512), 512);
+		} else {
+			memset(&sd1RespBuf[1], 0, 512);
+		}
 		sd1Multi = false;
 	}
 
@@ -82,7 +86,12 @@ void q68ProcessSDCmd(__attribute__ ((unused))int sd, uint8_t cmdByte)
 
 		uint32_t block = SDL_SwapBE32(*(uint32_t *)&sd1CmdBuf[2]);
 
-		memcpy(&sd1RespBuf[1], g_mapped_file_get_contents(sd1File) + (block * 512), 512);
+		// Make sure we do not exceed mapped file limits
+		if (((gsize)block * 512) < (g_mapped_file_get_length(sd1File) - 512)) {
+			memcpy(&sd1RespBuf[1], g_mapped_file_get_contents(sd1File) + (block * 512), 512);
+		} else {
+			memset(&sd1RespBuf[1], 0, 512);
+		}
 
 		sd1Block = block + 1;
 
@@ -103,7 +112,12 @@ uint8_t q68ProcessSDResponse(__attribute__ ((unused))int sd)
 
 	if (sd1Multi) {
 		sd1RespBuf[0] = 0xFE;
-		memcpy(&sd1RespBuf[1], g_mapped_file_get_contents(sd1File) + (sd1Block * 512), 512);
+
+		if (((gsize)sd1Block * 512) < (g_mapped_file_get_length(sd1File) - 512)) {
+			memcpy(&sd1RespBuf[1], g_mapped_file_get_contents(sd1File) + (sd1Block * 512), 512);
+		} else {
+			memset(&sd1RespBuf[1], 0, 512);
+		}
 		sd1Block++;
 		sd1RespIdx = 0;
 		return sd1RespBuf[sd1RespIdx++];
