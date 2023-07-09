@@ -430,7 +430,11 @@ int truncnfa(int drivenr, int filenum, int sectnum, int bytenum, int bytecnt)
 	fseek(nfa, 0L, 2);
 	pos = ftell(nfa);
 	if (pos > offset) {
-		ftruncate(fileno(nfa), offset); /* not tested yet */
+		int res;
+		res = ftruncate(fileno(nfa), offset); /* not tested yet */
+		if (res < 0) {
+			perror("truncate failed");
+		}
 	}
 	fclose(nfa);
 	return 0; /*OK*/
