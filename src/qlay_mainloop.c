@@ -61,8 +61,9 @@ int emulatorMainLoop(void)
 	uint64_t cyclesThen = 0;
 
 	uint64_t cycles50hz = 150000;
+	uint64_t cyclesMdv = 600;
 
-	do_next_event();
+	//do_next_event();
 
 	while (!exitLoop) {
 		while ((cyclesNow - cyclesThen) < 750) {
@@ -71,7 +72,7 @@ int emulatorMainLoop(void)
 			cyclesNow += m68k_execute(1) + extraCycles;
 
 			if (cycles() >= cycleNextEvent) {
-				do_next_event();
+				//do_next_event();
 			}
 
 			if (cyclesNow >= cycles50hz) {
@@ -83,6 +84,12 @@ int emulatorMainLoop(void)
 				doIrq = true;
 
 				cycles50hz += 150000;
+			}
+
+			if (cyclesNow >= cyclesMdv) {
+				do_mdv_tick();
+
+				cyclesMdv += 600;
 			}
 		}
 

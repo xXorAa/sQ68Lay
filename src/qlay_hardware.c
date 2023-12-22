@@ -15,6 +15,8 @@
 // ghost irq registers
 uint8_t EMU_PC_INTR = 0;
 uint8_t EMU_MC_STAT = 0;
+uint8_t EMU_PC_TRAK1 = 0;
+uint8_t EMU_PC_TRAK2 = 0;
 
 static uint32_t qlayUpdateTime(void)
 {

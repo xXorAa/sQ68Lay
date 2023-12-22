@@ -36,7 +36,6 @@ void wrmdvcntl(uint8_t x);
 static void wrserdata(uint8_t x);
 void wrZX8302(uint8_t x);
 static int decode_key(int key);
-static void QLrddisk(void);
 static void mdv_next_sect(void);
 static void init_mdvs(void);
 static int dt_event(int dt_type);
@@ -74,19 +73,35 @@ static int ZXbaud; /* ZX8302 sertx baudrate */
 static int REG18020tx; /* ZX8302 sertx read register */
 static uint32_t qlclkoff; /* QL hardware clock offset */
 
-#define NOSECTS				255
-#define SECTLEN				(14 + 14 + 512 + 26 + 120)
-#define NUMOFDRIVES			8
+#define MDV_NOSECTS			255
+#define MDV_NUMOFDRIVES			8
+#define MDV_GAP_SIZE 			35
+#define MDV_GAP_OFF_SIZE		4
+#define MDV_HDR_SIZE			(14 + 14)
+#define MDV_DATA_SIZE			(512 + 26 + 120)
+#define MDV_SECTLEN			(MDV_HDR_SIZE + MDV_DATA_SIZE)
+
+typedef enum {
+	MDV_GAP1,
+	MDV_GAP1_OFF,
+	MDV_HDR,
+	MDV_GAP2,
+	MDV_GAP2_OFF,
+	MDV_DATA
+} mdvstate;
 
 struct mdvt {
 	const char *name; /* file name */
 	bool present; /* is it in? */
 	bool wrprot; /* write protected */
 	int sector; /* current sector */
-	uint8_t data[NOSECTS * SECTLEN]; /* mdv drive data */
+	int idx;
+	mdvstate mdvstate;
+	int mdvgapcnt;
+	uint8_t data[MDV_NOSECTS * MDV_SECTLEN]; /* mdv drive data */
 };
 
-struct mdvt mdrive[NUMOFDRIVES];
+struct mdvt mdrive[MDV_NUMOFDRIVES];
 
 uint8_t *mdv; /* mdv drive data */
 const char *mdvname; /* mdv file name */
@@ -100,6 +115,11 @@ int mdvmotor; /* mdv motor running */
 int mdvghstate; /* mdv g/h/g/s progress indicator */
 int mdvdoub2; /* 2 2 mdv command */
 int mdvwra; /* mdv write actions */
+int mdvgap;
+int mdvgapcnt = 70;
+int mdvrd;
+int mdvcuridx;
+int mdvsectidx;
 
 int fpr(const char* fmt, ...)
 {
@@ -112,11 +132,10 @@ va_list l;
         return res;
 }
 
-static int pulse=0;
-static int bcnt=0;
-
 uint8_t readQLHw(uint32_t addr)
 {
+	//printf("addr: %08x\n", addr);
+
 	if (addr == 0x18020) {
 		if (IPC020!=0) {
 			int t = IPC020;
@@ -128,66 +147,45 @@ uint8_t readQLHw(uint32_t addr)
 			return (uint8_t)t & 0xff;
 		}
 
-		{
-			int t;
-			t = dt_event(0);
-			if (t < 42) {
-				return 0;
-			}
-		}
-
 		if ((ZXmode&0x10)==0) { /* TXSER mode */
 			return REG18020tx;
 		}
 
 		if(mdvmotor==0) { /* no motor running, return NOP */
+			printf("No MOTOR\n");
 			return 0x0;
 		} else { /* return MDV responses */
 			if (!mdvpresent) {
-				return(0);
+				printf("No PRESENT\n");
+				return 0x00;
 			}
 			if (mdvwrite == 0) {
-			  	if ((mdvghstate==0)||(mdvghstate==2)) {
-						/* find GAP?? */
-						if(pulse==0) {
-							if (mdvghstate==0) mdv_next_sect();
-							pulse++; return(0x8); /*gap*/
-						}
-						if(pulse<0x18) {pulse++; return(0x0); }
-						pulse=0;
-						mdvghstate++;
-						if (mdvghstate==1) { /* skip preamble */
-							mdvixb=12;
-						} else mdvixb=40;
-						bcnt=0;
-						return(0x00);
+
+				if (mdvgap) {
+					printf("G\n");
+					return 0x08;
 				}
-				if(mdvghstate==1) { /* read header */
-					bcnt++;
-					if (bcnt<0x10) return(0x04); /* read buf read */
-					mdvghstate=2;
-					bcnt=0;
-					return(0x04); /* read buf ready */
+
+				if (mdvrd) {
+					printf("R\n");
+					return 0x04;
 				}
-				if(mdvghstate==3) { /* read sector */
-					bcnt++;
-					if (bcnt<0x264) return(0x04);
-					mdvghstate=0;
-					bcnt=0;
-					return(0x04);
-				}
+
+
+				return 0x00;
 			}
 		}
 	}
 
-	if ((addr == PC_TRAK1) || (addr == PC_TRAK2)) {
-		if ((mdvixb == 0x2c) && (mdvdoub2 == 1)&&(dt_event(1) < 750)) {/*970730*/
-			mdvixb += 8; /* skip preamb */
-			mdvdoub2 = 0;
-		}
-		mdvixb = mdvixb % SECTLEN; /* justincase*/
-		mdvixb++;
-		return mdv[mdvixs * SECTLEN + mdvixb - 1];
+	if (addr == PC_TRAK1) {
+		printf("TRAK1 0x%04x %03d 0x%02x\n", mdvcuridx, mdvsectidx, EMU_PC_TRAK1);
+		return EMU_PC_TRAK1;
+	}
+
+	if (addr == PC_TRAK2) {
+		printf("TRAK2 0x%04x %03d 0x%02x\n", mdvcuridx + 1, mdvsectidx + 1, EMU_PC_TRAK2);
+		mdvrd = 0;
+		return EMU_PC_TRAK2;
 	}
 
 	return 0;
@@ -335,9 +333,9 @@ static void wrmdvdata(uint8_t x)
 	if (mdvwp)
 		return;
 	/*	if(mdvixb<0x40)fpr("M%02x%02x ",mdvixs,mdvixb);*/
-	mdv[mdvixs * SECTLEN + mdvixb] = x;
+	mdv[mdvixs * MDV_SECTLEN + mdvixb] = x;
 	mdvwra++;
-	mdvixb = (mdvixb + 1) % SECTLEN;
+	mdvixb = (mdvixb + 1) % MDV_SECTLEN;
 }
 
 /*
@@ -448,7 +446,7 @@ void wrmdvcntl(uint8_t x)
 /* in: drive; 0: no drive, 1..8: select MDVdrive */
 static void mdv_select(int drive)
 {
-	mdvnum = drive;
+	mdvnum = drive - 1;
 	mdvixb = 0;
 	mdvwrite = 0;
 	mdvghstate = 0;
@@ -498,7 +496,7 @@ void update_LED()
 
 static void mdv_next_sect(void)
 {
-	mdvixs = (mdvixs + 1) % NOSECTS;
+	mdvixs = (mdvixs + 1) % MDV_NOSECTS;
 }
 
 /*18002*/
@@ -993,7 +991,7 @@ void init_mdvs(void)
 		mdvNum = drive[3] - '1';
 		mdvName = drive + 5;
 
-		if (mdvNum >= NUMOFDRIVES) {
+		if (mdvNum >= MDV_NUMOFDRIVES) {
 			fprintf(stderr, "Invalid MDV num %d\n", mdvNum);
 			continue;
 		}
@@ -1002,6 +1000,9 @@ void init_mdvs(void)
 		mdrive[mdvNum].present = 0;
 		mdrive[mdvNum].sector = 0;
 		mdrive[mdvNum].wrprot = 0;
+		mdrive[mdvNum].idx = 0;
+		mdrive[mdvNum].mdvstate = MDV_GAP1;
+		mdrive[mdvNum].mdvgapcnt = MDV_GAP_SIZE;
 
 		// TODO: handle read only
 		/*
@@ -1014,12 +1015,12 @@ void init_mdvs(void)
 		}
 		*/
 
-		mdrive[i].name = mdvName;
-		mdv = mdrive[i].data;
+		mdrive[mdvNum].name = mdvName;
+		mdv = mdrive[mdvNum].data;
 		mdvpresent = 1;
 		mdvname = mdvName;
-		QLrddisk();
-		mdrive[i].present = mdvpresent;
+		emulatorLoadFile(mdvname, mdrive[mdvNum].data, MDV_NOSECTS * MDV_SECTLEN);
+		mdrive[mdvNum].present = mdvpresent;
 
 		i++;
 	}
@@ -1027,12 +1028,6 @@ void init_mdvs(void)
 	if (i == 0) {
 		fpr("No micro drives found\n");
 	}
-}
-
-/* read diskimage from file to mdv[] */
-static void QLrddisk(void)
-{
-	emulatorLoadFile(mdvname, mdv, NOSECTS * SECTLEN);
 }
 
 void init_events(void)
@@ -1266,4 +1261,106 @@ static void do_mdv_motor(void)
 static void do_tx(void)
 {
 	REG18020tx &= ~0x02; /* clear tx busy bit: byte is transmitted */
+}
+
+
+void do_mdv_tick(void)
+{
+	if (mdvmotor) {
+		int sectidx;
+
+		printf("MDV STATE: %d %04x\n", mdrive[mdvnum].mdvstate,
+			mdrive[mdvnum].idx);
+
+		switch(mdrive[mdvnum].mdvstate) {
+		case MDV_GAP1:
+			mdvgap = 1;
+			mdvrd = 0;
+			EMU_PC_INTR |= PC_INTRG;
+			mdrive[mdvnum].mdvgapcnt--;
+
+			if (mdrive[mdvnum].mdvgapcnt == 0) {
+				mdrive[mdvnum].mdvstate = MDV_GAP1_OFF;
+				mdrive[mdvnum].mdvgapcnt = MDV_GAP_OFF_SIZE;
+			}
+			break;
+		case MDV_GAP1_OFF:
+			mdvgap = 0;
+			mdvrd = 0;
+			EMU_PC_INTR &= ~PC_INTRG;
+			mdrive[mdvnum].mdvgapcnt--;
+
+			if (mdrive[mdvnum].mdvgapcnt == 0) {
+				mdrive[mdvnum].mdvstate = MDV_HDR;
+				mdrive[mdvnum].mdvgapcnt = MDV_GAP_SIZE;
+			}
+			break;
+		case MDV_HDR:
+			mdvgap = 0;
+			mdvrd = 1;
+			EMU_PC_INTR &= ~PC_INTRG;
+
+			EMU_PC_TRAK1 = mdrive[mdvnum].data[mdrive[mdvnum].idx];
+			EMU_PC_TRAK2 = mdrive[mdvnum].data[mdrive[mdvnum].idx + 1];
+			mdvcuridx = mdrive[mdvnum].idx;
+			mdvsectidx = mdrive[mdvnum].idx % MDV_SECTLEN;
+
+			mdrive[mdvnum].idx += 2;
+			mdrive[mdvnum].idx %= (MDV_SECTLEN * MDV_NOSECTS);
+
+			sectidx = mdrive[mdvnum].idx % MDV_SECTLEN;
+			if (sectidx == MDV_HDR_SIZE) {
+				mdrive[mdvnum].mdvstate = MDV_GAP2;
+				mdrive[mdvnum].mdvgapcnt = MDV_GAP_SIZE;
+			}
+			break;
+		case MDV_GAP2:
+			mdvgap = 1;
+			mdvrd = 0;
+			EMU_PC_INTR |= PC_INTRG;
+			mdrive[mdvnum].mdvgapcnt--;
+
+			if (mdrive[mdvnum].mdvgapcnt == 0) {
+				mdrive[mdvnum].mdvstate = MDV_GAP2_OFF;
+				mdrive[mdvnum].mdvgapcnt = MDV_GAP_OFF_SIZE;
+			}
+			break;
+		case MDV_GAP2_OFF:
+			mdvgap = 0;
+			mdvrd = 0;
+			EMU_PC_INTR &= ~PC_INTRG;
+			mdrive[mdvnum].mdvgapcnt--;
+
+			if (mdrive[mdvnum].mdvgapcnt == 0) {
+				mdrive[mdvnum].mdvstate = MDV_DATA;
+				mdrive[mdvnum].mdvgapcnt = MDV_GAP_SIZE;
+			}
+			break;
+		case MDV_DATA:
+			mdvgap = 0;
+			mdvrd = 1;
+			EMU_PC_INTR &= ~PC_INTRG;
+
+			EMU_PC_TRAK1 = mdrive[mdvnum].data[mdrive[mdvnum].idx];
+			EMU_PC_TRAK2 = mdrive[mdvnum].data[mdrive[mdvnum].idx + 1];
+			mdvcuridx = mdrive[mdvnum].idx;
+			mdvsectidx = mdrive[mdvnum].idx % MDV_SECTLEN;
+
+			mdrive[mdvnum].idx += 2;
+			mdrive[mdvnum].idx %= (MDV_SECTLEN * MDV_NOSECTS);
+
+			sectidx = mdrive[mdvnum].idx % MDV_SECTLEN;
+			if (sectidx == 0) {
+				mdrive[mdvnum].mdvstate = MDV_GAP1;
+				mdrive[mdvnum].mdvgapcnt = MDV_GAP_SIZE;
+			}
+			break;
+		default:
+			fprintf(stderr, "MDV in unknown state\n");
+			break;
+		}
+	} else {
+		EMU_PC_INTR &= ~PC_INTRG;
+	}
+
 }

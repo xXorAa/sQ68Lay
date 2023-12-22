@@ -12,5 +12,6 @@ uint8_t readQLHw(uint32_t addr);
 void wrmdvcntl(uint8_t data);
 void writeMdvSer(uint8_t data);
 void do_next_event(void);
+void do_mdv_tick(void);
 
 #endif /* QLAY_IPC_H */
