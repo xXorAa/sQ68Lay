@@ -115,9 +115,9 @@ int mdvmotor; /* mdv motor running */
 int mdvghstate; /* mdv g/h/g/s progress indicator */
 int mdvdoub2; /* 2 2 mdv command */
 int mdvwra; /* mdv write actions */
-int mdvgap;
+int mdvgap = 1;
 int mdvgapcnt = 70;
-int mdvrd;
+int mdvrd = 0;
 int mdvcuridx;
 int mdvsectidx;
 
@@ -155,10 +155,11 @@ uint8_t readQLHw(uint32_t addr)
 			printf("No MOTOR\n");
 			return 0x0;
 		} else { /* return MDV responses */
-			if (!mdvpresent) {
-				printf("No PRESENT\n");
-				return 0x00;
-			}
+			//if (!mdvpresent) {
+			//	printf("No PRESENT\n");
+			//	return 0x08;
+			//}
+
 			if (mdvwrite == 0) {
 
 				if (mdvgap) {
@@ -170,7 +171,6 @@ uint8_t readQLHw(uint32_t addr)
 					printf("R\n");
 					return 0x04;
 				}
-
 
 				return 0x00;
 			}
@@ -467,6 +467,8 @@ static void mdv_select(int drive)
 		mdvwp = mdrive[drive].wrprot;
 		mdv = mdrive[drive].data;
 		mdvmotor = 1;
+		EMU_PC_INTR |= PC_INTRG;
+		doIrq = 1;
 	}
 	//update_LED();
 	/*{int i; for(i=0;i<8;i++) fpr("NAME %s ",mdrive[i].name);}*/
@@ -976,6 +978,8 @@ void init_mdvs(void)
 	int i = 0;
 	int noDrives = emulatorOptionDevCount("drive");
 
+	memset(mdrive, 0, sizeof(mdrive));
+
 	for (i = 0; i < noDrives; i++) {
 		const char *drive = emulatorOptionDev("drive", i);
 		const char *mdvName;
@@ -984,7 +988,6 @@ void init_mdvs(void)
 
 		if (!(strncmp(drive, "mdv", 3) == 0) || !isdigit(drive[3]) ||
 			(drive[4] != '@')) {
-			fprintf(stderr, "skipping non mdv %s\n", drive);
 			continue;
 		}
 
@@ -1022,11 +1025,9 @@ void init_mdvs(void)
 		emulatorLoadFile(mdvname, mdrive[mdvNum].data, MDV_NOSECTS * MDV_SECTLEN);
 		mdrive[mdvNum].present = mdvpresent;
 
-		i++;
-	}
+		printf("MDV%01d is %s\n", mdvNum + 1, mdvname);
 
-	if (i == 0) {
-		fpr("No micro drives found\n");
+		i++;
 	}
 }
 
@@ -1269,6 +1270,12 @@ void do_mdv_tick(void)
 	if (mdvmotor) {
 		int sectidx;
 
+		if (mdrive[mdvnum].present == 0) {
+			EMU_PC_INTR |= PC_INTRG;
+			mdvgap = 0;
+			return;
+		}
+
 		printf("MDV STATE: %d %04x\n", mdrive[mdvnum].mdvstate,
 			mdrive[mdvnum].idx);
 
@@ -1291,6 +1298,9 @@ void do_mdv_tick(void)
 			mdrive[mdvnum].mdvgapcnt--;
 
 			if (mdrive[mdvnum].mdvgapcnt == 0) {
+				if ((mdrive[mdvnum].idx % MDV_SECTLEN) == 0) {
+					mdrive[mdvnum].idx += 12;
+				}
 				mdrive[mdvnum].mdvstate = MDV_HDR;
 				mdrive[mdvnum].mdvgapcnt = MDV_GAP_SIZE;
 			}
@@ -1332,6 +1342,9 @@ void do_mdv_tick(void)
 			mdrive[mdvnum].mdvgapcnt--;
 
 			if (mdrive[mdvnum].mdvgapcnt == 0) {
+				if ((mdrive[mdvnum].idx % MDV_SECTLEN) == 28) {
+					mdrive[mdvnum].idx += 12;
+				}
 				mdrive[mdvnum].mdvstate = MDV_DATA;
 				mdrive[mdvnum].mdvgapcnt = MDV_GAP_SIZE;
 			}
@@ -1360,7 +1373,7 @@ void do_mdv_tick(void)
 			break;
 		}
 	} else {
-		EMU_PC_INTR &= ~PC_INTRG;
+		mdvgap = 0;
 	}
 
 }

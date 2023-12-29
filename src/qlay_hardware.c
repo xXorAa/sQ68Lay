@@ -14,6 +14,7 @@
 
 // ghost irq registers
 uint8_t EMU_PC_INTR = 0;
+uint8_t EMU_PC_INTR_MASK = 0;
 uint8_t EMU_MC_STAT = 0;
 uint8_t EMU_PC_TRAK1 = 0;
 uint8_t EMU_PC_TRAK2 = 0;
@@ -42,7 +43,7 @@ uint8_t qlHardwareRead8(unsigned int addr)
 	case PC_TRAK2:
 		return readQLHw(addr);
 	case PC_INTR:
-		return EMU_PC_INTR;
+		return EMU_PC_INTR & ~EMU_PC_INTR_MASK;
 	default:
 		break;
 	}
@@ -64,6 +65,8 @@ void qlHardwareWrite8(unsigned int addr, uint8_t val)
 		wrmdvcntl(val);
 		return;
 	case PC_INTR:
+		EMU_PC_INTR_MASK = (val & 0xE0) >> 5;
+		EMU_PC_INTR &= 0x1F;
 		EMU_PC_INTR &= ~val;
 		return;
 	case MC_STAT:
