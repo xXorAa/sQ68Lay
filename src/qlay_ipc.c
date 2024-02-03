@@ -441,6 +441,8 @@ void wrmdvcntl(uint8_t x)
 	}
 }
 
+static void set_gap_irq(void);
+
 /* in: drive; 0: no drive, 1..8: select MDVdrive */
 static void mdv_select(int drive)
 {
@@ -465,11 +467,8 @@ static void mdv_select(int drive)
 		mdvwp = mdrive[drive].wrprot;
 		mdv = mdrive[drive].data;
 		mdvmotor = 1;
-		EMU_PC_INTR |= PC_INTRG;
-		doIrq = 1;
+		set_gap_irq();
 	}
-	//update_LED();
-	/*{int i; for(i=0;i<8;i++) fpr("NAME %s ",mdrive[i].name);}*/
 }
 
 #if 0
@@ -1264,12 +1263,13 @@ static void do_tx(void)
 
 static void set_gap_irq(void)
 {
-	/* do nothing if IRQ is masked */
+	EMU_PC_INTR |= PC_INTRG;
+
+	/* dont actually trigger irq if masked */
 	if (EMU_PC_INTR_MASK & PC_MASKG) {
 		return;
 	}
 
-	EMU_PC_INTR |= PC_INTRG;
 	doIrq = 1;
 }
 
