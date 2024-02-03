@@ -76,15 +76,17 @@ static uint32_t qlclkoff; /* QL hardware clock offset */
 #define MDV_NOSECTS			255
 #define MDV_NUMOFDRIVES			8
 #define MDV_GAP_SIZE 			35
-#define MDV_GAP_OFF_SIZE		4
+#define MDV_PREAMBLE_SIZE		4
 #define MDV_HDR_SIZE			(14 + 14)
 #define MDV_DATA_SIZE			(512 + 26 + 120)
 #define MDV_SECTLEN			(MDV_HDR_SIZE + MDV_DATA_SIZE)
 
 typedef enum {
 	MDV_GAP1,
+	MDV_PREAMBLE1,
 	MDV_HDR,
 	MDV_GAP2,
+	MDV_PREAMBLE2,
 	MDV_DATA
 } mdvstate;
 
@@ -161,12 +163,12 @@ uint8_t readQLHw(uint32_t addr)
 			if (mdvwrite == 0) {
 
 				if (mdvgap) {
-					printf("G\n");
+					//printf("G\n");
 					return 0x08;
 				}
 
 				if (mdvrd) {
-					printf("R\n");
+					//printf("R\n");
 					return 0x04;
 				}
 
@@ -176,12 +178,12 @@ uint8_t readQLHw(uint32_t addr)
 	}
 
 	if (addr == PC_TRAK1) {
-		printf("TRAK1 0x%04x %03d 0x%02x\n", mdvcuridx, mdvsectidx, EMU_PC_TRAK1);
+		printf("TRAK1 0x%04x %03d 0x%02x\n", mdrive[mdvnum].idx, mdrive[mdvnum].sector, EMU_PC_TRAK1);
 		return EMU_PC_TRAK1;
 	}
 
 	if (addr == PC_TRAK2) {
-		printf("TRAK2 0x%04x %03d 0x%02x\n", mdvcuridx + 1, mdvsectidx + 1, EMU_PC_TRAK2);
+		printf("TRAK2 0x%04x %03d 0x%02x\n", mdrive[mdvnum].idx + 1, mdrive[mdvnum].sector, EMU_PC_TRAK2);
 		mdvrd = 0;
 		return EMU_PC_TRAK2;
 	}
@@ -1021,6 +1023,7 @@ void init_mdvs(void)
 		mdvname = mdvName;
 		emulatorLoadFile(mdvname, mdrive[mdvNum].data, MDV_NOSECTS * MDV_SECTLEN);
 		mdrive[mdvNum].present = mdvpresent;
+		mdrive[mdvNum].sector = 0;
 
 		printf("MDV%01d is %s\n", mdvNum + 1, mdvname);
 
@@ -1276,7 +1279,7 @@ static void set_gap_irq(void)
 void do_mdv_tick(void)
 {
 	if (mdvmotor) {
-		int sectidx;
+		int fullidx;
 
 		if (mdrive[mdvnum].present == 0) {
 			set_gap_irq();
@@ -1295,24 +1298,33 @@ void do_mdv_tick(void)
 			mdrive[mdvnum].mdvgapcnt--;
 
 			if (mdrive[mdvnum].mdvgapcnt == 0) {
+				mdrive[mdvnum].mdvstate = MDV_PREAMBLE1;
+				mdrive[mdvnum].mdvgapcnt = MDV_PREAMBLE_SIZE;
+			}
+			break;
+		case MDV_PREAMBLE1:
+			mdvgap = 0;
+			mdvrd = 0;
+			mdrive[mdvnum].mdvgapcnt--;
+
+			if (mdrive[mdvnum].mdvgapcnt == 0) {
 				mdrive[mdvnum].mdvstate = MDV_HDR;
+				mdrive[mdvnum].idx = 12;
 			}
 			break;
 		case MDV_HDR:
 			mdvgap = 0;
-			mdvrd = 1;
-			EMU_PC_INTR &= ~PC_INTRG;
 
-			EMU_PC_TRAK1 = mdrive[mdvnum].data[mdrive[mdvnum].idx];
-			EMU_PC_TRAK2 = mdrive[mdvnum].data[mdrive[mdvnum].idx + 1];
-			mdvcuridx = mdrive[mdvnum].idx;
-			mdvsectidx = mdrive[mdvnum].idx % MDV_SECTLEN;
+			mdvrd = 1;
+			
+			fullidx = (mdrive[mdvnum].sector * MDV_SECTLEN) + mdrive[mdvnum].idx;
+
+			EMU_PC_TRAK1 = mdrive[mdvnum].data[fullidx];
+			EMU_PC_TRAK2 = mdrive[mdvnum].data[fullidx + 1];
 
 			mdrive[mdvnum].idx += 2;
-			mdrive[mdvnum].idx %= (MDV_SECTLEN * MDV_NOSECTS);
 
-			sectidx = mdrive[mdvnum].idx % MDV_SECTLEN;
-			if (sectidx == MDV_HDR_SIZE) {
+			if (mdrive[mdvnum].idx == MDV_HDR_SIZE) {
 				mdrive[mdvnum].mdvstate = MDV_GAP2;
 				mdrive[mdvnum].mdvgapcnt = MDV_GAP_SIZE;
 			}
@@ -1324,26 +1336,38 @@ void do_mdv_tick(void)
 			mdrive[mdvnum].mdvgapcnt--;
 
 			if (mdrive[mdvnum].mdvgapcnt == 0) {
+				mdrive[mdvnum].mdvstate = MDV_PREAMBLE2;
+				mdrive[mdvnum].mdvgapcnt = MDV_PREAMBLE_SIZE;
+			}
+			break;
+		case MDV_PREAMBLE2:
+			mdvgap = 0;
+			mdvrd = 0;
+			mdrive[mdvnum].mdvgapcnt--;
+
+			if (mdrive[mdvnum].mdvgapcnt == 0) {
 				mdrive[mdvnum].mdvstate = MDV_DATA;
+				mdrive[mdvnum].idx = MDV_HDR_SIZE + 12;
 			}
 			break;
 		case MDV_DATA:
 			mdvgap = 0;
 			mdvrd = 1;
-			EMU_PC_INTR &= ~PC_INTRG;
 
-			EMU_PC_TRAK1 = mdrive[mdvnum].data[mdrive[mdvnum].idx];
-			EMU_PC_TRAK2 = mdrive[mdvnum].data[mdrive[mdvnum].idx + 1];
-			mdvcuridx = mdrive[mdvnum].idx;
-			mdvsectidx = mdrive[mdvnum].idx % MDV_SECTLEN;
+			fullidx = (mdrive[mdvnum].sector * MDV_SECTLEN) + mdrive[mdvnum].idx;
+
+			EMU_PC_TRAK1 = mdrive[mdvnum].data[fullidx];
+			EMU_PC_TRAK2 = mdrive[mdvnum].data[fullidx + 1];
 
 			mdrive[mdvnum].idx += 2;
-			mdrive[mdvnum].idx %= (MDV_SECTLEN * MDV_NOSECTS);
 
-			sectidx = mdrive[mdvnum].idx % MDV_SECTLEN;
-			if (sectidx == 0) {
+			if (mdrive[mdvnum].idx == 560) {
 				mdrive[mdvnum].mdvstate = MDV_GAP1;
 				mdrive[mdvnum].mdvgapcnt = MDV_GAP_SIZE;
+				mdrive[mdvnum].idx = 0;
+				mdrive[mdvnum].sector++;
+				mdrive[mdvnum].sector %= MDV_NOSECTS;
+				printf("Sector %d\n", mdrive[mdvnum].sector);
 			}
 			break;
 		default:
