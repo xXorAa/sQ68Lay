@@ -5,6 +5,7 @@
  */
 
 #include <SDL.h>
+#include <stdint.h>
 #include <sys/time.h>
 
 #include "emulator_hardware.h"
@@ -43,7 +44,7 @@ uint8_t qlHardwareRead8(unsigned int addr)
 	case PC_TRAK2:
 		return readQLHw(addr);
 	case PC_INTR:
-		return EMU_PC_INTR & ~EMU_PC_INTR_MASK;
+		return EMU_PC_INTR;
 	default:
 		break;
 	}
@@ -65,7 +66,7 @@ void qlHardwareWrite8(unsigned int addr, uint8_t val)
 		wrmdvcntl(val);
 		return;
 	case PC_INTR:
-		EMU_PC_INTR_MASK = (val & 0xE0) >> 5;
+		EMU_PC_INTR_MASK = (val & 0xE0);
 		EMU_PC_INTR &= 0x1F;
 		EMU_PC_INTR &= ~val;
 		return;

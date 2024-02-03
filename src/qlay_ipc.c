@@ -83,10 +83,8 @@ static uint32_t qlclkoff; /* QL hardware clock offset */
 
 typedef enum {
 	MDV_GAP1,
-	MDV_GAP1_OFF,
 	MDV_HDR,
 	MDV_GAP2,
-	MDV_GAP2_OFF,
 	MDV_DATA
 } mdvstate;
 
@@ -1264,6 +1262,16 @@ static void do_tx(void)
 	REG18020tx &= ~0x02; /* clear tx busy bit: byte is transmitted */
 }
 
+static void set_gap_irq(void)
+{
+	/* do nothing if IRQ is masked */
+	if (EMU_PC_INTR_MASK & PC_MASKG) {
+		return;
+	}
+
+	EMU_PC_INTR |= PC_INTRG;
+	doIrq = 1;
+}
 
 void do_mdv_tick(void)
 {
@@ -1271,8 +1279,8 @@ void do_mdv_tick(void)
 		int sectidx;
 
 		if (mdrive[mdvnum].present == 0) {
-			EMU_PC_INTR |= PC_INTRG;
-			mdvgap = 0;
+			set_gap_irq();
+			mdvgap = 1;
 			return;
 		}
 
@@ -1283,26 +1291,11 @@ void do_mdv_tick(void)
 		case MDV_GAP1:
 			mdvgap = 1;
 			mdvrd = 0;
-			EMU_PC_INTR |= PC_INTRG;
+			set_gap_irq();
 			mdrive[mdvnum].mdvgapcnt--;
 
 			if (mdrive[mdvnum].mdvgapcnt == 0) {
-				mdrive[mdvnum].mdvstate = MDV_GAP1_OFF;
-				mdrive[mdvnum].mdvgapcnt = MDV_GAP_OFF_SIZE;
-			}
-			break;
-		case MDV_GAP1_OFF:
-			mdvgap = 0;
-			mdvrd = 0;
-			EMU_PC_INTR &= ~PC_INTRG;
-			mdrive[mdvnum].mdvgapcnt--;
-
-			if (mdrive[mdvnum].mdvgapcnt == 0) {
-				if ((mdrive[mdvnum].idx % MDV_SECTLEN) == 0) {
-					mdrive[mdvnum].idx += 12;
-				}
 				mdrive[mdvnum].mdvstate = MDV_HDR;
-				mdrive[mdvnum].mdvgapcnt = MDV_GAP_SIZE;
 			}
 			break;
 		case MDV_HDR:
@@ -1327,26 +1320,11 @@ void do_mdv_tick(void)
 		case MDV_GAP2:
 			mdvgap = 1;
 			mdvrd = 0;
-			EMU_PC_INTR |= PC_INTRG;
+			set_gap_irq();
 			mdrive[mdvnum].mdvgapcnt--;
 
 			if (mdrive[mdvnum].mdvgapcnt == 0) {
-				mdrive[mdvnum].mdvstate = MDV_GAP2_OFF;
-				mdrive[mdvnum].mdvgapcnt = MDV_GAP_OFF_SIZE;
-			}
-			break;
-		case MDV_GAP2_OFF:
-			mdvgap = 0;
-			mdvrd = 0;
-			EMU_PC_INTR &= ~PC_INTRG;
-			mdrive[mdvnum].mdvgapcnt--;
-
-			if (mdrive[mdvnum].mdvgapcnt == 0) {
-				if ((mdrive[mdvnum].idx % MDV_SECTLEN) == 28) {
-					mdrive[mdvnum].idx += 12;
-				}
 				mdrive[mdvnum].mdvstate = MDV_DATA;
-				mdrive[mdvnum].mdvgapcnt = MDV_GAP_SIZE;
 			}
 			break;
 		case MDV_DATA:

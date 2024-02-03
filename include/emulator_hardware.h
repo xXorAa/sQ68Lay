@@ -10,6 +10,8 @@
 #ifndef EMULATOR_HARDWARE_H
 #define EMULATOR_HARDWARE_H
 
+#define BIT(nr)				(1UL << (nr))
+
 // time offset for RTC
 #define QDOS_TIME 			((9*365+2)*86400)
 
@@ -25,9 +27,14 @@
 #define PC_IPCRD			0x18020
 
 #define PC_INTR				0x18021
-#define PC_INTRG			(1 << 0)
-#define PC_INTRI			(1 << 1)
-#define PC_INTRF			(1 << 3)
+#define PC_INTRG			BIT(0)
+#define PC_INTRI			BIT(1)
+#define PC_INTRT			BIT(2)
+#define PC_INTRF			BIT(3)
+#define PC_INTRE			BIT(4)
+#define PC_MASKG			BIT(5)
+#define PC_MASKI			BIT(6)
+#define PC_MASKT			BIT(7)
 
 #define PC_TRAK1			0x18022
 
@@ -64,6 +71,7 @@ void qlHardwareWrite8(unsigned int addr, uint8_t val);
 
 /* Shadow registers */
 extern uint8_t EMU_PC_INTR;
+extern uint8_t EMU_PC_INTR_MASK;
 extern uint8_t Q68_KBD_STATUS;
 extern uint8_t EMU_PC_TRAK1;
 extern uint8_t EMU_PC_TRAK2;
