@@ -1361,7 +1361,7 @@ void do_mdv_tick(void)
 
 			mdrive[mdvnum].idx += 2;
 
-			if (mdrive[mdvnum].idx == 560) {
+			if (mdrive[mdvnum].idx == MDV_SECTLEN) {
 				mdrive[mdvnum].mdvstate = MDV_GAP1;
 				mdrive[mdvnum].mdvgapcnt = MDV_GAP_SIZE;
 				mdrive[mdvnum].idx = 0;
