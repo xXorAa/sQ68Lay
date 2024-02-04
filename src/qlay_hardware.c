@@ -65,11 +65,13 @@ void qlHardwareWrite8(unsigned int addr, uint8_t val)
 	case PC_MCTRL:
 		wrmdvcntl(val);
 		return;
-	case PC_INTR:
+	case PC_INTR: {
+		uint8_t tmp;
 		EMU_PC_INTR_MASK = (val & 0xE0);
-		EMU_PC_INTR &= 0x1F;
-		EMU_PC_INTR &= ~val;
+		tmp = val & 0x1F;
+		EMU_PC_INTR &= ~tmp;
 		return;
+	}
 	case MC_STAT:
 		EMU_MC_STAT = val;
 		emulatorScreenChangeMode(!(val >> 3));
