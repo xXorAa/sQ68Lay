@@ -3,3 +3,5 @@ Musashi/*.o
 Musashi/m68kmake
 Musashi/example
 wasm/
+build/
+.cache/
