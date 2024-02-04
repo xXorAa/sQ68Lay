@@ -1269,7 +1269,7 @@ static void set_gap_irq(void)
 	EMU_PC_INTR |= PC_INTRG;
 
 	/* dont actually trigger irq if masked */
-	if (EMU_PC_INTR_MASK & PC_MASKG) {
+	if (!(EMU_PC_INTR_MASK & PC_MASKG)) {
 		return;
 	}
 
