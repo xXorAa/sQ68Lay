@@ -5,6 +5,7 @@
  */
 
 #include <SDL.h>
+#include <stdbool.h>
 
 #include "emulator_hardware.h"
 #include "emulator_keyboard.h"
