@@ -17,7 +17,7 @@ else()
     find_package(SDL2 REQUIRED)
 endif()
 
-include_directories(${CMAKE_CURRENT_LIST_DIR} include/ Musashi/ CLI11/include/ args/src/ inih/ external/ qlay/ uthash/include ${SDL2_INCLUDE_DIRS} ${Boost_INCLUDE_DIRS})
+include_directories(${CMAKE_CURRENT_LIST_DIR} include/ Musashi/ args/src/ inih/ external/ qlay/ uthash/src/ ${SDL2_INCLUDE_DIRS})
 
 find_package(Git)
 add_custom_target( SubmarineGitVersion
