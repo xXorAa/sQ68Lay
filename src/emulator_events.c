@@ -4,7 +4,6 @@
  * SPDX: GPL-2.0-only
  */
 
-#include <glib.h>
 #include <SDL.h>
 
 #include "emulator_hardware.h"
