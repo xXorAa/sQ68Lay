@@ -15,11 +15,6 @@ else()
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -ggdb -Og")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ggdb -Og")
     find_package(SDL2 REQUIRED)
-    find_package(PkgConfig REQUIRED)
-    pkg_search_module(GLIB REQUIRED glib-2.0)
-
-    include_directories(${GLIB_INCLUDE_DIRS})
-    link_directories(${GLIB_LIBRARY_DIRS})
 endif()
 
 include_directories(${CMAKE_CURRENT_LIST_DIR} include/ Musashi/ CLI11/include/ args/src/ inih/ external/ qlay/ uthash/include ${SDL2_INCLUDE_DIRS} ${Boost_INCLUDE_DIRS})
@@ -98,8 +93,8 @@ else()
     set(EMU_BUILD_LIBS "SDL2::SDL2")
 endif()
 
-target_link_libraries(sq68ux ${EMU_BUILD_LIBS} ${GLIB_LIBRARIES})
-target_link_libraries(sqlay3 ${EMU_BUILD_LIBS} ${GLIB_LIBRARIES})
+target_link_libraries(sq68ux ${EMU_BUILD_LIBS})
+target_link_libraries(sqlay3 ${EMU_BUILD_LIBS})
 
 install(TARGETS sqlay3
 	DESTINATION ${CMAKE_INSTALL_PREFIX}/bin/
