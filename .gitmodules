@@ -4,3 +4,6 @@
 [submodule "inih"]
 	path = inih
 	url = https://github.com/benhoyt/inih
+[submodule "uthash"]
+	path = uthash
+	url = https://github.com/troydhanson/uthash
