@@ -5,7 +5,6 @@
  */
 
 #include <ctype.h>
-#include <glib.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -18,6 +17,8 @@
 #pragma GCC diagnostic pop
 
 #include "ini.h"
+#include "utlist.h"
+#include "utstring.h"
 #include "version.h"
 
 
@@ -55,6 +56,11 @@ enum emuOptsType {
 	EMU_OPT_DEV,
 };
 
+struct emuList {
+	char *option;
+	struct emuList *next;
+};
+
 struct emuOpts {
 	char *option;
 	char *alias;
@@ -62,7 +68,7 @@ struct emuOpts {
 	int type;
 	int intVal;
 	char *charVal;
-	GList *list;
+	struct emuList *list;
 };
 
 struct emuOpts emuOptions[] = {
@@ -147,7 +153,13 @@ static int iniHandler(__attribute__ ((unused)) void* user, __attribute__ ((unuse
 				emuOptions[i].intVal = atoi(value);
 				return 0;
 			} else if (emuOptions[i].type == EMU_OPT_DEV) {
-				emuOptions[i].list = g_list_append(emuOptions[i].list, strdup(value));
+				struct emuList *entry;
+
+				entry = malloc(sizeof(struct emuList));
+				if (entry) {
+					entry->option = strdup(value);
+					LL_APPEND(emuOptions[i].list, entry);
+				}
 			}
 
 			return 1;
@@ -162,8 +174,11 @@ static int iniHandler(__attribute__ ((unused)) void* user, __attribute__ ((unuse
 int emulatorOptionParse(int argc, char **argv)
 {
 	int i;
-	GString *helptext = g_string_new(helpTextInit);
+	UT_string *helptext;
 	const char *configFile;
+
+	utstring_new(helptext);
+	utstring_printf(helptext, helpTextInit);
 
 	parser = ap_new_parser();
 	if (!parser) {
@@ -173,62 +188,64 @@ int emulatorOptionParse(int argc, char **argv)
 	i = 0;
 	while (emuOptions[i].option != NULL) {
 		int j;
-		GString *helpItem = g_string_new("");
+		UT_string *helpItem;
+		utstring_new(helpItem);
 
 		if(strlen(emuOptions[i].alias)) {
-			g_string_append_printf(helpItem, "  -%s,", emuOptions[i].alias);
+			utstring_printf(helpItem, "  -%s,", emuOptions[i].alias);
 		} else {
-			 g_string_append(helpItem, "  ");
+			utstring_printf(helpItem, "  ");
 		}
-		g_string_append_printf(helpItem, "--%s", emuOptions[i].option);
+		utstring_printf(helpItem, "--%s", emuOptions[i].option);
 
 		if (emuOptions[i].type == EMU_OPT_INT) {
-			g_string_append_printf(helpItem, " [%d]", emuOptions[i].intVal);
+			utstring_printf(helpItem, " [%d]", emuOptions[i].intVal);
 		} else if (emuOptions[i].type == EMU_OPT_CHAR) {
 			if (emuOptions[i].charVal != NULL) {
-				g_string_append_printf(helpItem, " [%s]", emuOptions[i].charVal);
+				utstring_printf(helpItem, " [%s]", emuOptions[i].charVal);
 			}
 		}
-		for (j = helpItem->len; j < 30; j++){
-			g_string_append_c(helpItem, ' ');
+		for (j = utstring_len(helpItem); j < 30; j++){
+			utstring_printf(helpItem, " ");
 		}
 
-		g_string_append_printf(helpItem, "%s\n", emuOptions[i].help);
+		utstring_printf(helpItem, "%s\n", emuOptions[i].help);
 
-		g_string_append(helptext, helpItem->str);
+		utstring_concat(helptext, helpItem);
 
-		g_string_free(helpItem, true);
+		utstring_free(helpItem);
 
 		i++;
 	}
-	g_string_append(helptext, helpTextTail);
+	utstring_printf(helptext, helpTextTail);
 
-	ap_set_helptext(parser, helptext->str);
+	ap_set_helptext(parser, utstring_body(helptext));
 	ap_set_version(parser, release);
 
-	g_string_free(helptext, true);
+	utstring_free(helptext);
 
 	ap_add_str_opt(parser, "config f", EMU_STR ".ini");
 
 	i = 0;
 	while (emuOptions[i].option != NULL) {
-		GString *optItem = g_string_new("");
+		UT_string *optItem;
+		utstring_new(optItem);
 
 		if (strlen(emuOptions[i].alias)) {
-			g_string_printf(optItem, "%s %s",
+			utstring_printf(optItem, "%s %s",
 				emuOptions[i].option,
 				emuOptions[i].alias);
 		} else {
-			g_string_append(optItem, emuOptions[i].option);
+			utstring_printf(optItem, "%s", emuOptions[i].option);
 		}
 
 		if (emuOptions[i].type == EMU_OPT_INT) {
-			ap_add_int_opt(parser, optItem->str, 0);
+			ap_add_int_opt(parser, utstring_body(optItem), 0);
 		} else {
-			ap_add_str_opt(parser, optItem->str, "");
+			ap_add_str_opt(parser, utstring_body(optItem), "");
 		}
 
-		g_string_free(optItem, true);
+		utstring_free(optItem);
 
 		i++;
 	}
@@ -301,7 +318,10 @@ int emulatorOptionDevCount(const char *name) {
 	while (emuOptions[i].option != NULL) {
 		if (strcmp(emuOptions[i].option, name) == 0) {
 			if (emuOptions[i].list != NULL) {
-				count += g_list_length(emuOptions[i].list);
+				int tmpCount;
+				struct emuList *entry;
+				LL_COUNT(emuOptions[i].list, entry, tmpCount);
+				count += tmpCount;
 			}
 		}
 
@@ -324,7 +344,14 @@ const char *emulatorOptionDev(const char *name, int idx)
 	while (emuOptions[i].option != NULL) {
 		if (strcmp(emuOptions[i].option, name) == 0) {
 			if (emuOptions[i].list != NULL) {
-				return g_list_nth_data(emuOptions[i].list, idx);
+				int cur = 0;
+				struct emuList *entry;
+				LL_FOREACH(emuOptions[i].list, entry) {
+					if (idx == cur) {
+						return entry->option;
+					}
+					cur++;
+				}
 			}
 		}
 		i++;
