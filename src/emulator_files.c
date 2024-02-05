@@ -4,10 +4,12 @@
  * SPDX: GPL-2.0-only
  */
 
-#include <glib.h>
+#include <fcntl.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdint.h>
+#include <string.h>
+#include <sys/errno.h>
 #include <sys/stat.h>
 #include <unistd.h>
 
@@ -46,34 +48,38 @@ size_t emulatorFileSize(const char* name)
 
 	ret = stat(name, &statBuf);
 	if (ret < 0) {
+		perror("What Happened");
+		printf("GOT HERE\n");
 		return 0;
 	}
+
 	return statBuf.st_size;
 }
 
 void emulatorLoadFile(const char* name, uint8_t* addr, size_t wantSize)
 {
-	gchar *contents;
-	gsize length;
-	GError *error = NULL;
+	size_t fileSize;
+	int fd;
 
-	g_file_get_contents (name, &contents, &length, &error);
-	if (error != NULL) {
-		fprintf (stderr, "Unable to read file: %s\n", error->message);
-		g_error_free (error);
+	if (!emulatorFileExists(name)) {
+		fprintf(stderr, "File Not Found %s\n", name);
 		return;
 	}
 
-	if (wantSize != 0) {
-		if (length != wantSize) {
-			fprintf(stderr, "File Size Mismatch %s %zu != %zu",
-				name, wantSize, length);
-			g_free(contents);
-			g_error_free(error);
-			return;
-		}
+	fileSize = emulatorFileSize(name);
+	if (wantSize && (fileSize != wantSize)) {
+		fprintf(stderr, "File Size Mismatch %s %zu != %zu\n",
+			name, wantSize, fileSize);
+		return;
 	}
 
-	memcpy(addr, contents, length);
-	g_free(contents);
+	fd = open(name, O_RDONLY);
+	if (fd < 0) {
+		fprintf(stderr, "Error opening file %s %s\n", name, strerror(errno));
+		return;
+	}
+
+	read(fd, addr, fileSize);
+
+	close(fd);
 }
