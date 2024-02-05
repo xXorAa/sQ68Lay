@@ -1,12 +1,13 @@
-{ pkgs ? import <nixpkgs> {} }:
-
-with pkgs;
-mkShell {
-  nativeBuildInputs = [
-    glib
-    clang
+with import <nixpkgs> {};
+llvmPackages_16.stdenv.mkDerivation {
+  name = "env";
+  nativeBuildInputs = [ 
     cmake
     pkg-config
+    clang-tools
+  ];
+  buildInputs = [
     SDL2
   ];
 }
+
