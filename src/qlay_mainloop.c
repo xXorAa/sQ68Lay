@@ -19,6 +19,7 @@
 #include "qlay_hooks.h"
 #include "qlay_ipc.h"
 #include "qlay_keyboard.h"
+#include "qlay_trace.h"
 
 int msClk = 0;
 
@@ -51,6 +52,7 @@ int emulatorMainLoop(void)
 	qlayInitKbd();
 	qlayInitIPC();
 	qlayInitDisk();
+	traceInit();
 
 	uint64_t counterFreq = SDL_GetPerformanceFrequency();
 	uint64_t msTick = counterFreq / 10000;

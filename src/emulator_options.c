@@ -111,6 +111,7 @@ struct emuOpts emuOptions[] = {
 {"sysrom", "r", "system rom", EMU_OPT_CHAR, 0, "JS.rom", NULL},
 {"drive", "l", "nfa file (upto 8 times)", EMU_OPT_DEV, 0 ,NULL, NULL},
 {"trace", "", "enable tracing", EMU_OPT_INT, 0, NULL, NULL},
+{"trace-map", "", "map file for trace addrs to symbols", EMU_OPT_CHAR, 0, NULL, NULL},
 #endif //QLAY_EMU
 
 #ifdef Q68_EMU

@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.7)
 
-project(sq68ux)
+project(sq68ux C)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -22,7 +22,7 @@ else()
     link_directories(${GLIB_LIBRARY_DIRS})
 endif()
 
-include_directories(${CMAKE_CURRENT_LIST_DIR} include/ Musashi/ CLI11/include/ args/src/ inih/ external/ qlay/ ${SDL2_INCLUDE_DIRS} ${Boost_INCLUDE_DIRS})
+include_directories(${CMAKE_CURRENT_LIST_DIR} include/ Musashi/ CLI11/include/ args/src/ inih/ external/ qlay/ uthash/include ${SDL2_INCLUDE_DIRS} ${Boost_INCLUDE_DIRS})
 
 find_package(Git)
 add_custom_target( SubmarineGitVersion
@@ -72,6 +72,7 @@ add_executable(sqlay3
     src/qlay_ipc.c
     src/qlay_keyboard.c
     src/qlay_mainloop.c
+    src/qlay_trace.c
     args/src/args.c
     inih/ini.c
     Musashi/m68kcpu.c
