@@ -11,10 +11,10 @@
 
 #include <SDL.h>
 #include <stdbool.h>
+#include <utarray.h>
 
-//extern std::queue<int> keyBuffer;
 extern int qlayKeysPressed;
-extern GQueue *qlayKeyBuffer;
+extern UT_array *qlayKeyBuffer;
 
 void qlayInitKbd(void);
 uint8_t qlayGetKeyrow(uint8_t row);

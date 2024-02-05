@@ -4,7 +4,6 @@
 	QL input and output
 */
 
-#include <glib.h>
 #include <stdint.h>
 #include <stdio.h>
 
@@ -16,6 +15,7 @@
 #include "m68k.h"
 #include "qlay_hooks.h"
 #include "qlay_keyboard.h"
+#include "utarray.h"
 
 uint32_t qlay1msec = 7500 / 16;
 
@@ -801,7 +801,7 @@ static void exec_IPCcmd(int cmd)
 	case 1: /* get interrupt status */
 		/*fpr("GI ");*/
 		IPCreturn = 0;
-		if (g_queue_get_length(qlayKeyBuffer) || qlayKeysPressed) {
+		if (utarray_len(qlayKeyBuffer) || qlayKeysPressed) {
 			IPCreturn |= 0x01;
 		}
 		//if (use_debugger || fakeF1)
@@ -862,14 +862,15 @@ static void exec_IPCcmd(int cmd)
 		break;
 	case 8: /* read keyboard */
 	{
-		int key;
 		/*fpr("C8 ");*/
 		IPCreturn = 0;
 		IPCcnt = 4;
-		if (g_queue_get_length(qlayKeyBuffer)) { /* just double check */
-			key = GPOINTER_TO_INT(g_queue_pop_head(qlayKeyBuffer));
+		if (utarray_len(qlayKeyBuffer)) { /* just double check */
+			int *key;
+			key = (int *)utarray_front(qlayKeyBuffer);
+			utarray_erase(qlayKeyBuffer, 0, 1);
 			/*fpr("Dec %x ",key);*/
-			IPCreturn = decode_key(key);
+			IPCreturn = decode_key(*key);
 			IPCcnt = 16;
 		} else {
 			if (qlayKeysPressed) { /* still pressed: autorepeat */

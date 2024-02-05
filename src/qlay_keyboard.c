@@ -4,12 +4,12 @@
  * SPDX: GPL-2.0-only
  */
 
-#include <glib.h>
 #include <SDL.h>
 
 #include "qlay_hooks.h"
 #include "qlay_keyboard.h"
 #include "qlkeys.h"
+#include "utarray.h"
 
 struct qlKey {
 	int keycode;
@@ -103,11 +103,11 @@ const struct qlayKeyEntry qlMapDefault[] = {
 
 static int keyState[0x800];
 int qlayKeysPressed;
-GQueue *qlayKeyBuffer;
+UT_array *qlayKeyBuffer;
 
 void qlayInitKbd(void)
 {
-	qlayKeyBuffer = g_queue_new();
+	utarray_new(qlayKeyBuffer, &ut_int_icd);
 }
 
 uint8_t qlayGetKeyrow(uint8_t row)
@@ -185,13 +185,10 @@ void emulatorProcessKey(int keysym, __attribute__ ((unused)) int scancode, bool 
 				qlKey += 0x200;
 			if (keyState[0x400])
 				qlKey += 0x400;
-			g_queue_push_tail(qlayKeyBuffer,
-					  GINT_TO_POINTER(qlKey));
+			utarray_push_back(qlayKeyBuffer, &qlKey);
 		} else {
 			if ((qlKey & 0x780) != qlKey) {
-				g_queue_push_tail(
-					qlayKeyBuffer,
-					GINT_TO_POINTER(qlKey)); // BS, DEL
+				utarray_push_back(qlayKeyBuffer, &qlKey); // BS & DEL
 			}
 		}
 	}
