@@ -4,7 +4,6 @@
  * SPDX: GPL-2.0-only
  */
 
-#include <glib.h>
 #include <SDL.h>
 
 #include "emulator_events.h"
@@ -18,11 +17,12 @@
 #include "q68_hooks.h"
 #include "q68_keyboard.h"
 #include "q68_sd.h"
+#include "utarray.h"
 
 uint32_t msClk = 0;
 uint32_t msClkNextEvent = 0;
 
-int emulatorMainLoop(void)
+void emulatorMainLoop(void)
 {
 	const char *smsqe = emulatorOptionString("smsqe");
 	const char *sysrom = emulatorOptionString("sysrom");
@@ -41,10 +41,8 @@ int emulatorMainLoop(void)
 		trace = true;
 	}
 
+	q68InitKeyb();
 	q68InitSD();
-
-	// Initialise keyboard
-	q68_kbd_queue = g_queue_new();
 
 	m68k_set_cpu_type(M68K_CPU_TYPE_68000);
 	m68k_init();
@@ -75,7 +73,7 @@ int emulatorMainLoop(void)
 			screenThen += screenTick;
 		}
 
-		if (g_queue_get_length(q68_kbd_queue)) {
+		if (utarray_len(q68_kbd_queue)) {
 			Q68_KBD_STATUS |= KBD_RCV;
 			irq = true;
 		}
@@ -85,6 +83,4 @@ int emulatorMainLoop(void)
 			irq = false;
 		}
 	}
-
-	return 0;
 }

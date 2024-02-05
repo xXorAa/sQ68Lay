@@ -4,7 +4,7 @@
  * SPDX: GPL-2.0-only
  */
 
-#include <glib.h>
+#include "uthash/src/utarray.h"
 #include <SDL.h>
 
 #include "emulator_events.h"
@@ -12,9 +12,15 @@
 #include "emulator_keyboard.h"
 #include "q68_hooks.h"
 #include "sdl-ps2.h"
+#include "utarray.h"
 
 // keyboard lock and queue
-GQueue* q68_kbd_queue;
+UT_array *q68_kbd_queue;
+
+void q68InitKeyb(void)
+{
+	utarray_new(q68_kbd_queue, &ut_int_icd);
+}
 
 void emulatorProcessKey(int keysym, int scancode, bool pressed)
 {
@@ -29,6 +35,7 @@ void emulatorProcessKey(int keysym, int scancode, bool pressed)
 	qlen = ps2_encode(scancode, pressed, queue);
 
 	for (int i = 0; i < qlen; i++) {
-		g_queue_push_tail(q68_kbd_queue, GINT_TO_POINTER(queue[i]));
+		int key = queue[i];
+		utarray_push_back(q68_kbd_queue, &key);
 	}
 }

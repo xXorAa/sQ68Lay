@@ -9,7 +9,6 @@
 #ifndef EMULATOR_EVENTS_H
 #define EMULATOR_EVENTS_H
 
-#include <glib.h>
 #include <stdbool.h>
 
 extern bool exitLoop;

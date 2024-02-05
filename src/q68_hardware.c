@@ -4,15 +4,16 @@
  * SPDX: GPL-2.0-only
  */
 
-#include <glib.h>
 #include <time.h>
 #include <SDL.h>
+#include <stdint.h>
 #include <sys/time.h>
 
 #include "emulator_hardware.h"
 #include "emulator_screen.h"
 #include "q68_keyboard.h"
 #include "q68_sd.h"
+#include "utarray.h"
 
 // ghost irq registers
 uint8_t EMU_PC_INTR = 0;
@@ -57,9 +58,10 @@ uint8_t qlHardwareRead8(unsigned int addr)
 	case Q68_TIMER + 3:
 		return q68_update_hires() & 0xFF;
 	case KBD_CODE: {
-		if (g_queue_get_length(q68_kbd_queue)) {
-			return GPOINTER_TO_INT(
-				g_queue_peek_head(q68_kbd_queue));
+		if (utarray_len(q68_kbd_queue)) {
+			int *key;
+                        key = (int *)utarray_front(q68_kbd_queue);
+			return *key;
 		}
 
 		return 0;
@@ -95,11 +97,11 @@ void qlHardwareWrite8(unsigned int addr, uint8_t val)
 	case KBD_UNLOCK:
 		if (val & KBD_ACKN) {
 			// code is acknowledged so remove it
-			if (g_queue_get_length(q68_kbd_queue)) {
-				g_queue_pop_head(q68_kbd_queue);
+			if (utarray_len(q68_kbd_queue)) {
+				utarray_erase(q68_kbd_queue, 0, 1);
 			}
 			// if the queue is empty clear the interrupt
-			if (!g_queue_get_length(q68_kbd_queue)) {
+			if (!utarray_len(q68_kbd_queue)) {
 				Q68_KBD_STATUS &= ~KBD_ACKN;
 			}
 		}

@@ -4,12 +4,12 @@
  * SPDX: GPL-2.0-only
  */
 
+#include <errno.h>
 #include <fcntl.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
-#include <sys/errno.h>
 #include <sys/stat.h>
 #include <unistd.h>
 

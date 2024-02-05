@@ -7,7 +7,7 @@
 #include <stdint.h>
 
 uint64_t cycles(void);
-int emulatorMainLoop(void);
+void emulatorMainLoop(void);
 
 extern unsigned int extraCycles;
 extern uint64_t cyclesNow;

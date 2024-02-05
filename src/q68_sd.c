@@ -4,14 +4,17 @@
  * SPDX: GPL-2.0-only
  */
 
-#include <glib.h>
+#include <errno.h>
+#include <fcntl.h>
 #include <SDL.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/mman.h>
 
+#include "emulator_files.h"
 #include "emulator_options.h"
 #include "m68k.h"
 
@@ -19,7 +22,10 @@
 #define O_BINARY 0
 #endif
 
-GMappedFile *sd1File = NULL;
+uint8_t *sd1File = NULL;
+int sd1Fd;
+size_t sd1FileSize;
+bool sd1Present = false;
 uint8_t sd1CmdBuf[8];
 int sd1CmdIdx = 0;
 uint8_t sd1Resp = 0;
@@ -28,25 +34,43 @@ bool sd1Multi = false;
 int sd1Block;
 int sd1RespIdx = 0;
 
-GMappedFile * sd2File = NULL;
-
 void q68InitSD(void)
 {
 	const char *sd1Filename = emulatorOptionString("sd1");
 	if (strlen(sd1Filename) > 0) {
 		printf("SD1: %s\n", sd1Filename);
+		if (!emulatorFileExists(sd1Filename)) {
+			fprintf(stderr, "Error: File not Found %s\n", sd1Filename);
+			sd1Present = false;
+			return;
+		}
+		
+		sd1FileSize = emulatorFileSize(sd1Filename);
+		if (sd1FileSize == 0) {
+			fprintf(stderr, "Error: File zero sized %s\n", sd1Filename);
+			sd1Present = false;
+			return;
+		}
 
-		GError *err = NULL;
-		sd1File = g_mapped_file_new(sd1Filename, true, &err);
-		if (err != NULL) {
-			fprintf(stderr, "Error: opening SD1 %s\n", err->message);
+		sd1Fd = open(sd1Filename, O_RDWR);
+
+		sd1File = mmap(0, sd1FileSize, PROT_READ | PROT_WRITE, MAP_SHARED, sd1Fd, 0);
+		if (sd1File == NULL) {
+			fprintf(stderr, "Error: mmaping %s %s\n", sd1Filename, strerror(errno));
 		}
 		sd1CmdIdx = 0;
+		sd1Present = true;
+	} else {
+		sd1Present = false;
 	}
 }
 
 void q68ProcessSDCmd(__attribute__ ((unused))int sd, uint8_t cmdByte)
 {
+	if (!sd1Present) {
+		return;
+	}
+
 	sd1CmdBuf[sd1CmdIdx++] = cmdByte;
 
 	if (sd1CmdIdx < 7) {
@@ -66,8 +90,8 @@ void q68ProcessSDCmd(__attribute__ ((unused))int sd, uint8_t cmdByte)
 		uint32_t block = SDL_SwapBE32(*(uint32_t *)&sd1CmdBuf[2]);
 
 		// Make sure we do not exceed mapped file limits
-		if (((gsize)block * 512) < (g_mapped_file_get_length(sd1File) - 512)) {
-			memcpy(&sd1RespBuf[1], g_mapped_file_get_contents(sd1File) + (block * 512), 512);
+		if (((size_t)block * 512) < (sd1FileSize) - 512) {
+			memcpy(&sd1RespBuf[1], sd1File + (block * 512), 512);
 		} else {
 			memset(&sd1RespBuf[1], 0, 512);
 		}
@@ -87,8 +111,8 @@ void q68ProcessSDCmd(__attribute__ ((unused))int sd, uint8_t cmdByte)
 		uint32_t block = SDL_SwapBE32(*(uint32_t *)&sd1CmdBuf[2]);
 
 		// Make sure we do not exceed mapped file limits
-		if (((gsize)block * 512) < (g_mapped_file_get_length(sd1File) - 512)) {
-			memcpy(&sd1RespBuf[1], g_mapped_file_get_contents(sd1File) + (block * 512), 512);
+		if (((size_t)block * 512) < (sd1FileSize - 512)) {
+			//memcpy(&sd1RespBuf[1], sd1File + (block * 512), 512);
 		} else {
 			memset(&sd1RespBuf[1], 0, 512);
 		}
@@ -113,8 +137,8 @@ uint8_t q68ProcessSDResponse(__attribute__ ((unused))int sd)
 	if (sd1Multi) {
 		sd1RespBuf[0] = 0xFE;
 
-		if (((gsize)sd1Block * 512) < (g_mapped_file_get_length(sd1File) - 512)) {
-			memcpy(&sd1RespBuf[1], g_mapped_file_get_contents(sd1File) + (sd1Block * 512), 512);
+		if (((size_t)sd1Block * 512) < (sd1FileSize - 512)) {
+			memcpy(&sd1RespBuf[1], sd1File + (sd1Block * 512), 512);
 		} else {
 			memset(&sd1RespBuf[1], 0, 512);
 		}
