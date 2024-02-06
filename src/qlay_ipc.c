@@ -95,6 +95,8 @@ typedef enum {
 	MDV_HDR,
 	MDV_GAP2,
 	MDV_PREAMBLE2,
+	MDV_DATA_HDR,
+	MDV_DATA_PREAMBLE,
 	MDV_DATA
 } mdvstate;
 
@@ -160,7 +162,6 @@ uint8_t readQLHw(uint32_t addr)
 		}
 
 		if (mdvmotor == 0) { /* no motor running, return NOP */
-			printf("No MOTOR\n");
 			return 0x0;
 		} else { /* return MDV responses */
 			//if (!mdvpresent) {
@@ -1359,6 +1360,32 @@ void do_mdv_tick(void)
 			if (mdrive[mdvnum].mdvgapcnt == 0) {
 				mdrive[mdvnum].mdvstate = MDV_DATA;
 				mdrive[mdvnum].idx = MDV_HDR_SIZE + MDV_PREAMBLE_SIZE;
+			}
+			break;
+		case MDV_DATA_HDR:
+			mdvgap = 0;
+			mdvrd = 1;
+
+			fullidx = (mdrive[mdvnum].sector * MDV_SECTLEN) +
+				  mdrive[mdvnum].idx;
+
+			EMU_PC_TRAK1 = mdrive[mdvnum].data[fullidx];
+			EMU_PC_TRAK2 = mdrive[mdvnum].data[fullidx + 1];
+
+			mdrive[mdvnum].idx += 2;
+			if (mdrive[mdvnum].idx == (MDV_HDR_SIZE + MDV_PREAMBLE_SIZE + MDV_DATA_HDR_SIZE)) {
+				mdrive[mdvnum].mdvstate = MDV_DATA_PREAMBLE;
+				mdrive[mdvnum].mdvgapcnt = MDV_PREAMBLE_COUNT;
+			}
+			break;
+		case MDV_DATA_PREAMBLE:
+			mdvgap = 0;
+			mdvrd = 0;
+			mdrive[mdvnum].mdvgapcnt--;
+
+			if (mdrive[mdvnum].mdvgapcnt == 0) {
+				mdrive[mdvnum].mdvstate = MDV_DATA;
+				mdrive[mdvnum].idx = MDV_HDR_SIZE + MDV_PREAMBLE_SIZE + MDV_DATA_HDR_SIZE + MDV_DATA_PREAMBLE_SIZE;
 			}
 			break;
 		case MDV_DATA:
