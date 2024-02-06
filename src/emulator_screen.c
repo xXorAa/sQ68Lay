@@ -7,6 +7,7 @@
 #include <SDL.h>
 #include <stdbool.h>
 
+#include "emulator_hardware.h"
 #include "emulator_memory.h"
 #include "emulator_options.h"
 
@@ -157,46 +158,80 @@ void emulatorScreenChangeMode(int emulatorMode)
 	emulatorCurrentMode = emulatorMode;
 }
 
+// frame counter for flash
+static int curframe = 0;
+
 void emulatorUpdatePixelBufferQL(uint8_t *emulatorScreenPtr, uint8_t *emulatorScreenPtrEnd)
 {
-	uint32_t *pixelPtr32 = (uint32_t *)qlModes[emulatorCurrentMode].surface->pixels + 7;
+	uint32_t *pixelPtr32 = (uint32_t *)qlModes[emulatorCurrentMode].surface->pixels;
+	int curpix = 0;
+	uint32_t flashbg = 0;
+	int flashon = 0;
 
 	while (emulatorScreenPtr < emulatorScreenPtrEnd) {
-		int t1 = *emulatorScreenPtr++;
-		int t2 = *emulatorScreenPtr++;
+		uint8_t t1 = *emulatorScreenPtr++;
+		uint8_t t2 = *emulatorScreenPtr++;
 
 		switch (emulatorCurrentMode) {
 		case 0:
-			for (int i = 0; i < 8; i += 2) {
-				int color = ((t1 & 2) << 1) + ((t2 & 3)) +
-					((t1 & 1) << 3);
+			for (int i = 6; i > -2; i -= 2) {
+				uint8_t p1 = (t1 >> i) & 0x03;
+				uint8_t p2 = (t2 >> i) & 0x03;
+
+				int color = ((p1 & 2) << 1) + ((p2 & 3));
+				int flashbit = (p1 & 1);
 
 				uint32_t x = sdlColors[color];
 
-				*pixelPtr32-- = x;
-				*pixelPtr32-- = x;
 
-				t1 >>= 2;
-				t2 >>= 2;
+				if ((curframe & BIT(5)) && flashon) {
+					x = flashbg;
+				}
+
+				*pixelPtr32++ = x;
+				*pixelPtr32++ = x;
+
+				// flash happens after the pixel
+				if (flashbit) {
+					if (flashon == 0) {
+						flashbg = x;
+						flashon = 1;
+					} else {
+						flashon = 0;
+					}
+				}
+
+				// Handle flash end of line
+				// stride is fixed at 256 because mode 8
+				// is fixed at that size on QL and Q68
+				curpix++;
+				curpix %= 256;
+				if (curpix == 0) {
+					flashbg = 0;
+					flashon = 0;
+				}
 			}
 			break;
 		case 1:
 		case 4:
-			for (int i = 0; i < 8; i++) {
-				int color = ((t1 & 1) << 2) + ((t2 & 1) << 1) +
-					((t1 & 1) & (t2 & 1));
+			for (int i = 7; i > -1; i--) {
+				uint8_t p1 = (t1 >> i) & 0x01;
+				uint8_t p2 = (t2 >> i) & 0x01;
+
+				int color = ((p1 & 1) << 2) + ((p2 & 1) << 1) +
+					((p1 & 1) & (p2 & 1));
 
 				uint32_t x = sdlColors[color];
 
-				*pixelPtr32-- = x;
-
-				t1 >>= 1;
-				t2 >>= 1;
+				*pixelPtr32++ = x;
 			}
 			break;
 		}
-		pixelPtr32 += 16;
 	}
+
+	// frame counter for flash
+	curframe++;
+	curframe %= 64;
 }
 
 void emulatorUpdatePixelBuffer33(uint16_t *emulatorScreenPtr, uint16_t *emulatorScreenPtrEnd)
