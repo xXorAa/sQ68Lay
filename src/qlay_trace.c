@@ -25,7 +25,7 @@ void traceInit(void)
 	const char *mapFile = emulatorOptionString("trace-map");
 	FILE *file;
 	char symbol[21];
-	int addr;
+	unsigned int addr;
 
 	if (strlen(mapFile) == 0) {
 		return;
