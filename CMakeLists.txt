@@ -2,8 +2,7 @@ cmake_minimum_required(VERSION 3.7)
 
 project(sq68ux C)
 
-set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
+add_compile_options(-Werror -Wall -Wextra -Wpedantic)
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Emscripten")
     set(USE_FLAGS "-pthread -s USE_SDL=2 -s USE_PTHREADS=1")
