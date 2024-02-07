@@ -93,7 +93,7 @@ set_source_files_properties(args/src/args.c Musashi/m68kcpu.c PROPERTIES COMPILE
 
 if (SDL2_LIBRARIES)
     if (${CMAKE_SYSTEM_NAME} MATCHES "Windows")
-        set(EMU_BUILD_LIBS "-Wl,-Bstatic -L/usr/local/x86_64-w64-mingw32/lib -lSDL2main -lSDL2 -lpthread -Wl,-Bdynamic -lwsock32 -lwinmm -lsetupapi -limm32 -lversion -static-libgcc")
+        set(EMU_BUILD_LIBS "-Wl,-Bstatic -L/usr/local/x86_64-w64-mingw32/lib -lmingw32 -lSDL2main -lSDL2 -lpthread -Wl,-Bdynamic -lwsock32 -lwinmm -lsetupapi -limm32 -lversion -static-libgcc")
     else()
         set(EMU_BUILD_LIBS ${SDL2_LIBRARIES})
     endif()
