@@ -51,7 +51,9 @@ add_executable(sq68ux
     )
 
 # m68kdasm.c doesnt pass _FORTIFY_SOURCE=2
-set_source_files_properties(Musashi/m68kdasm.c PROPERTIES COMPILE_FLAGS -Wno-format-overflow)
+if (NOT ${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+    set_source_files_properties(Musashi/m68kdasm.c PROPERTIES COMPILE_FLAGS -Wno-format-overflow)
+endif()
 
 if (${CMAKE_SYSTEM_NAME} MATCHES "Windows")
     target_sources(sq68ux PRIVATE "mman-win32/mman.c")
@@ -85,7 +87,9 @@ add_executable(sqlay3
     )
 
 # m68kdasm.c doesnt pass _FORTIFY_SOURCE=2
-set_source_files_properties(Musashi/m68kdasm.c PROPERTIES COMPILE_FLAGS -Wno-format-overflow)
+if (NOT ${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+    set_source_files_properties(Musashi/m68kdasm.c PROPERTIES COMPILE_FLAGS -Wno-format-overflow)
+endif()
 
 if (${CMAKE_SYSTEM_NAME} MATCHES "Windows")
     target_sources(sq68ux PRIVATE "mman-win32/mman.c")
