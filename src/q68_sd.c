@@ -12,7 +12,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#ifndef __WIN32__
 #include <sys/mman.h>
+#else
+#include "mman.h"
+#endif
 
 #include "emulator_files.h"
 #include "emulator_options.h"
