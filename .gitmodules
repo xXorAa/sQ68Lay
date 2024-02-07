@@ -7,3 +7,6 @@
 [submodule "uthash"]
 	path = uthash
 	url = https://github.com/troydhanson/uthash
+[submodule "mman-win32"]
+	path = mman-win32
+	url = https://github.com/alitrack/mman-win32
