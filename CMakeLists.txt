@@ -17,7 +17,7 @@ else()
     find_package(SDL2 REQUIRED)
 endif()
 
-include_directories(${CMAKE_CURRENT_LIST_DIR} include/ Musashi/ args/src/ inih/ external/ qlay/ uthash/src/ ${SDL2_INCLUDE_DIRS})
+include_directories(${CMAKE_CURRENT_LIST_DIR} include/ Musashi/ args/src/ inih/ external/ qlay/ uthash/src/ mman-win32/ ${SDL2_INCLUDE_DIRS})
 
 find_package(Git)
 add_custom_target( SubmarineGitVersion
@@ -51,6 +51,11 @@ add_executable(sq68ux
     ${CMAKE_CURRENT_BINARY_DIR}/version.c
     )
 
+if (${CMAKE_SYSTEM_NAME} MATCHES "Windows")
+    target_sources(sq68ux PRIVATE "mman-win32/mman.c")
+    set_source_files_properties(mman-win32/mman.c PROPERTIES COMPILE_FLAGS -Wno-unused-parameter)
+endif()
+
 add_dependencies(sq68ux SubmarineGitVersion)
 target_compile_options(sq68ux PRIVATE -DQ68_EMU -DEMU_STR="sq68ux" -Wall -Wextra -Wpedantic -Werror)
 
@@ -76,6 +81,11 @@ add_executable(sqlay3
     Musashi/softfloat/softfloat.c
     ${CMAKE_CURRENT_BINARY_DIR}/version.c
     )
+
+if (${CMAKE_SYSTEM_NAME} MATCHES "Windows")
+    target_sources(sq68ux PRIVATE "mman-win32/mman.c")
+    set_source_files_properties(mman-win32/mman.c PROPERTIES COMPILE_FLAGS -Wno-unused-parameter)
+endif()
 
 add_dependencies(sqlay3 SubmarineGitVersion)
 target_compile_options(sqlay3 PRIVATE -DQLAY_EMU -DEMU_STR="sqlay3" -Wall -Wextra -Wpedantic -Werror)
