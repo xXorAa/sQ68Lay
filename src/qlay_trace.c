@@ -13,7 +13,7 @@
 
 struct trace_entry {
 	int addr;			/* key */
-	char name[20];
+	char name[21];
 	UT_hash_handle hh;		/* makes this structure hashable */
 };
 
