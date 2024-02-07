@@ -60,6 +60,7 @@ void emulatorLoadFile(const char* name, uint8_t* addr, size_t wantSize)
 {
 	size_t fileSize;
 	int fd;
+	size_t res;
 
 	if (!emulatorFileExists(name)) {
 		fprintf(stderr, "File Not Found %s\n", name);
@@ -79,7 +80,10 @@ void emulatorLoadFile(const char* name, uint8_t* addr, size_t wantSize)
 		return;
 	}
 
-	read(fd, addr, fileSize);
+	res = read(fd, addr, fileSize);
+	if (res < fileSize) {
+		fprintf(stderr, "Error: Short Read %s %zu\n", name, res);
+	}
 
 	close(fd);
 }
