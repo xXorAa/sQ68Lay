@@ -82,7 +82,7 @@ jobs:
       - get_release_definitions
     env:
       RELEASE_TAG: ${{needs.get_release_definitions.outputs.RELEASE_TAG}}
-    continue-on-error: true
+    continue-on-error: false
     steps:
       - uses: actions/checkout@v4
         with:
@@ -133,7 +133,7 @@ jobs:
       - get_release_definitions
     env:
       RELEASE_TAG: ${{needs.get_release_definitions.outputs.RELEASE_TAG}}
-    continue-on-error: true
+    continue-on-error: false
     strategy:
       matrix:
         include:
@@ -176,11 +176,6 @@ jobs:
                 ;;
             esac
           run: |
-            git config --global --add safe.directory ${PWD}
-            git config --global --add safe.directory ${PWD}/sQLux
-            git config --global --add safe.directory ${PWD}/sQLux/args
-            git config --global --add safe.directory ${PWD}/sQLux/sdl-gpu
-            git config --global --add safe.directory ${PWD}/sQLux/sds
             echo "############### configuring cmake"
             cmake -B build/ \
               -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} \
@@ -214,7 +209,7 @@ jobs:
       - get_release_definitions
     env:
       RELEASE_TAG: ${{needs.get_release_definitions.outputs.RELEASE_TAG}}
-    continue-on-error: true
+    continue-on-error: false
     steps:
       - uses: actions/checkout@v4
         with:
@@ -267,7 +262,7 @@ jobs:
       - get_release_definitions
     env:
       RELEASE_TAG: ${{needs.get_release_definitions.outputs.RELEASE_TAG}}
-    continue-on-error: true
+    continue-on-error: false
     strategy:
       matrix:
         include:
