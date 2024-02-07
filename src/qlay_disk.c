@@ -444,7 +444,7 @@ int truncnfa(int drivenr, int filenum, int sectnum, int bytenum, int bytecnt)
 int rennfa(int drivenr, int filenum, __attribute__ ((unused)) int sectnum, __attribute__ ((unused)) int bytenum, int bytecnt)
 {
 	int i, rv, fnlen;
-	char *newname = NULL;
+	char newname[512];
 
 	rv = 0;
 
