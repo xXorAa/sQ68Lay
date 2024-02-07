@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.7)
 
 project(sq68ux C)
 
-add_compile_options(-Werror -Wall -Wextra -Wpedantic)
+add_compile_options(-U_FORTIFY_SOURCE -Werror -Wall -Wextra -Wpedantic)
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Emscripten")
     set(USE_FLAGS "-pthread -s USE_SDL=2 -s USE_PTHREADS=1")
@@ -50,6 +50,9 @@ add_executable(sq68ux
     ${CMAKE_CURRENT_BINARY_DIR}/version.c
     )
 
+# m68kdasm.c doesnt pass _FORTIFY_SOURCE=2
+set_source_files_properties(Musashi/m68kdasm.c PROPERTIES COMPILE_FLAGS -Wno-format-overflow)
+
 if (${CMAKE_SYSTEM_NAME} MATCHES "Windows")
     target_sources(sq68ux PRIVATE "mman-win32/mman.c")
     set_source_files_properties(mman-win32/mman.c PROPERTIES COMPILE_FLAGS -Wno-unused-parameter)
@@ -80,6 +83,9 @@ add_executable(sqlay3
     Musashi/softfloat/softfloat.c
     ${CMAKE_CURRENT_BINARY_DIR}/version.c
     )
+
+# m68kdasm.c doesnt pass _FORTIFY_SOURCE=2
+set_source_files_properties(Musashi/m68kdasm.c PROPERTIES COMPILE_FLAGS -Wno-format-overflow)
 
 if (${CMAKE_SYSTEM_NAME} MATCHES "Windows")
     target_sources(sq68ux PRIVATE "mman-win32/mman.c")
