@@ -75,8 +75,8 @@ static uint32_t qlclkoff; /* QL hardware clock offset */
 
 #define MDV_NOSECTS 255
 #define MDV_NUMOFDRIVES 8
-#define MDV_GAP_COUNT 35
-#define MDV_PREAMBLE_COUNT 4
+#define MDV_GAP_COUNT 70
+#define MDV_PREAMBLE_COUNT 8
 #define MDV_PREAMBLE_SIZE (12)
 #define MDV_HDR_CONTECT_SIZE (16)
 #define MDV_HDR_SIZE (MDV_PREAMBLE_SIZE + MDV_HDR_CONTECT_SIZE)
@@ -130,6 +130,7 @@ int mdvgapcnt = 70;
 int mdvrd = 0;
 int mdvcuridx;
 int mdvsectidx;
+int PC_TRAK = 0;
 
 int fpr(const char *fmt, ...)
 {
@@ -185,13 +186,9 @@ uint8_t readQLHw(uint32_t addr)
 		}
 	}
 
-	if (addr == PC_TRAK1) {
-		return EMU_PC_TRAK1;
-	}
-
-	if (addr == PC_TRAK2) {
+	if ((addr == PC_TRAK1) || (addr == PC_TRAK2)) {
 		mdvrd = 0;
-		return EMU_PC_TRAK2;
+		return PC_TRAK;
 	}
 
 	return 0;
@@ -1327,16 +1324,14 @@ void do_mdv_tick(void)
 			break;
 		case MDV_HDR:
 			mdvgap = 0;
-
 			mdvrd = 1;
 
 			fullidx = (mdrive[mdvnum].sector * MDV_SECTLEN) +
 				  mdrive[mdvnum].idx;
 
-			EMU_PC_TRAK1 = mdrive[mdvnum].data[fullidx];
-			EMU_PC_TRAK2 = mdrive[mdvnum].data[fullidx + 1];
+			PC_TRAK = mdrive[mdvnum].data[fullidx];
 
-			mdrive[mdvnum].idx += 2;
+			mdrive[mdvnum].idx++;
 
 			if (mdrive[mdvnum].idx == MDV_HDR_SIZE) {
 				mdrive[mdvnum].mdvstate = MDV_GAP2;
@@ -1360,7 +1355,7 @@ void do_mdv_tick(void)
 			mdrive[mdvnum].mdvgapcnt--;
 
 			if (mdrive[mdvnum].mdvgapcnt == 0) {
-				mdrive[mdvnum].mdvstate = MDV_DATA;
+				mdrive[mdvnum].mdvstate = MDV_DATA_HDR;
 				mdrive[mdvnum].idx =
 					MDV_HDR_SIZE + MDV_PREAMBLE_SIZE;
 			}
@@ -1372,10 +1367,10 @@ void do_mdv_tick(void)
 			fullidx = (mdrive[mdvnum].sector * MDV_SECTLEN) +
 				  mdrive[mdvnum].idx;
 
-			EMU_PC_TRAK1 = mdrive[mdvnum].data[fullidx];
-			EMU_PC_TRAK2 = mdrive[mdvnum].data[fullidx + 1];
+			PC_TRAK = mdrive[mdvnum].data[fullidx];
 
-			mdrive[mdvnum].idx += 2;
+			mdrive[mdvnum].idx++;
+
 			if (mdrive[mdvnum].idx ==
 			    (MDV_HDR_SIZE + MDV_PREAMBLE_SIZE +
 			     MDV_DATA_HDR_SIZE)) {
@@ -1403,17 +1398,9 @@ void do_mdv_tick(void)
 			fullidx = (mdrive[mdvnum].sector * MDV_SECTLEN) +
 				  mdrive[mdvnum].idx;
 
-			EMU_PC_TRAK1 = mdrive[mdvnum].data[fullidx];
-			EMU_PC_TRAK2 = mdrive[mdvnum].data[fullidx + 1];
+			PC_TRAK = mdrive[mdvnum].data[fullidx];
 
-			mdrive[mdvnum].idx += 2;
-
-			/* skip another pre-amble */
-			if (mdrive[mdvnum].idx ==
-			    (MDV_HDR_SIZE + MDV_PREAMBLE_SIZE +
-			     MDV_DATA_HDR_SIZE)) {
-				mdrive[mdvnum].idx += MDV_DATA_PREAMBLE_SIZE;
-			}
+			mdrive[mdvnum].idx++;
 
 			if (mdrive[mdvnum].idx == MDV_SECTLEN) {
 				mdrive[mdvnum].mdvstate = MDV_GAP1;

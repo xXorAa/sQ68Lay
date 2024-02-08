@@ -30,19 +30,21 @@ bool doIrq = false;
 
 uint64_t cycles(void)
 {
-	return cyclesNow/16;
+	return cyclesNow / 16;
 }
 
 int emulatorMainLoop(void)
 {
 	int expromCount;
 
-	emulatorLoadFile(emulatorOptionString("sysrom"), &emulatorMemorySpace()[0], 0);
+	emulatorLoadFile(emulatorOptionString("sysrom"),
+			 &emulatorMemorySpace()[0], 0);
 
 	// TODO: add proper exprom handling
 	expromCount = emulatorOptionDevCount("exprom");
 	if (expromCount) {
-		emulatorLoadFile(emulatorOptionDev("exprom", 0), &emulatorMemorySpace()[KB(48)], 0);
+		emulatorLoadFile(emulatorOptionDev("exprom", 0),
+				 &emulatorMemorySpace()[KB(48)], 0);
 	}
 
 	m68k_set_cpu_type(M68K_CPU_TYPE_68000);
@@ -63,13 +65,12 @@ int emulatorMainLoop(void)
 	uint64_t cyclesThen = 0;
 
 	uint64_t cycles50hz = 150000;
-	uint64_t cyclesMdv = 600;
+	uint64_t cyclesMdv = 300;
 
 	//do_next_event();
 
 	while (!exitLoop) {
 		while ((cyclesNow - cyclesThen) < 750) {
-
 			extraCycles = 0;
 			cyclesNow += m68k_execute(1) + extraCycles;
 
@@ -91,7 +92,7 @@ int emulatorMainLoop(void)
 			if (cyclesNow >= cyclesMdv) {
 				do_mdv_tick();
 
-				cyclesMdv += 600;
+				cyclesMdv += 300;
 			}
 		}
 
