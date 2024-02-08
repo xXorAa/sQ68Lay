@@ -172,12 +172,12 @@ uint8_t readQLHw(uint32_t addr)
 			if (mdvwrite == 0) {
 				if (mdvgap) {
 					//printf("G\n");
-					return 0x08;
+					return PC__GAP;
 				}
 
 				if (mdvrd) {
 					//printf("R\n");
-					return 0x04;
+					return PC__RXRD;
 				}
 
 				return 0x00;
@@ -1359,7 +1359,8 @@ void do_mdv_tick(void)
 
 			if (mdrive[mdvnum].mdvgapcnt == 0) {
 				mdrive[mdvnum].mdvstate = MDV_DATA;
-				mdrive[mdvnum].idx = MDV_HDR_SIZE + MDV_PREAMBLE_SIZE;
+				mdrive[mdvnum].idx =
+					MDV_HDR_SIZE + MDV_PREAMBLE_SIZE;
 			}
 			break;
 		case MDV_DATA_HDR:
@@ -1373,7 +1374,9 @@ void do_mdv_tick(void)
 			EMU_PC_TRAK2 = mdrive[mdvnum].data[fullidx + 1];
 
 			mdrive[mdvnum].idx += 2;
-			if (mdrive[mdvnum].idx == (MDV_HDR_SIZE + MDV_PREAMBLE_SIZE + MDV_DATA_HDR_SIZE)) {
+			if (mdrive[mdvnum].idx ==
+			    (MDV_HDR_SIZE + MDV_PREAMBLE_SIZE +
+			     MDV_DATA_HDR_SIZE)) {
 				mdrive[mdvnum].mdvstate = MDV_DATA_PREAMBLE;
 				mdrive[mdvnum].mdvgapcnt = MDV_PREAMBLE_COUNT;
 			}
@@ -1385,7 +1388,10 @@ void do_mdv_tick(void)
 
 			if (mdrive[mdvnum].mdvgapcnt == 0) {
 				mdrive[mdvnum].mdvstate = MDV_DATA;
-				mdrive[mdvnum].idx = MDV_HDR_SIZE + MDV_PREAMBLE_SIZE + MDV_DATA_HDR_SIZE + MDV_DATA_PREAMBLE_SIZE;
+				mdrive[mdvnum].idx = MDV_HDR_SIZE +
+						     MDV_PREAMBLE_SIZE +
+						     MDV_DATA_HDR_SIZE +
+						     MDV_DATA_PREAMBLE_SIZE;
 			}
 			break;
 		case MDV_DATA:
@@ -1401,7 +1407,9 @@ void do_mdv_tick(void)
 			mdrive[mdvnum].idx += 2;
 
 			/* skip another pre-amble */
-			if (mdrive[mdvnum].idx == (MDV_HDR_SIZE + MDV_PREAMBLE_SIZE + MDV_DATA_HDR_SIZE)) {
+			if (mdrive[mdvnum].idx ==
+			    (MDV_HDR_SIZE + MDV_PREAMBLE_SIZE +
+			     MDV_DATA_HDR_SIZE)) {
 				mdrive[mdvnum].idx += MDV_DATA_PREAMBLE_SIZE;
 			}
 

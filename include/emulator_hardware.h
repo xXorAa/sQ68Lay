@@ -10,61 +10,66 @@
 #ifndef EMULATOR_HARDWARE_H
 #define EMULATOR_HARDWARE_H
 
-#define BIT(nr)				(1UL << (nr))
+#define BIT(nr) (1UL << (nr))
 
 // time offset for RTC
-#define QDOS_TIME 			((9*365+2)*86400)
+#define QDOS_TIME ((9 * 365 + 2) * 86400)
 
 // QL IO space
-#define PC_CLOCK			0x18000
+#define PC_CLOCK 0x18000
 
-#define PC_TCTRL			0x18002
+#define PC_TCTRL 0x18002
 
-#define PC_IPCWR			0x18003
+#define PC_IPCWR 0x18003
 
-#define PC_MCTRL			0x18020
+#define PC_MCTRL 0x18020
+#define PC__CTS2 BIT(5) // CTS on port 2 (set if ser2 transmit held up)
+#define PC__DTR1 BIT(4) // DTR on port 1 (set if ser1 transmit held up)
+#define PC__GAP BIT(3) // gap : set normally, or gap is present on running mdv
+#define PC__RXRD BIT(2) // microdrive read buffer ready
+#define PC__TXFL BIT(1) //xmit buffer full(mdv or ser)
 
-#define PC_IPCRD			0x18020
+#define PC_IPCRD 0x18020
 
-#define PC_INTR				0x18021
-#define PC_INTRG			BIT(0)
-#define PC_INTRI			BIT(1)
-#define PC_INTRT			BIT(2)
-#define PC_INTRF			BIT(3)
-#define PC_INTRE			BIT(4)
-#define PC_MASKG			BIT(5)
-#define PC_MASKI			BIT(6)
-#define PC_MASKT			BIT(7)
+#define PC_INTR 0x18021
+#define PC_INTRG BIT(0)
+#define PC_INTRI BIT(1)
+#define PC_INTRT BIT(2)
+#define PC_INTRF BIT(3)
+#define PC_INTRE BIT(4)
+#define PC_MASKG BIT(5)
+#define PC_MASKI BIT(6)
+#define PC_MASKT BIT(7)
 
-#define PC_TRAK1			0x18022
+#define PC_TRAK1 0x18022
 
-#define PC_TRAK2			0x18023
+#define PC_TRAK2 0x18023
 
-#define MC_STAT				0x18063
-#define MC_STAT_MODE			(1 << 3)
+#define MC_STAT 0x18063
+#define MC_STAT_MODE (1 << 3)
 
 // Q68 IO space
-#define Q68_TIMER			0x1c060
+#define Q68_TIMER 0x1c060
 
-#define KBD_CODE			0x1c140
+#define KBD_CODE 0x1c140
 
-#define KBD_UNLOCK			0x1c144
-#define KBD_ACKN			(1 << 0)
+#define KBD_UNLOCK 0x1c144
+#define KBD_ACKN (1 << 0)
 
-#define KBD_STATUS			0x1c148
-#define KBD_RCV				(1 << 0)
-#define KBD_ISINT			(1 << 7)
+#define KBD_STATUS 0x1c148
+#define KBD_RCV (1 << 0)
+#define KBD_ISINT (1 << 7)
 
 // Q68 SDHC
-#define Q68_MMC1_CS			0x1c300
-#define Q68_MMC1_CLK			0x1c304
-#define Q68_MMC1_DIN			0x1c308
-#define Q68_MMC1_DOUT			0x1c30c
-#define Q68_MMC1_READ			0x1c310
-#define Q68_MMC1_WRIT			0x1c314
-#define Q68_MMC1_XFER			0x1c318
+#define Q68_MMC1_CS 0x1c300
+#define Q68_MMC1_CLK 0x1c304
+#define Q68_MMC1_DIN 0x1c308
+#define Q68_MMC1_DOUT 0x1c30c
+#define Q68_MMC1_READ 0x1c310
+#define Q68_MMC1_WRIT 0x1c314
+#define Q68_MMC1_XFER 0x1c318
 
-#define Q68_DMODE			0xff000018
+#define Q68_DMODE 0xff000018
 
 uint8_t qlHardwareRead8(unsigned int addr);
 void qlHardwareWrite8(unsigned int addr, uint8_t val);
