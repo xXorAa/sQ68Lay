@@ -7,6 +7,9 @@
 #include <stdint.h>
 #include <stdio.h>
 
+#define DEBUG 1
+
+#include "emulator_debug.h"
 #include "emulator_files.h"
 #include "emulator_options.h"
 #include "emulator_hardware.h"
@@ -76,7 +79,8 @@ static uint32_t qlclkoff; /* QL hardware clock offset */
 #define MDV_NOSECTS 255
 #define MDV_NUMOFDRIVES 8
 #define MDV_GAP_COUNT 70
-#define MDV_PREAMBLE_COUNT 8
+#define MDV_PREAMBLE_COUNT 10
+#define MDV_DATA_PREAMBLE_COUNT 8
 #define MDV_PREAMBLE_SIZE (12)
 #define MDV_HDR_CONTECT_SIZE (16)
 #define MDV_HDR_SIZE (MDV_PREAMBLE_SIZE + MDV_HDR_CONTECT_SIZE)
@@ -130,6 +134,7 @@ int mdvgapcnt = 70;
 int mdvrd = 0;
 int mdvcuridx;
 int mdvsectidx;
+bool mdvtxfl = false;
 int PC_TRAK = 0;
 
 int fpr(const char *fmt, ...)
@@ -182,6 +187,8 @@ uint8_t readQLHw(uint32_t addr)
 				}
 
 				return 0x00;
+			} else if (mdvtxfl) {
+				return PC__TXFL;
 			}
 		}
 	}
@@ -332,14 +339,14 @@ return;
 
 static void wrmdvdata(uint8_t x)
 {
+	debug_print("%x\n", x);
+	mdvtxfl = true;
+
 	if (!mdvpresent)
 		return; /* is this necessary ? */
 	if (mdvwp)
 		return;
 	/*	if(mdvixb<0x40)fpr("M%02x%02x ",mdvixs,mdvixb);*/
-	mdv[mdvixs * MDV_SECTLEN + mdvixb] = x;
-	mdvwra++;
-	mdvixb = (mdvixb + 1) % MDV_SECTLEN;
 }
 
 /*
@@ -1300,8 +1307,13 @@ void do_mdv_tick(void)
 			return;
 		}
 
+		if (mdvwrite) {
+			mdvtxfl = false;
+		}
+
 		switch (mdrive[mdvnum].mdvstate) {
 		case MDV_GAP1:
+			debug_print("%s\n", "GAP1");
 			mdvgap = 1;
 			mdvrd = 0;
 			set_gap_irq();
@@ -1313,6 +1325,7 @@ void do_mdv_tick(void)
 			}
 			break;
 		case MDV_PREAMBLE1:
+			debug_print("%s\n", "PREAMBLE1");
 			mdvgap = 0;
 			mdvrd = 0;
 			mdrive[mdvnum].mdvgapcnt--;
@@ -1323,6 +1336,7 @@ void do_mdv_tick(void)
 			}
 			break;
 		case MDV_HDR:
+			debug_print("%s\n", "HDR");
 			mdvgap = 0;
 			mdvrd = 1;
 
@@ -1339,6 +1353,7 @@ void do_mdv_tick(void)
 			}
 			break;
 		case MDV_GAP2:
+			debug_print("%s\n", "GAP2");
 			mdvgap = 1;
 			mdvrd = 0;
 			//set_gap_irq();
@@ -1350,6 +1365,7 @@ void do_mdv_tick(void)
 			}
 			break;
 		case MDV_PREAMBLE2:
+			debug_print("%s\n", "PREAMBLE2");
 			mdvgap = 0;
 			mdvrd = 0;
 			mdrive[mdvnum].mdvgapcnt--;
@@ -1361,6 +1377,7 @@ void do_mdv_tick(void)
 			}
 			break;
 		case MDV_DATA_HDR:
+			debug_print("%s\n", "DATA_HDR");
 			mdvgap = 0;
 			mdvrd = 1;
 
@@ -1375,10 +1392,12 @@ void do_mdv_tick(void)
 			    (MDV_HDR_SIZE + MDV_PREAMBLE_SIZE +
 			     MDV_DATA_HDR_SIZE)) {
 				mdrive[mdvnum].mdvstate = MDV_DATA_PREAMBLE;
-				mdrive[mdvnum].mdvgapcnt = MDV_PREAMBLE_COUNT;
+				mdrive[mdvnum].mdvgapcnt =
+					MDV_DATA_PREAMBLE_COUNT;
 			}
 			break;
 		case MDV_DATA_PREAMBLE:
+			debug_print("%s\n", "DATA_PREAMBLE");
 			mdvgap = 0;
 			mdvrd = 0;
 			mdrive[mdvnum].mdvgapcnt--;
@@ -1392,6 +1411,7 @@ void do_mdv_tick(void)
 			}
 			break;
 		case MDV_DATA:
+			debug_print("%s\n", "DATA");
 			mdvgap = 0;
 			mdvrd = 1;
 
