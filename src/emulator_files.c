@@ -17,7 +17,7 @@
 #define O_BINARY 0
 #endif
 
-bool emulatorFileExists(const char* name)
+bool emulatorFileExists(const char *name)
 {
 	struct stat statBuf;
 	int ret;
@@ -29,7 +29,7 @@ bool emulatorFileExists(const char* name)
 	return true;
 }
 
-bool emulatorIsDirectory(const char* name)
+bool emulatorIsDirectory(const char *name)
 {
 	struct stat statBuf;
 	int ret;
@@ -41,7 +41,7 @@ bool emulatorIsDirectory(const char* name)
 	return S_ISDIR(statBuf.st_mode);
 }
 
-size_t emulatorFileSize(const char* name)
+size_t emulatorFileSize(const char *name)
 {
 	struct stat statBuf;
 	int ret;
@@ -56,7 +56,7 @@ size_t emulatorFileSize(const char* name)
 	return statBuf.st_size;
 }
 
-void emulatorLoadFile(const char* name, uint8_t* addr, size_t wantSize)
+bool emulatorLoadFile(const char *name, uint8_t *addr, size_t wantSize)
 {
 	size_t fileSize;
 	int fd;
@@ -64,20 +64,21 @@ void emulatorLoadFile(const char* name, uint8_t* addr, size_t wantSize)
 
 	if (!emulatorFileExists(name)) {
 		fprintf(stderr, "File Not Found %s\n", name);
-		return;
+		return false;
 	}
 
 	fileSize = emulatorFileSize(name);
 	if (wantSize && (fileSize != wantSize)) {
-		fprintf(stderr, "File Size Mismatch %s %zu != %zu\n",
-			name, wantSize, fileSize);
-		return;
+		fprintf(stderr, "File Size Mismatch %s %zu != %zu\n", name,
+			wantSize, fileSize);
+		return false;
 	}
 
 	fd = open(name, O_RDONLY);
 	if (fd < 0) {
-		fprintf(stderr, "Error opening file %s %s\n", name, strerror(errno));
-		return;
+		fprintf(stderr, "Error opening file %s %s\n", name,
+			strerror(errno));
+		return false;
 	}
 
 	res = read(fd, addr, fileSize);
@@ -86,4 +87,6 @@ void emulatorLoadFile(const char* name, uint8_t* addr, size_t wantSize)
 	}
 
 	close(fd);
+
+	return true;
 }
