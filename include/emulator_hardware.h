@@ -23,11 +23,17 @@
 #define PC_IPCWR 0x18003
 
 #define PC_MCTRL 0x18020
+// read1
 #define PC__CTS2 BIT(5) // CTS on port 2 (set if ser2 transmit held up)
 #define PC__DTR1 BIT(4) // DTR on port 1 (set if ser1 transmit held up)
 #define PC__GAP BIT(3) // gap : set normally, or gap is present on running mdv
 #define PC__RXRD BIT(2) // microdrive read buffer ready
 #define PC__TXFL BIT(1) //xmit buffer full(mdv or ser)
+// write
+#define PC__ERASE BIT(3) // microdrive erase
+#define PC__WRITE BIT(2) // microdrive write
+#define PC__SCLK BIT(1) // microdrive select clock bit
+#define PC__SEL BIT(0) // microdrive select bit
 
 #define PC_IPCRD 0x18020
 
