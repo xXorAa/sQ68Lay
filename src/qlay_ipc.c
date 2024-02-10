@@ -986,6 +986,7 @@ void init_mdvs(void)
 {
 	int i = 0;
 	int noDrives = emulatorOptionDevCount("drive");
+	bool res;
 
 	memset(mdrive, 0, sizeof(mdrive));
 
@@ -1027,16 +1028,17 @@ void init_mdvs(void)
 		}
 		*/
 
-		mdrive[mdvNum].name = mdvName;
-		mdv = mdrive[mdvNum].data;
-		mdvpresent = 1;
-		mdvname = mdvName;
-		emulatorLoadFile(mdvname, mdrive[mdvNum].data,
-				 MDV_NOSECTS * MDV_SECTLEN);
-		mdrive[mdvNum].present = mdvpresent;
-		mdrive[mdvNum].sector = 0;
-
-		printf("MDV%01d is %s\n", mdvNum + 1, mdvname);
+		res = emulatorLoadFile(mdvName, mdrive[mdvNum].data,
+				       MDV_NOSECTS * MDV_SECTLEN);
+		if (res) {
+			mdrive[mdvNum].name = mdvName;
+			mdrive[mdvNum].present = mdvpresent;
+			mdrive[mdvNum].sector = 0;
+			mdv = mdrive[mdvNum].data;
+			mdvpresent = 1;
+			mdvname = mdvName;
+			printf("MDV%01d is %s\n", mdvNum + 1, mdvname);
+		}
 
 		i++;
 	}
