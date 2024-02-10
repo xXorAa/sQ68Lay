@@ -39,7 +39,6 @@ void wrmdvcntl(uint8_t x);
 static void wrserdata(uint8_t x);
 void wrZX8302(uint8_t x);
 static int decode_key(int key);
-static void mdv_next_sect(void);
 static void init_mdvs(void);
 static int dt_event(int dt_type);
 static void mdv_select(int drive);
@@ -349,108 +348,60 @@ static void wrmdvdata(uint8_t x)
 	/*	if(mdvixb<0x40)fpr("M%02x%02x ",mdvixs,mdvixb);*/
 }
 
-/*
-DV control
-at reset; and after data transfer of any mdv
-	(02 00) 8 times			stop all motors
-start an mdvN:
-	(03 01) (02 00) N-1 times	start motorN
-format (erase):
-	0a
-	(0e 0e) 0a per header and per sector
-format (verify):
-	02
-	(02 02) after finding pulses per header/sector
-format (write directory):
-	0a (0e 0e) 02 write sector
-format (find sector 0):
-	(02 02) after pulses
-format (write directory):
-	0a (0e 0e) 02 write sector
-	(02 00) 8 times 		stop motor
+static uint8_t mdvselect = 0;
+static bool mdvselbit = false;
 
-read sector:
-	(02 02) after pulses
-	get 4 bytes
-	(02 02) indication to skip PLL sequence: 6*00,2*ff
-*/
+int uint8_log2(uint64_t n)
+{
+#define S(k)                          \
+	if (n >= (UINT8_C(1) << k)) { \
+		i += k;               \
+		n >>= k;              \
+	}
+
+	int i = -(n == 0);
+	S(4);
+	S(2);
+	S(1);
+	return i;
+
+#undef S
+}
 
 void wrmdvcntl(uint8_t x)
 {
-	static int mdvcnt = 0;
-	static int currdrive = 0;
-	static int mcnt = 0;
-	static int pcntl = -1;
-	int p = 0; /*debug*/
-	int tmp;
+	debug_print("%02x %d\n", x, mdvselect);
 
-	/*process mdv state*/
-	if (p)
-		fpr("*M* ");
-	tmp = dt_event(1);
-
-	if (tmp > 150) { /*970730*/
-		//	if (tmp>120) { /*zkul980620*/
-		if (p)
-			fpr("p%d x%d; %d>25 %ld\n", pcntl, x, tmp, cycles());
-		mdvcnt = 0;
-		mcnt = 0;
-		mdvdoub2 = 0;
-		pcntl = -1;
-	}
-
-	if ((pcntl == 2) && (x == 2)) {
-		mdvdoub2 = 1;
-	}
-	if ((pcntl == 2) && (x == 0)) {
-		/*zkul980620*/
-		//	if ((pcntl==2)&&((x==0)||(x==1))) {
-		if (mdvwra) { /* stopping motor: first write to OS disk now */
-			mdvwra = 0;
-			//QLwrdisk();
-		}
-		if (mcnt) {
-			currdrive++;
-			mdv_select(currdrive);
-		}
-		mdvcnt++;
-		/*		fpr("T%d ",emulator::cycle);*/
-	}
-	if ((pcntl == 3) && (x == 1)) {
-		mcnt = 1;
-		currdrive = 1;
-		mdv_select(currdrive);
-	}
-
-	if (mdvcnt == 8) { /* stopped mdv motor */
-		currdrive = 0;
-		mdv_select(currdrive);
-	}
-	pcntl = x;
-	/*end process state*/
-
-	switch (x) {
-	case 0x00: /* motor control */
-		mdvghstate = 0;
-		break;
-	case 0x01: /* motor ?? */
-		break;
-	case 0x02: /* motor control */
-		mdvwrite = 0;
-		break;
-	case 0x03: /* motor on */
-
-		break;
-	case 0x0a: /* erase off? */
-		if (mdvixb > 0x40) { /* somewhere after the sector header */
-			mdv_next_sect();
-			mdvixb = 0;
-		}
-		/*		fpr("H/S%02x ",mdvixs);*/
-		break;
-	case 0x0e: /* erase on? */
+	if (x & PC__WRITE) {
 		mdvwrite = 1;
-		break;
+	} else {
+		mdvwrite = 0;
+	}
+
+	// clock bit on 1->0 transition
+	if (mdvselbit && !(x & PC__SCLK)) {
+		mdvselect <<= 1;
+
+		if (x & PC__SEL) {
+			mdvselect |= BIT(0);
+		} else {
+			mdvselect &= ~BIT(0);
+		}
+	}
+
+	// store clock bit for next cycle
+	if (x & PC__SCLK) {
+		mdvselbit = true;
+	} else {
+		mdvselbit = false;
+	}
+
+	if (!mdvselect) {
+		mdv_select(0);
+	} else {
+		int mdv = uint8_log2(mdvselect);
+		debug_print("MDV Select %d\n", mdv + 1);
+		mdv_select(mdv + 1);
 	}
 }
 
@@ -505,11 +456,6 @@ void update_LED()
 	}
 }
 #endif
-
-static void mdv_next_sect(void)
-{
-	mdvixs = (mdvixs + 1) % MDV_NOSECTS;
-}
 
 /*18002*/
 void wrZX8302(uint8_t d)
