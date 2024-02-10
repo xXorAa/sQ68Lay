@@ -1032,7 +1032,7 @@ void init_mdvs(void)
 				       MDV_NOSECTS * MDV_SECTLEN);
 		if (res) {
 			mdrive[mdvNum].name = mdvName;
-			mdrive[mdvNum].present = mdvpresent;
+			mdrive[mdvNum].present = 1;
 			mdrive[mdvNum].sector = 0;
 			mdv = mdrive[mdvNum].data;
 			mdvpresent = 1;
