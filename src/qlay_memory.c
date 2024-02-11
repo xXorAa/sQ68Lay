@@ -19,6 +19,9 @@
 static uint8_t *qlayMemSpace = NULL;
 static size_t qlayMemSize = 0;
 
+// how many extra cycles accessing screen ram costs
+#define CONTENTION_CYCLES 6
+
 uint8_t *emulatorMemorySpace(void)
 {
 	return qlayMemSpace;
@@ -55,9 +58,7 @@ unsigned int m68k_read_memory_8(unsigned int address)
 		return qlHardwareRead8(address);
 	}
 
-
-	if ((QLAY_NFA_IO) &&
-	    address < (QLAY_NFA_IO + QLAY_NFA_IO_SIZE)) {
+	if ((QLAY_NFA_IO) && address < (QLAY_NFA_IO + QLAY_NFA_IO_SIZE)) {
 		return rdnfa(address);
 	}
 
@@ -67,7 +68,7 @@ unsigned int m68k_read_memory_8(unsigned int address)
 
 	// Add some contension for BBQL ram
 	if ((address >= KB(128)) && (address < KB(256))) {
-		extraCycles += 2;
+		extraCycles += CONTENTION_CYCLES;
 	}
 
 	return qlayMemSpace[address];
@@ -110,12 +111,10 @@ unsigned int m68k_read_disassembler_32(unsigned int address)
 void m68k_write_memory_8(unsigned int address, unsigned int value)
 {
 	if ((address >= QL_INTERNAL_IO) &&
-	    address < (QL_INTERNAL_IO +
-		       QL_INTERNAL_IO_SIZE)) {
+	    address < (QL_INTERNAL_IO + QL_INTERNAL_IO_SIZE)) {
 		qlHardwareWrite8(address, value);
 		return;
 	}
-
 
 	if ((address >= QLAY_NFA_IO) &&
 	    address < (QLAY_NFA_IO + QLAY_NFA_IO_SIZE)) {
@@ -128,7 +127,7 @@ void m68k_write_memory_8(unsigned int address, unsigned int value)
 	}
 
 	if ((address >= KB(128)) && (address < KB(256))) {
-		extraCycles += 2;
+		extraCycles += CONTENTION_CYCLES;
 	}
 
 	qlayMemSpace[address] = value;
