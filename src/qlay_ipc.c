@@ -4,10 +4,12 @@
 	QL input and output
 */
 
+#include <fcntl.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <unistd.h>
 
-#define DEBUG 1
+#define DEBUG 0
 
 #include "emulator_debug.h"
 #include "emulator_files.h"
@@ -19,6 +21,7 @@
 #include "qlay_hooks.h"
 #include "qlay_keyboard.h"
 #include "utarray.h"
+#include "utstring.h"
 
 uint32_t qlay1msec = 7500 / 16;
 
@@ -77,8 +80,8 @@ static uint32_t qlclkoff; /* QL hardware clock offset */
 
 #define MDV_NOSECTS 255
 #define MDV_NUMOFDRIVES 8
-#define MDV_GAP_COUNT 70
-#define MDV_PREAMBLE_COUNT 10
+#define MDV_GAP_COUNT 96
+#define MDV_PREAMBLE_COUNT 12
 #define MDV_DATA_PREAMBLE_COUNT 8
 #define MDV_PREAMBLE_SIZE (12)
 #define MDV_HDR_CONTECT_SIZE (16)
@@ -107,6 +110,7 @@ struct mdvt {
 	const char *name; /* file name */
 	bool present; /* is it in? */
 	bool wrprot; /* write protected */
+	bool mdvwritten;
 	int sector; /* current sector */
 	int idx;
 	mdvstate mdvstate;
@@ -123,8 +127,8 @@ int mdvpresent; /* mdv in drive? */
 int mdvwp; /* mdv write protected */
 int mdvixb; /* mdv byte index */
 int mdvixs; /* mdv sector index */
-int mdvwrite; /* mdv r/w */
-int mdvmotor; /* mdv motor running */
+static bool mdvwrite = false; /* mdv r/w */
+static bool mdvmotor = false; /* mdv motor running */
 int mdvghstate; /* mdv g/h/g/s progress indicator */
 int mdvdoub2; /* 2 2 mdv command */
 int mdvwra; /* mdv write actions */
@@ -133,8 +137,9 @@ int mdvgapcnt = 70;
 int mdvrd = 0;
 int mdvcuridx;
 int mdvsectidx;
-bool mdvtxfl = false;
-int PC_TRAK = 0;
+static bool mdvtxfl = false;
+static uint8_t PC_TRAK = 0;
+static uint8_t PC_TDATA = 0;
 
 int fpr(const char *fmt, ...)
 {
@@ -166,7 +171,7 @@ uint8_t readQLHw(uint32_t addr)
 			return REG18020tx;
 		}
 
-		if (mdvmotor == 0) { /* no motor running, return NOP */
+		if (!mdvmotor) { /* no motor running, return NOP */
 			return 0x0;
 		} else { /* return MDV responses */
 			//if (!mdvpresent) {
@@ -174,7 +179,7 @@ uint8_t readQLHw(uint32_t addr)
 			//	return 0x08;
 			//}
 
-			if (mdvwrite == 0) {
+			if (!mdvwrite) {
 				if (mdvgap) {
 					//printf("G\n");
 					return PC__GAP;
@@ -340,12 +345,18 @@ static void wrmdvdata(uint8_t x)
 {
 	debug_print("%x\n", x);
 	mdvtxfl = true;
+	mdrive[mdvnum].mdvwritten = true;
 
-	if (!mdvpresent)
-		return; /* is this necessary ? */
-	if (mdvwp)
-		return;
-	/*	if(mdvixb<0x40)fpr("M%02x%02x ",mdvixs,mdvixb);*/
+	PC_TDATA = x;
+
+	// Unfortunately JS and Minerva use different timing
+	// constants so a hack here to move state if we get
+	// a write during gap2
+	if (mdrive[mdvnum].mdvstate == MDV_GAP2) {
+		mdrive[mdvnum].mdvstate = MDV_PREAMBLE2;
+		mdrive[mdvnum].mdvgapcnt = MDV_PREAMBLE_COUNT;
+		mdrive[mdvnum].idx = MDV_PREAMBLE_SIZE + MDV_HDR_SIZE;
+	}
 }
 
 static uint8_t mdvselect = 0;
@@ -370,12 +381,21 @@ int uint8_log2(uint64_t n)
 
 void wrmdvcntl(uint8_t x)
 {
-	debug_print("%02x %d\n", x, mdvselect);
-
 	if (x & PC__WRITE) {
-		mdvwrite = 1;
+		debug_print("%s\n", "MDV Write On");
+		mdvwrite = true;
+
+		// Unfortunately JS and Minerva use different timing
+		// constants so a hack here to move state if we get
+		// a write during gap2
+		if (mdvmotor && (mdrive[mdvnum].mdvstate == MDV_GAP2)) {
+			//mdrive[mdvnum].mdvstate = MDV_PREAMBLE2;
+			//mdrive[mdvnum].mdvgapcnt = MDV_PREAMBLE_COUNT;
+			//mdrive[mdvnum].idx = MDV_PREAMBLE_SIZE + MDV_HDR_SIZE;
+			mdrive[mdvnum].mdvgapcnt = 1;
+		}
 	} else {
-		mdvwrite = 0;
+		mdvwrite = false;
 	}
 
 	// clock bit on 1->0 transition
@@ -387,6 +407,14 @@ void wrmdvcntl(uint8_t x)
 		} else {
 			mdvselect &= ~BIT(0);
 		}
+
+		if (!mdvselect) {
+			mdv_select(0);
+		} else {
+			int mdv = uint8_log2(mdvselect);
+			debug_print("MDV Select %d\n", mdv + 1);
+			mdv_select(mdv + 1);
+		}
 	}
 
 	// store clock bit for next cycle
@@ -395,42 +423,68 @@ void wrmdvcntl(uint8_t x)
 	} else {
 		mdvselbit = false;
 	}
-
-	if (!mdvselect) {
-		mdv_select(0);
-	} else {
-		int mdv = uint8_log2(mdvselect);
-		debug_print("MDV Select %d\n", mdv + 1);
-		mdv_select(mdv + 1);
-	}
 }
 
 static void set_gap_irq(void);
 
+static void mdvSave(int mdvnum)
+{
+	int fd;
+	int res;
+
+	printf("Saving: %s\n", mdrive[mdvnum].name);
+
+	if (mdrive[mdvnum].name == NULL) {
+		return;
+	}
+
+	debug_print("MDV Saving %s %d", mdrive[mdvnum].name, mdvnum);
+
+	fd = open(mdrive[mdvnum].name, O_WRONLY | O_CREAT);
+	if (fd < 0) {
+		perror("Error: opening MDV for write");
+		return;
+	}
+
+	res = write(fd, mdrive[mdvnum].data, MDV_SECTLEN * MDV_NOSECTS);
+	if (res != (MDV_SECTLEN * MDV_NOSECTS)) {
+		perror("Error: writing data to MDV");
+	}
+
+	close(fd);
+}
+
 /* in: drive; 0: no drive, 1..8: select MDVdrive */
 static void mdv_select(int drive)
 {
-	mdvnum = drive - 1;
 	mdvixb = 0;
-	mdvwrite = 0;
+	mdvwrite = false;
 	mdvghstate = 0;
 	mdvdoub2 = 0;
 	mdvwra = 0;
 
 	if (drive == 0) {
+		for (int i = 0; i < 8; i++) {
+			if (mdrive[i].mdvwritten) {
+				// write MDV back to disk
+				mdvSave(i);
+				mdrive[i].mdvwritten = false;
+			}
+		}
+		mdvnum = -1;
 		mdvname = NULL;
 		mdvpresent = 0;
 		mdvixs = 0;
 		mdvwp = 0; /* 1 ->just in case - 0 by Jimmy */
-		mdvmotor = 0;
+		mdvmotor = false;
 	} else {
-		drive--; /* structure is one less */
-		mdvname = mdrive[drive].name;
-		mdvpresent = mdrive[drive].present;
-		mdvixs = mdrive[drive].sector;
-		mdvwp = mdrive[drive].wrprot;
-		mdv = mdrive[drive].data;
-		mdvmotor = 1;
+		mdvnum = drive - 1;
+		mdvname = mdrive[mdvnum].name;
+		mdvpresent = mdrive[mdvnum].present;
+		mdvixs = mdrive[mdvnum].sector;
+		mdvwp = mdrive[mdvnum].wrprot;
+		mdv = mdrive[mdvnum].data;
+		mdvmotor = true;
 		set_gap_irq();
 	}
 }
@@ -1253,9 +1307,14 @@ void do_mdv_tick(void)
 			return;
 		}
 
+		// A number of states need this so do here
 		if (mdvwrite) {
 			mdvtxfl = false;
 		}
+
+		// Used in a number of states so break out here
+		fullidx = (mdrive[mdvnum].sector * MDV_SECTLEN) +
+			  mdrive[mdvnum].idx;
 
 		switch (mdrive[mdvnum].mdvstate) {
 		case MDV_GAP1:
@@ -1268,6 +1327,7 @@ void do_mdv_tick(void)
 			if (mdrive[mdvnum].mdvgapcnt == 0) {
 				mdrive[mdvnum].mdvstate = MDV_PREAMBLE1;
 				mdrive[mdvnum].mdvgapcnt = MDV_PREAMBLE_COUNT;
+				mdrive[mdvnum].idx = 0;
 			}
 			break;
 		case MDV_PREAMBLE1:
@@ -1278,16 +1338,13 @@ void do_mdv_tick(void)
 
 			if (mdrive[mdvnum].mdvgapcnt == 0) {
 				mdrive[mdvnum].mdvstate = MDV_HDR;
-				mdrive[mdvnum].idx = 12;
+				mdrive[mdvnum].idx = MDV_PREAMBLE_SIZE;
 			}
 			break;
 		case MDV_HDR:
 			debug_print("%s\n", "HDR");
 			mdvgap = 0;
 			mdvrd = 1;
-
-			fullidx = (mdrive[mdvnum].sector * MDV_SECTLEN) +
-				  mdrive[mdvnum].idx;
 
 			PC_TRAK = mdrive[mdvnum].data[fullidx];
 
@@ -1308,6 +1365,8 @@ void do_mdv_tick(void)
 			if (mdrive[mdvnum].mdvgapcnt == 0) {
 				mdrive[mdvnum].mdvstate = MDV_PREAMBLE2;
 				mdrive[mdvnum].mdvgapcnt = MDV_PREAMBLE_COUNT;
+				mdrive[mdvnum].idx =
+					MDV_PREAMBLE_SIZE + MDV_HDR_SIZE;
 			}
 			break;
 		case MDV_PREAMBLE2:
@@ -1315,6 +1374,10 @@ void do_mdv_tick(void)
 			mdvgap = 0;
 			mdvrd = 0;
 			mdrive[mdvnum].mdvgapcnt--;
+
+			if (mdvwrite) {
+				mdrive[mdvnum].data[fullidx] = PC_TDATA;
+			}
 
 			if (mdrive[mdvnum].mdvgapcnt == 0) {
 				mdrive[mdvnum].mdvstate = MDV_DATA_HDR;
@@ -1325,12 +1388,13 @@ void do_mdv_tick(void)
 		case MDV_DATA_HDR:
 			debug_print("%s\n", "DATA_HDR");
 			mdvgap = 0;
-			mdvrd = 1;
 
-			fullidx = (mdrive[mdvnum].sector * MDV_SECTLEN) +
-				  mdrive[mdvnum].idx;
-
-			PC_TRAK = mdrive[mdvnum].data[fullidx];
+			if (mdvwrite) {
+				mdrive[mdvnum].data[fullidx] = PC_TDATA;
+			} else {
+				mdvrd = 1;
+				PC_TRAK = mdrive[mdvnum].data[fullidx];
+			}
 
 			mdrive[mdvnum].idx++;
 
@@ -1348,6 +1412,10 @@ void do_mdv_tick(void)
 			mdvrd = 0;
 			mdrive[mdvnum].mdvgapcnt--;
 
+			if (mdvwrite) {
+				mdrive[mdvnum].data[fullidx] = PC_TDATA;
+			}
+
 			if (mdrive[mdvnum].mdvgapcnt == 0) {
 				mdrive[mdvnum].mdvstate = MDV_DATA;
 				mdrive[mdvnum].idx = MDV_HDR_SIZE +
@@ -1359,12 +1427,13 @@ void do_mdv_tick(void)
 		case MDV_DATA:
 			debug_print("%s\n", "DATA");
 			mdvgap = 0;
-			mdvrd = 1;
 
-			fullidx = (mdrive[mdvnum].sector * MDV_SECTLEN) +
-				  mdrive[mdvnum].idx;
-
-			PC_TRAK = mdrive[mdvnum].data[fullidx];
+			if (mdvwrite) {
+				mdrive[mdvnum].data[fullidx] = PC_TDATA;
+			} else {
+				mdvrd = 1;
+				PC_TRAK = mdrive[mdvnum].data[fullidx];
+			}
 
 			mdrive[mdvnum].idx++;
 
