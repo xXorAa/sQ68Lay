@@ -1043,8 +1043,6 @@ void init_mdvs(void)
 			mdvname = mdvName;
 			printf("MDV%01d is %s\n", mdvNum + 1, mdvname);
 		}
-
-		i++;
 	}
 }
 
