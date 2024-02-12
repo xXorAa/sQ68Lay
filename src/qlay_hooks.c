@@ -1,9 +1,9 @@
 #include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
 
 #include "emulator_options.h"
 #include "m68k.h"
-#include "qlay_ipc.h"
 #include "qlay_trace.h"
 
 unsigned int cycleNextEvent = 0;
@@ -34,10 +34,14 @@ void emu_hook_pc(unsigned int pc)
 		symbol = traceSymbol(pc);
 
 		// Output the registers and assembly
-		printf("  | %8c| %8c| %8c| %8c| %8c| %8c| %8c| %8c|\n", '0', '1', '2', '3', '4', '5', '6', '7');
-		printf("D | %8x| %8x| %8x| %8x| %8x| %8x| %8x| %8x|\n", d[0], d[1], d[2], d[3], d[4], d[5], d[6], d[7]);
-		printf("A | %8x| %8x| %8x| %8x| %8x| %8x| %8x| %8x|\n", a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7]);
-		printf("S | X=%1d N=%1d Z=%1d V=%1d C=%1d\n", (sr >> 4) & 1, (sr >> 3) & 1, (sr >> 2) & 1, (sr >> 1) & 1, sr & 1);
+		printf("  | %8c| %8c| %8c| %8c| %8c| %8c| %8c| %8c|\n", '0',
+		       '1', '2', '3', '4', '5', '6', '7');
+		printf("D | %8x| %8x| %8x| %8x| %8x| %8x| %8x| %8x|\n", d[0],
+		       d[1], d[2], d[3], d[4], d[5], d[6], d[7]);
+		printf("A | %8x| %8x| %8x| %8x| %8x| %8x| %8x| %8x|\n", a[0],
+		       a[1], a[2], a[3], a[4], a[5], a[6], a[7]);
+		printf("S | X=%1d N=%1d Z=%1d V=%1d C=%1d\n", (sr >> 4) & 1,
+		       (sr >> 3) & 1, (sr >> 2) & 1, (sr >> 1) & 1, sr & 1);
 		printf("\n");
 		if (symbol) {
 			printf("%s\n", symbol);

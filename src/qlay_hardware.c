@@ -11,7 +11,7 @@
 #include "emulator_hardware.h"
 #include "emulator_screen.h"
 #include "m68k.h"
-#include "qlay_ipc.h"
+#include "qlay_io.h"
 
 // ghost irq registers
 uint8_t EMU_PC_INTR = 0;

@@ -17,7 +17,7 @@
 #include "m68k.h"
 #include "qlay_disk.h"
 #include "qlay_hooks.h"
-#include "qlay_ipc.h"
+#include "qlay_io.h"
 #include "qlay_keyboard.h"
 #include "qlay_trace.h"
 
