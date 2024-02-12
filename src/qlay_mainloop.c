@@ -21,6 +21,10 @@
 #include "qlay_keyboard.h"
 #include "qlay_trace.h"
 
+#define MDV_CYCLES 220
+#define FIFTYHZ_CYCLES 150000
+#define POINTONEMS_CYCLES 750
+
 int msClk = 0;
 
 unsigned int extraCycles;
@@ -64,13 +68,13 @@ int emulatorMainLoop(void)
 
 	uint64_t cyclesThen = 0;
 
-	uint64_t cycles50hz = 150000;
-	uint64_t cyclesMdv = 300;
+	uint64_t cycles50hz = FIFTYHZ_CYCLES;
+	uint64_t cyclesMdv = MDV_CYCLES;
 
 	//do_next_event();
 
 	while (!exitLoop) {
-		while ((cyclesNow - cyclesThen) < 750) {
+		while ((cyclesNow - cyclesThen) < POINTONEMS_CYCLES) {
 			extraCycles = 0;
 			cyclesNow += m68k_execute(1) + extraCycles;
 
@@ -86,13 +90,13 @@ int emulatorMainLoop(void)
 				EMU_PC_INTR |= PC_INTRF;
 				doIrq = true;
 
-				cycles50hz += 150000;
+				cycles50hz += FIFTYHZ_CYCLES;
 			}
 
 			if (cyclesNow >= cyclesMdv) {
 				do_mdv_tick();
 
-				cyclesMdv += 300;
+				cyclesMdv += MDV_CYCLES;
 			}
 		}
 
