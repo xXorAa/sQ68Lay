@@ -80,7 +80,7 @@ static uint32_t qlclkoff; /* QL hardware clock offset */
 
 #define MDV_NOSECTS 255
 #define MDV_NUMOFDRIVES 8
-#define MDV_GAP_COUNT 96
+#define MDV_GAP_COUNT 10
 #define MDV_PREAMBLE_COUNT 12
 #define MDV_DATA_PREAMBLE_COUNT 8
 #define MDV_PREAMBLE_SIZE (12)
@@ -138,6 +138,7 @@ int mdvrd = 0;
 int mdvcuridx;
 int mdvsectidx;
 static bool mdvtxfl = false;
+static bool mdverase = false;
 static uint8_t PC_TRAK = 0;
 static uint8_t PC_TDATA = 0;
 
@@ -396,6 +397,16 @@ void wrmdvcntl(uint8_t x)
 		}
 	} else {
 		mdvwrite = false;
+	}
+
+	if ((x & PC__ERASE) && !mdverase) {
+		debug_print("%s\n", "MDV Erase On");
+		mdverase = true;
+	}
+
+	if (!(x & PC__ERASE) && mdverase) {
+		debug_print("%s\n", "MDV Erase Off");
+		mdverase = false;
 	}
 
 	// clock bit on 1->0 transition
@@ -1358,7 +1369,12 @@ void do_mdv_tick(void)
 			mdvgap = 1;
 			mdvrd = 0;
 			//set_gap_irq();
-			mdrive[mdvnum].mdvgapcnt--;
+
+			// If erase is on, then GAP2 lasts until
+			// write is also on
+			if (!mdverase) {
+				mdrive[mdvnum].mdvgapcnt--;
+			}
 
 			if (mdrive[mdvnum].mdvgapcnt == 0) {
 				mdrive[mdvnum].mdvstate = MDV_PREAMBLE2;
