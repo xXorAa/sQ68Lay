@@ -48,6 +48,8 @@ int emulatorInitMemory(void)
 		return 1;
 	}
 
+	printf("Initialzed RAM %zuk\n", (qlayMemSize / 1024) - 128);
+
 	return 0;
 }
 
