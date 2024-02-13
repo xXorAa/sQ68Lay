@@ -79,6 +79,8 @@ add_dependencies(sq68ux SubmarineGitVersion)
 target_compile_options(sq68ux PRIVATE -DQ68_EMU -DEMU_STR="sq68ux" -Wall
                                       -Wextra -Wpedantic -Werror)
 
+set_property(TARGET sq68ux PROPERTY C_STANDARD 17)
+
 add_executable(
   sqlay3
   src/emulator_events.c
@@ -119,6 +121,8 @@ target_compile_options(sqlay3 PRIVATE -DQLAY_EMU -DEMU_STR="sqlay3" -Wall
                                       -Wextra -Wpedantic -Werror)
 set_source_files_properties(args/src/args.c Musashi/m68kcpu.c
                             PROPERTIES COMPILE_FLAGS -Wno-pedantic)
+
+set_property(TARGET sqlay3 PROPERTY C_STANDARD 17)
 
 if(SDL2_LIBRARIES)
   if(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
