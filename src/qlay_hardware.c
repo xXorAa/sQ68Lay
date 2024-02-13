@@ -74,12 +74,16 @@ void qlHardwareWrite8(unsigned int addr, uint8_t val)
 	}
 	case MC_STAT:
 		EMU_MC_STAT = val;
-		if (val & BIT(7)) {
+		if (val & MC__SCRN) {
 			emulatorSecondScreen = true;
 		} else {
 			emulatorSecondScreen = false;
 		}
-		emulatorScreenChangeMode(!(val >> 3));
+		if (val & MC__M256) {
+			emulatorScreenChangeMode(0);
+		} else {
+			emulatorScreenChangeMode(1);
+		}
 		return;
 	case PC_TRAK1:
 		writeMdvSer(val);
