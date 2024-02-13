@@ -5,11 +5,11 @@ project(sq68ux C)
 add_compile_options(-U_FORTIFY_SOURCE -Werror -Wall -Wextra -Wpedantic)
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Emscripten")
-  set(USE_FLAGS "-pthread -s USE_SDL=2 -s USE_PTHREADS=1")
+  set(USE_FLAGS "-s USE_SDL=2")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 ${USE_FLAGS}")
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O2 ${USE_FLAGS}")
   set(CMAKE_EXE_LINKER_FLAGS
-      "${CMAKE_EXE_LINKER_FLAGS} ${USE_FLAGS} -s ALLOW_MEMORY_GROWTH=1 -s PTHREAD_POOL_SIZE=2 --preload-file ${CMAKE_SOURCE_DIR}/Q68_SMSQ.bin@./Q68_SMSQ.bin"
+      "${CMAKE_EXE_LINKER_FLAGS} ${USE_FLAGS} -s ALLOW_MEMORY_GROWTH=1 --preload-file ${CMAKE_SOURCE_DIR}/Q68_SMSQ.bin@./Q68_SMSQ.bin"
   )
   configure_file(q68_wrapper_sample.html q68.html COPYONLY)
 else()

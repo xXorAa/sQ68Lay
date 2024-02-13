@@ -5,7 +5,7 @@
 
 #include <stdbool.h>
 
-void emulatorScreenInit(int screenMode);
+int emulatorScreenInit(int screenMode);
 void emulatorUpdatePixelBuffer(void);
 void emulatorRenderScreen(void);
 void emulatorScreenChangeMode(int qlMode);
