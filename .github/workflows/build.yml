@@ -145,14 +145,6 @@ jobs:
             arch_source: armhf
             distro: ubuntu22.04
             distroDescr: ubuntu22.04-jammy
-          - arch: armv7
-            arch_source: armhf
-            distro: buster
-            distroDescr: debian10-buster
-          - arch: armv7
-            arch_source: armhf
-            distro: bullseye
-            distroDescr: debian11-bullseye
     steps:
       - uses: actions/checkout@v4
         with:
@@ -160,7 +152,7 @@ jobs:
           fetch-tags: 'true'
           fetch-depth: '1000'
           submodules: 'true'
-      - uses: uraimo/run-on-arch-action@v2.6.0
+      - uses: uraimo/run-on-arch-action@v2.7.1
         if: ${{ github.event.inputs.build_enabled_arm != 'false' }}
         name: Build w/ CMake
         with:
