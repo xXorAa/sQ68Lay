@@ -21,7 +21,7 @@
 #include "qlay_keyboard.h"
 #include "qlay_trace.h"
 
-#define MDV_CYCLES 220
+#define MDV_CYCLES 230
 #define FIFTYHZ_CYCLES 150000
 #define POINTONEMS_CYCLES 750
 
