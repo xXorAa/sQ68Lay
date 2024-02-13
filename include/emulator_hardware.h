@@ -51,8 +51,12 @@
 
 #define PC_TRAK2 0x18023
 
-#define MC_STAT 0x18063
-#define MC_STAT_MODE (1 << 3)
+#define MC_STAT 0x18063 // status register address
+//                         clear   set
+#define MC__BLNK BIT(1) // normal  blank   if set, the rest are irrelevant!
+#define MC__M256 BIT(3) // 512/4   256/8   pixels per line / colours per pixel
+#define MC__NTSC BIT(6) // PAL625  NTSC495 scan lines (512/384 displayed)
+#define MC__SCRN BIT(7) // $20000  $28000  screen base address (scr0/scr1)
 
 // Q68 IO space
 #define Q68_TIMER 0x1c060
