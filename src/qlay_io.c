@@ -80,7 +80,7 @@ static uint32_t qlclkoff; /* QL hardware clock offset */
 
 #define MDV_NOSECTS 255
 #define MDV_NUMOFDRIVES 8
-#define MDV_GAP_COUNT 30
+#define MDV_GAP_COUNT 40
 #define MDV_PREAMBLE_COUNT 12
 #define MDV_DATA_PREAMBLE_COUNT 8
 #define MDV_PREAMBLE_SIZE (12)
