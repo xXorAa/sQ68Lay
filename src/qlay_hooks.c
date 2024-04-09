@@ -46,6 +46,6 @@ void emu_hook_pc(unsigned int pc)
 		if (symbol) {
 			printf("%s\n", symbol);
 		}
-		printf("%04X %s\n\n", pc, disBuf);
+		printf("%08X %s\n\n", pc, disBuf);
 	}
 }
