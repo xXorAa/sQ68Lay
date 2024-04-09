@@ -64,7 +64,7 @@ add_executable(
   ${CMAKE_CURRENT_BINARY_DIR}/version.c)
 
 # m68kdasm.c doesnt pass _FORTIFY_SOURCE=2
-if(NOT ${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+if(NOT ${CMAKE_C_COMPILER_ID} MATCHES "Clang")
   set_source_files_properties(Musashi/m68kdasm.c
                               PROPERTIES COMPILE_FLAGS -Wno-format-overflow)
 endif()
@@ -105,7 +105,7 @@ add_executable(
   ${CMAKE_CURRENT_BINARY_DIR}/version.c)
 
 # m68kdasm.c doesnt pass _FORTIFY_SOURCE=2
-if(NOT ${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+if(NOT ${CMAKE_C_COMPILER_ID} MATCHES "Clang")
   set_source_files_properties(Musashi/m68kdasm.c
                               PROPERTIES COMPILE_FLAGS -Wno-format-overflow)
 endif()
