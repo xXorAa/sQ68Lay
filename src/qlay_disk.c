@@ -498,7 +498,7 @@ static void print_open(void)
 #endif
 static void print_close(void)
 {
-	fclose(prttmp);
+	if(prttmp!=NULL) fclose(prttmp);
 	prtopen = 0;
 }
 
