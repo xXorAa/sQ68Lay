@@ -12,12 +12,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-#ifndef __WIN32__
-#include <sys/mman.h>
-#else
-#include "mman.h"
-#endif
+#include <unistd.h>
 
 #include "emulator_files.h"
 #include "emulator_options.h"
@@ -27,7 +22,6 @@
 #define O_BINARY 0
 #endif
 
-uint8_t *sd1File = NULL;
 int sd1Fd;
 size_t sd1FileSize;
 bool sd1Present = false;
@@ -59,10 +53,6 @@ void q68InitSD(void)
 
 		sd1Fd = open(sd1Filename, O_RDWR);
 
-		sd1File = mmap(0, sd1FileSize, PROT_READ | PROT_WRITE, MAP_SHARED, sd1Fd, 0);
-		if (sd1File == NULL) {
-			fprintf(stderr, "Error: mmaping %s %s\n", sd1Filename, strerror(errno));
-		}
 		sd1CmdIdx = 0;
 		sd1Present = true;
 	} else {
@@ -96,7 +86,8 @@ void q68ProcessSDCmd(__attribute__ ((unused))int sd, uint8_t cmdByte)
 
 		// Make sure we do not exceed mapped file limits
 		if (((size_t)block * 512) < (sd1FileSize) - 512) {
-			memcpy(&sd1RespBuf[1], sd1File + (block * 512), 512);
+			lseek (sd1Fd, block * 512, SEEK_SET);
+			read(sd1Fd, &sd1RespBuf[1], 512);
 		} else {
 			memset(&sd1RespBuf[1], 0, 512);
 		}
@@ -143,7 +134,8 @@ uint8_t q68ProcessSDResponse(__attribute__ ((unused))int sd)
 		sd1RespBuf[0] = 0xFE;
 
 		if (((size_t)sd1Block * 512) < (sd1FileSize - 512)) {
-			memcpy(&sd1RespBuf[1], sd1File + (sd1Block * 512), 512);
+			lseek (sd1Fd, sd1Block * 512, SEEK_SET);
+			read(sd1Fd, &sd1RespBuf[1], 512);
 		} else {
 			memset(&sd1RespBuf[1], 0, 512);
 		}
