@@ -24,6 +24,7 @@ include_directories(
   Musashi/
   args/src/
   inih/
+  log.c/src/
   external/
   qlay/
   uthash/src/
@@ -65,6 +66,7 @@ add_executable(
   external/sdl-ps2.c
   args/src/args.c
   inih/ini.c
+  log.c/src/log.c
   Musashi/m68kcpu.c
   Musashi/m68kops.c
   Musashi/m68kdasm.c
