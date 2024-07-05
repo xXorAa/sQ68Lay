@@ -24,6 +24,7 @@ include_directories(
   Musashi/
   args/src/
   inih/
+  log.c/src/
   external/
   qlay/
   uthash/src/
@@ -56,6 +57,7 @@ add_executable(
   external/sdl-ps2.c
   args/src/args.c
   inih/ini.c
+  log.c/src/log.c
   Musashi/m68kcpu.c
   Musashi/m68kops.c
   Musashi/m68kdasm.c
@@ -69,7 +71,7 @@ if(NOT ${CMAKE_C_COMPILER_ID} MATCHES "Clang")
 endif()
 
 add_dependencies(sq68ux SubmarineGitVersion)
-target_compile_options(sq68ux PRIVATE -DQ68_EMU -DEMU_STR="sq68ux" -Wall
+target_compile_options(sq68ux PRIVATE -DQ68_EMU -DEMU_STR="sq68ux" -DLOG_USE_COLOR -Wall
                                       -Wextra -Wpedantic -Werror)
 
 set_property(TARGET sq68ux PROPERTY C_STANDARD 17)

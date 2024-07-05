@@ -7,3 +7,6 @@
 [submodule "uthash"]
 	path = uthash
 	url = https://github.com/troydhanson/uthash
+[submodule "log.c"]
+	path = log.c
+	url = https://github.com/rxi/log.c
