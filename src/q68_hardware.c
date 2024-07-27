@@ -10,9 +10,11 @@
 #include <sys/time.h>
 
 #include "emulator_hardware.h"
+#include "emulator_logging.h"
 #include "emulator_screen.h"
 #include "q68_keyboard.h"
 #include "q68_sd.h"
+#include "spi_sdcard.h"
 #include "utarray.h"
 
 // ghost irq registers
@@ -20,6 +22,9 @@ uint8_t EMU_PC_INTR = 0;
 static uint8_t q68_mc_stat = 0;
 uint8_t Q68_KBD_STATUS = KBD_ISINT; // interrupt driven kbd
 static uint8_t q68_q68_dmode = 0;
+uint8_t EMU_Q68_MMC1_READ = 0;
+uint8_t EMU_Q68_MMC1_WRIT = 0;
+bool sd1en = false, sd2en = false;
 
 static uint32_t q68_update_time(void)
 {
@@ -70,12 +75,14 @@ uint8_t qlHardwareRead8(unsigned int addr)
 		return Q68_KBD_STATUS;
 	case Q68_MMC1_READ:
 	case Q68_MMC1_READ + 1: {
-		uint8_t res = q68ProcessSDResponse(0);
-		return res;
+		SDL_LogDebug(Q68_LOG_HW, "Q68_MMC1_READ: %2.2x",
+			     EMU_Q68_MMC1_READ);
+		return EMU_Q68_MMC1_READ;
 	}
 	case Q68_DMODE:
 		return q68_q68_dmode;
 	default:
+		SDL_LogDebug(Q68_LOG_HW, "unknown: %8.8x", addr);
 		break;
 	}
 
@@ -106,10 +113,21 @@ void qlHardwareWrite8(unsigned int addr, uint8_t val)
 			}
 		}
 		return;
+	case Q68_MMC1_CS:
+		sd1en = !!val;
+		SDL_LogDebug(Q68_LOG_HW, "Q68_MMC1_CS: %2.2x", val);
+		if (sd1en) {
+			EMU_Q68_MMC1_READ = card_byte_out(0);
+		}
+		break;
 	case Q68_MMC1_WRIT:
-		q68ProcessSDCmd(0, val);
+		EMU_Q68_MMC1_WRIT = val;
 		break;
 	case Q68_MMC1_XFER:
+		if (sd1en) {
+			EMU_Q68_MMC1_READ = card_byte_out(0);
+			card_byte_in(0, EMU_Q68_MMC1_WRIT);
+		}
 		break;
 	case Q68_DMODE:
 		q68_q68_dmode = val;
