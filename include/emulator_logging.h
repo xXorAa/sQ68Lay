@@ -18,4 +18,9 @@ enum {
 	QLAY_LOG_HW,
 };
 
+enum {
+	Q68_LOG_HW = SDL_LOG_CATEGORY_CUSTOM,
+	Q68_LOG_SD,
+};
+
 #endif //EMULATOR_LOGGIN

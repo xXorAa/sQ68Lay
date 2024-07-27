@@ -17,6 +17,7 @@
 #include "q68_hooks.h"
 #include "q68_keyboard.h"
 #include "q68_sd.h"
+#include "spi_sdcard.h"
 #include "utarray.h"
 
 typedef struct {
@@ -49,7 +50,8 @@ void *emulatorInitEmulation(void)
 	}
 
 	q68InitKeyb();
-	q68InitSD();
+	card_initialise(emulatorOptionString("sd1"),
+			emulatorOptionString("sd2"));
 
 	m68k_set_cpu_type(M68K_CPU_TYPE_68000);
 	m68k_init();

@@ -16,6 +16,7 @@ include_directories(
   args/src/
   libayemu/include/
   inih/
+  mame/
   external/
   qlay/
   uthash/src/)
@@ -63,10 +64,11 @@ add_executable(
   src/q68_keyboard.c
   src/q68_mainloop.c
   src/q68_memory.c
-  src/q68_sd.c
   external/sdl-ps2.c
   args/src/args.c
   inih/ini.c
+  mame/spi_sdcard.c
+  mame/crc16spi_fujitsu.c
   Musashi/m68kcpu.c
   Musashi/m68kops.c
   Musashi/m68kdasm.c
