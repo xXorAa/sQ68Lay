@@ -112,6 +112,10 @@ unsigned int m68k_read_disassembler_32(unsigned int address)
 
 void m68k_write_memory_8(unsigned int address, unsigned int value)
 {
+	if (address < QL_INTERNAL_IO) {
+		return;
+	}
+
 	if ((address >= QL_INTERNAL_IO) &&
 	    address < (QL_INTERNAL_IO + QL_INTERNAL_IO_SIZE)) {
 		qlHardwareWrite8(address, value);
