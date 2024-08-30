@@ -10,3 +10,4 @@ FORCE: ;
 
 clean:
 	rm -rf build/
+	make -C Musashi clean
