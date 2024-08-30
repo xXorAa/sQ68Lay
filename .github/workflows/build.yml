@@ -278,6 +278,7 @@ jobs:
             mingw-w64-${{matrix.env}}-cc
             mingw-w64-${{matrix.env}}-SDL2
             mingw-w64-${{matrix.env}}-cmake
+            mingw-w64-${{matrix.env}}-make
       - name: Configure CMake
         if: ${{ github.event.inputs.build_enabled_windows != 'false' }}
         run: |
