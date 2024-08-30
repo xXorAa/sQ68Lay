@@ -274,6 +274,7 @@ jobs:
           update: true
           install: >-
             git
+            make
             zip
             mingw-w64-${{matrix.env}}-cc
             mingw-w64-${{matrix.env}}-SDL2
@@ -282,7 +283,7 @@ jobs:
       - name: Configure CMake
         if: ${{ github.event.inputs.build_enabled_windows != 'false' }}
         run: |
-          cmake -B build/ -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
+          cmake -B build/ -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
       - name: Build w/ CMake
         if: ${{ github.event.inputs.build_enabled_windows != 'false' }}
         run: |
