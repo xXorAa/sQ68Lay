@@ -7,3 +7,6 @@
 [submodule "uthash"]
 	path = uthash
 	url = https://github.com/troydhanson/uthash
+[submodule "Musashi"]
+	path = Musashi
+	url = https://github.com/xXorAa/Musashi
