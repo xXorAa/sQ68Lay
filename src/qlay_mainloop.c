@@ -58,6 +58,7 @@ int emulatorMainLoop(void)
 	qlayInitKbd();
 	qlayInitIPC();
 	qlayInitDisk();
+	qlayInitialiseTime();
 	traceInit();
 
 	uint64_t counterFreq = SDL_GetPerformanceFrequency();
@@ -71,7 +72,7 @@ int emulatorMainLoop(void)
 	uint64_t cycles50hz = FIFTYHZ_CYCLES;
 	uint64_t cyclesMdv = MDV_CYCLES;
 
-	//do_next_event();
+	uint8_t secondTick = 0;
 
 	while (!exitLoop) {
 		while ((cyclesNow - cyclesThen) < POINTONEMS_CYCLES) {
@@ -91,6 +92,8 @@ int emulatorMainLoop(void)
 				doIrq = true;
 
 				cycles50hz += FIFTYHZ_CYCLES;
+
+				secondTick++;
 			}
 
 			if (cyclesNow >= cyclesMdv) {
@@ -111,6 +114,11 @@ int emulatorMainLoop(void)
 		uint64_t now = SDL_GetPerformanceCounter();
 		while ((now - msThen) < msTick) {
 			now = SDL_GetPerformanceCounter();
+		}
+
+		if (secondTick == 50) {
+			EMU_PC_CLOCK++;
+			secondTick = 0;
 		}
 
 		msThen = now;

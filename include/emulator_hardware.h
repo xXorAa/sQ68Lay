@@ -84,11 +84,15 @@
 uint8_t qlHardwareRead8(unsigned int addr);
 void qlHardwareWrite8(unsigned int addr, uint8_t val);
 
+/* qlay RTC initialise */
+void qlayInitialiseTime(void);
+
 /* Shadow registers */
 extern uint8_t EMU_PC_INTR;
 extern uint8_t EMU_PC_INTR_MASK;
 extern uint8_t Q68_KBD_STATUS;
 extern uint8_t EMU_PC_TRAK1;
 extern uint8_t EMU_PC_TRAK2;
+extern uint32_t EMU_PC_CLOCK;
 
 #endif /* EMULATOR_HARDWARE_H */

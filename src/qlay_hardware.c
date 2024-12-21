@@ -20,25 +20,28 @@ uint8_t EMU_MC_STAT = 0;
 uint8_t EMU_PC_TRAK1 = 0;
 uint8_t EMU_PC_TRAK2 = 0;
 
-static uint32_t qlayUpdateTime(void)
+// ghost RTC register
+uint32_t EMU_PC_CLOCK = 0;
+
+void qlayInitialiseTime(void)
 {
 	struct timeval tv;
 	gettimeofday(&tv, NULL);
 
-	return tv.tv_sec + QDOS_TIME;
+	EMU_PC_CLOCK = tv.tv_sec + QDOS_TIME;
 }
 
 uint8_t qlHardwareRead8(unsigned int addr)
 {
 	switch (addr) {
 	case PC_CLOCK: // 18000
-		return qlayUpdateTime() >> 24;
+		return EMU_PC_CLOCK >> 24;
 	case PC_CLOCK + 1:
-		return (qlayUpdateTime() >> 16) & 0xFF;
+		return (EMU_PC_CLOCK >> 16) & 0xFF;
 	case PC_CLOCK + 2:
-		return (qlayUpdateTime() >> 8) & 0xFF;
+		return (EMU_PC_CLOCK >> 8) & 0xFF;
 	case PC_CLOCK + 3:
-		return qlayUpdateTime() & 0xFF;
+		return EMU_PC_CLOCK & 0xFF;
 	case PC_IPCRD: // 18020
 		return readQLHw(addr);
 	case PC_INTR: // 18021
@@ -59,6 +62,25 @@ void qlHardwareWrite8(unsigned int addr, uint8_t val)
 {
 	//std::cout << "HWW8: " << std::hex << addr << "," << val << std::endl;
 	switch (addr) {
+	case PC_CLOCK:
+		EMU_PC_CLOCK = 0;
+		return;
+	case PC_CLOCK + 1:
+		switch (val & 0x1E) {
+		case 0x0E:
+			EMU_PC_CLOCK += 0x01000000;
+			break;
+		case 0x16:
+			EMU_PC_CLOCK += 0x00010000;
+			break;
+		case 0x1A:
+			EMU_PC_CLOCK += 0x00000100;
+			break;
+		case 0x1C:
+			EMU_PC_CLOCK += 0x00000001;
+			break;
+		}
+		return;
 	case PC_TCTRL: // 18002
 		wrZX8302(val);
 		return;
