@@ -5,6 +5,7 @@
  */
 
 #include <SDL.h>
+#include <stdio.h>
 
 #include "emulator_mainloop.h"
 #include "emulator_memory.h"
