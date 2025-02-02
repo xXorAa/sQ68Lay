@@ -98,6 +98,7 @@ add_executable(
   src/qlay_trace.c
   args/src/args.c
   inih/ini.c
+  log.c/src/log.c
   Musashi/m68kcpu.c
   Musashi/m68kops.c
   Musashi/m68kdasm.c
