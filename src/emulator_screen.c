@@ -6,6 +6,8 @@
 
 #include <SDL.h>
 #include <stdbool.h>
+#include <stdio.h>
+#include <string.h>
 
 #include "emulator_hardware.h"
 #include "emulator_memory.h"
