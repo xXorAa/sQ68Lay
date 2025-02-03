@@ -41,6 +41,9 @@ add_custom_target(
 set_source_files_properties(${CMAKE_CURRENT_BINARY_DIR}/version.c
                             PROPERTIES GENERATED TRUE)
 
+cmake_path(NORMAL_PATH PROJECT_SOURCE_DIR OUTPUT_VARIABLE PROJECT_ROOT_NORMALIZED)
+add_compile_options(-ffile-prefix-map=${PROJECT_ROOT_NORMALIZED}=)
+
 add_custom_target(
 	Musashi
 	COMMAND
