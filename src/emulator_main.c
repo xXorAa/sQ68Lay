@@ -11,6 +11,7 @@
 #include "emulator_memory.h"
 #include "emulator_options.h"
 #include "emulator_screen.h"
+#include "log.h"
 
 #if __EMSCRIPTEN__
 #include <emscripten/emscripten.h>
@@ -19,6 +20,8 @@
 int main(int argc, char **argv)
 {
 	emulatorOptionParse(argc, argv);
+
+	log_set_level(emulatorOptionInt("loglevel"));
 
 #if __EMSCRIPTEN__
 	int ret = SDL_Init(SDL_INIT_EVERYTHING &
