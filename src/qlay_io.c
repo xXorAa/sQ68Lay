@@ -5,6 +5,7 @@
 */
 
 #include <ctype.h>
+#include <errno.h>
 #include <fcntl.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -56,6 +57,7 @@ static void do_tx(void);
 static void ser_rcv_init(void);
 static int ser_rcv_dequeue(int ch);
 static int ser_rcv_size(int ch);
+static void save_mdv_file(int mdvnum);
 
 static int IPC020 = 0; /* current return value for 18020 */
 static int IPCreturn; /* internal 8049 value */
@@ -383,7 +385,6 @@ return;
 
 static void wrmdvdata(uint8_t x)
 {
-	debug_print("%x\n", x);
 	mdvtxfl = true;
 	mdrive[mdvnum].mdvwritten = true;
 
@@ -477,33 +478,6 @@ void wrmdvcntl(uint8_t x)
 
 static void set_gap_irq(void);
 
-static void mdvSave(int mdvnum)
-{
-	int fd;
-	int res;
-
-	printf("Saving: %s\n", mdrive[mdvnum].name);
-
-	if (mdrive[mdvnum].name == NULL) {
-		return;
-	}
-
-	debug_print("MDV Saving %s %d", mdrive[mdvnum].name, mdvnum);
-
-	fd = open(mdrive[mdvnum].name, O_WRONLY | O_CREAT);
-	if (fd < 0) {
-		perror("Error: opening MDV for write");
-		return;
-	}
-
-	res = write(fd, mdrive[mdvnum].data, MDV_SECTLEN * MDV_NOSECTS);
-	if (res != (MDV_SECTLEN * MDV_NOSECTS)) {
-		perror("Error: writing data to MDV");
-	}
-
-	close(fd);
-}
-
 /* in: drive; 0: no drive, 1..8: select MDVdrive */
 static void mdv_select(int drive)
 {
@@ -516,8 +490,9 @@ static void mdv_select(int drive)
 	if (drive == 0) {
 		for (int i = 0; i < 8; i++) {
 			if (mdrive[i].mdvwritten) {
+				printf("saving\n");
 				// write MDV back to disk
-				mdvSave(i);
+				save_mdv_file(i);
 				mdrive[i].mdvwritten = false;
 			}
 		}
@@ -1045,7 +1020,7 @@ static bool load_qlay_mdv_file(int fd, int mdvnum)
 
 	/* malloc failed for some reason */
 	if (mdrive[mdvnum].data == NULL) {
-		log_error("malloc failed %s %d", __FILE__, __LINE__);
+		log_error("malloc failed %s %d");
 		return false;
 	}
 
@@ -1083,6 +1058,7 @@ static bool load_mdv_file(const char *filename, int mdvNum)
 	fstat(fd, &stat);
 
 	if (stat.st_size == QLAY_MDV_SIZE) {
+		log_info("%s is a QLAY file", filename);
 		res = load_qlay_mdv_file(fd, mdvNum);
 	}
 
@@ -1096,6 +1072,71 @@ static bool load_mdv_file(const char *filename, int mdvNum)
 	return true;
 }
 
+static bool save_qlay_mdv_file(int fd, int mdvnum)
+{
+	struct mdvsector *cursect = mdrive[mdvnum].data;
+
+	for (int i = 0; i < QLAY_MDV_NOSECTS; i++) {
+		lseek(fd, i * QLAY_MDV_SECTLEN, SEEK_SET);
+
+		/* skip pre-amble */
+		lseek(fd, QLAY_MDV_PREAMBLE_SIZE, SEEK_CUR);
+		write(fd, cursect->header, QLAY_MDV_HDR_CONTENT_SIZE);
+
+		/* skip the next pre-amble */
+		lseek(fd, QLAY_MDV_PREAMBLE_SIZE, SEEK_CUR);
+		write(fd, cursect->blockheader, QLAY_MDV_DATA_HDR_SIZE);
+
+		/* skip the next pre-amble */
+		lseek(fd, QLAY_MDV_DATA_PREAMBLE_SIZE, SEEK_CUR);
+		write(fd, cursect->block, QLAY_MDV_DATA_CONTENT_SIZE);
+
+		cursect++;
+	}
+
+	return true;
+}
+
+static void save_mdv_file(int mdvnum)
+{
+	int fd;
+	bool res = false;
+
+	log_info("Saving: %s", mdrive[mdvnum].name);
+
+	if (mdrive[mdvnum].name == NULL) {
+		log_error("MDV%d name (NULL)", mdvnum + 1);
+		return;
+	}
+
+	if (mdrive[mdvnum].wrprot) {
+		log_info("MDV%d write protected NOT saving", mdvnum + 1);
+		return;
+	}
+
+	log_debug("MDV Saving %s %d", mdrive[mdvnum].name, mdvnum);
+
+	fd = open(mdrive[mdvnum].name, O_WRONLY | O_CREAT);
+	if (fd < 0) {
+		log_error("opening MDV for write %s", strerror(errno));
+		return;
+	}
+
+	switch (mdrive[mdvnum].type) {
+	case MDV_FORMAT_QLAY:
+		res = save_qlay_mdv_file(fd, mdvnum);
+		break;
+	default:
+		log_error("Unknown mdv format MDV%d\n", mdvnum + 1);
+	}
+
+	close(fd);
+
+	if (res == false) {
+		log_error("Failed to save file %s", mdrive[mdvnum].name);
+	}
+}
+
 void init_mdvs(void)
 {
 	int i = 0;
@@ -1107,8 +1148,13 @@ void init_mdvs(void)
 	for (i = 0; i < noDrives; i++) {
 		const char *drive = emulatorOptionDev("drive", i);
 		const char *mdvName;
+		bool wrprot = false;
 
 		int mdvNum;
+		if (strncmp(drive, "R:", 2) == 0) {
+			wrprot = true;
+			drive += 2;
+		}
 
 		if (!(strncmp(drive, "mdv", 3) == 0) || !isdigit(drive[3]) ||
 		    (drive[4] != '@')) {
@@ -1126,7 +1172,7 @@ void init_mdvs(void)
 		//mdrive[i].name[0] = "";
 		mdrive[mdvNum].present = 0;
 		mdrive[mdvNum].sector = 0;
-		mdrive[mdvNum].wrprot = 0;
+		mdrive[mdvNum].wrprot = wrprot;
 		mdrive[mdvNum].idx = 0;
 		mdrive[mdvNum].mdvstate = MDV_GAP1;
 		mdrive[mdvNum].mdvgapcnt = MDV_GAP_COUNT;
@@ -1149,7 +1195,9 @@ void init_mdvs(void)
 			mdrive[mdvNum].sector = 0;
 			mdvpresent = 1;
 			mdvname = mdvName;
-			printf("MDV%01d is %s\n", mdvNum + 1, mdvname);
+			log_info("MDV%01d is %s", mdvNum + 1, mdvname);
+		} else {
+			log_info("MDV%01d is ejected", mdvNum + 1);
 		}
 	}
 }
@@ -1405,6 +1453,7 @@ static void set_gap_irq(void)
 void do_mdv_tick(void)
 {
 	int sector, idx;
+	bool wrprot;
 
 	if (mdvmotor) {
 		if (mdrive[mdvnum].present == 0) {
@@ -1420,10 +1469,11 @@ void do_mdv_tick(void)
 
 		sector = mdrive[mdvnum].sector;
 		idx = mdrive[mdvnum].idx;
+		wrprot = mdrive[mdvnum].wrprot;
 
 		switch (mdrive[mdvnum].mdvstate) {
 		case MDV_GAP1:
-			debug_print("%s\n", "GAP1");
+			log_debug("%s", "GAP1");
 			mdvgap = 1;
 			mdvrd = 0;
 			set_gap_irq();
@@ -1435,7 +1485,7 @@ void do_mdv_tick(void)
 			}
 			break;
 		case MDV_PREAMBLE1:
-			debug_print("%s\n", "PREAMBLE1");
+			log_debug("%s", "PREAMBLE1");
 			mdvgap = 0;
 			mdvrd = 0;
 			mdrive[mdvnum].mdvgapcnt--;
@@ -1446,7 +1496,7 @@ void do_mdv_tick(void)
 			}
 			break;
 		case MDV_HDR:
-			debug_print("%s\n", "HDR");
+			log_debug("%s", "HDR");
 			mdvgap = 0;
 			mdvrd = 1;
 
@@ -1460,10 +1510,9 @@ void do_mdv_tick(void)
 			}
 			break;
 		case MDV_GAP2:
-			debug_print("%s\n", "GAP2");
+			log_debug("%s", "GAP2");
 			mdvgap = 1;
 			mdvrd = 0;
-			//set_gap_irq();
 
 			// If erase is on, then GAP2 lasts until
 			// write is also on
@@ -1479,14 +1528,10 @@ void do_mdv_tick(void)
 			}
 			break;
 		case MDV_PREAMBLE2:
-			debug_print("%s\n", "PREAMBLE2");
+			log_debug("%s", "PREAMBLE2");
 			mdvgap = 0;
 			mdvrd = 0;
 			mdrive[mdvnum].mdvgapcnt--;
-
-			if (mdvwrite) {
-				//mdrive[mdvnum].data[fullidx] = PC_TDATA;
-			}
 
 			if (mdrive[mdvnum].mdvgapcnt == 0) {
 				mdrive[mdvnum].mdvstate = MDV_DATA_HDR;
@@ -1494,11 +1539,12 @@ void do_mdv_tick(void)
 			}
 			break;
 		case MDV_DATA_HDR:
-			debug_print("%s\n", "DATA_HDR");
+			log_debug("%s", "DATA_HDR");
 			mdvgap = 0;
 
-			if (mdvwrite) {
-				//mdrive[mdvnum].data[fullidx] = PC_TDATA;
+			if (mdvwrite && !wrprot) {
+				mdrive[mdvnum].data[sector].blockheader[idx] =
+					PC_TDATA;
 			} else {
 				mdvrd = 1;
 				PC_TRAK = mdrive[mdvnum]
@@ -1515,14 +1561,10 @@ void do_mdv_tick(void)
 			}
 			break;
 		case MDV_DATA_PREAMBLE:
-			debug_print("%s\n", "DATA_PREAMBLE");
+			log_debug("%s", "DATA_PREAMBLE");
 			mdvgap = 0;
 			mdvrd = 0;
 			mdrive[mdvnum].mdvgapcnt--;
-
-			if (mdvwrite) {
-				// mdrive[mdvnum].data[fullidx] = PC_TDATA;
-			}
 
 			if (mdrive[mdvnum].mdvgapcnt == 0) {
 				mdrive[mdvnum].mdvstate = MDV_DATA;
@@ -1530,11 +1572,12 @@ void do_mdv_tick(void)
 			}
 			break;
 		case MDV_DATA:
-			debug_print("%s\n", "DATA");
+			log_debug("%s", "DATA");
 			mdvgap = 0;
 
-			if (mdvwrite) {
-				//mdrive[mdvnum].data[fullidx] = PC_TDATA;
+			if (mdvwrite && !wrprot) {
+				mdrive[mdvnum].data[sector].block[idx] =
+					PC_TDATA;
 			} else {
 				mdvrd = 1;
 				PC_TRAK =
@@ -1543,7 +1586,7 @@ void do_mdv_tick(void)
 
 			mdrive[mdvnum].idx++;
 
-			if (mdrive[mdvnum].idx == MDV_SECTLEN) {
+			if (mdrive[mdvnum].idx == MDV_DATA_CONTENT_SIZE) {
 				mdrive[mdvnum].mdvstate = MDV_GAP1;
 				mdrive[mdvnum].mdvgapcnt = MDV_GAP_COUNT;
 				mdrive[mdvnum].idx = 0;
@@ -1553,7 +1596,7 @@ void do_mdv_tick(void)
 			}
 			break;
 		default:
-			fprintf(stderr, "MDV in unknown state\n");
+			log_error("MDV in unknown state");
 			break;
 		}
 	} else {
