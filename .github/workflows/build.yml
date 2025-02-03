@@ -195,8 +195,8 @@ jobs:
 #### MacOS
   build_macos:
     if: ${{ github.event.inputs.job_enabled_macos != 'false' }}
-    name: Build MacOS x86_64 on MacOS-12
-    runs-on: macos-12
+    name: Build MacOS aarch64 on MacOS-14
+    runs-on: macos-14
     needs:
       - get_release_definitions
     env:
@@ -226,20 +226,20 @@ jobs:
           cmake --build build/ --config ${{env.BUILD_TYPE}}
       - name: Create Artifact
         run: |
-          mkdir  sq68lay-macos-intel-${{ env.RELEASE_TAG }}/
-          cp -v  build/sqlay3         sq68lay-macos-intel-${{ env.RELEASE_TAG }}/ ||
-                              touch sq68lay-macos-intel-${{ env.RELEASE_TAG }}/sqlay3
-          cp -v  build/sq68ux         sq68lay-macos-intel-${{ env.RELEASE_TAG }}/ ||
-                              touch sq68lay-macos-intel-${{ env.RELEASE_TAG }}/sq68ux
-          zip -r sq68lay-macos-intel-${{ env.RELEASE_TAG }}.zip \
-                 sq68lay-macos-intel-${{ env.RELEASE_TAG }}/
+          mkdir  sq68lay-macos-aarch64-${{ env.RELEASE_TAG }}/
+          cp -v  build/sqlay3         sq68lay-macos-aarch64-${{ env.RELEASE_TAG }}/ ||
+                              touch sq68lay-macos-aarch64-${{ env.RELEASE_TAG }}/sqlay3
+          cp -v  build/sq68ux         sq68lay-macos-aarch64-${{ env.RELEASE_TAG }}/ ||
+                              touch sq68lay-macos-aarch64-${{ env.RELEASE_TAG }}/sq68ux
+          zip -r sq68lay-macos-aarch64-${{ env.RELEASE_TAG }}.zip \
+                 sq68lay-macos-aarch64-${{ env.RELEASE_TAG }}/
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         if: github.ref == 'refs/heads/main'
         with:
           retention-days: 1
-          name: sq68lay-macos-intel-${{ env.RELEASE_TAG }}
-          path: sq68lay-macos-intel-${{ env.RELEASE_TAG }}.zip
+          name: sq68lay-macos-aarch64-${{ env.RELEASE_TAG }}
+          path: sq68lay-macos-aarch64-${{ env.RELEASE_TAG }}.zip
 
 
 #### WINDOWS
