@@ -87,9 +87,11 @@ static uint32_t qlclkoff; /* QL hardware clock offset */
 
 #define MDV_NOSECTS 255
 #define MDV_NUMOFDRIVES 8
-#define MDV_GAP_COUNT 40
+#define MDV_GAP_COUNT 80
 #define MDV_PREAMBLE_COUNT 12
 #define MDV_DATA_PREAMBLE_COUNT 8
+#define MDV_INTERSECTOR_COUNT 120
+
 #define MDV_PREAMBLE_SIZE (12)
 #define MDV_HDR_CONTENT_SIZE (16)
 #define MDV_HDR_SIZE (MDV_PREAMBLE_SIZE + MDV_HDR_CONTENT_SIZE)
@@ -115,7 +117,16 @@ static uint32_t qlclkoff; /* QL hardware clock offset */
 	(QLAY_MDV_PREAMBLE_SIZE + QLAY_MDV_DATA_HDR_SIZE +          \
 	 QLAY_MDV_DATA_PREAMBLE_SIZE + QLAY_MDV_DATA_CONTENT_SIZE + \
 	 QLAY_MDV_DATA_SPARE_SIZE)
-#define QLAY_MDV_SECTLEN (MDV_HDR_SIZE + MDV_DATA_SIZE)
+#define QLAY_MDV_SECTLEN (QLAY_MDV_HDR_SIZE + QLAY_MDV_DATA_SIZE)
+
+#define MDI_MDV_SIZE 136170
+#define MDI_MDV_NOSECTS 255
+#define MDI_MDV_HDR_CONTENT_SIZE 16
+#define MDI_MDV_DATA_HDR_SIZE 4
+#define MDI_MDV_DATA_CONTENT_SIZE 514
+#define MDI_MDV_SECTLEN                                     \
+	(MDI_MDV_HDR_CONTENT_SIZE + MDI_MDV_DATA_HDR_SIZE + \
+	 MDI_MDV_DATA_CONTENT_SIZE)
 
 typedef enum QLAY_ {
 	MDV_GAP1,
@@ -125,7 +136,8 @@ typedef enum QLAY_ {
 	MDV_PREAMBLE2,
 	MDV_DATA_HDR,
 	MDV_DATA_PREAMBLE,
-	MDV_DATA
+	MDV_DATA,
+	MDV_INTERSECTOR
 } mdvstate;
 
 typedef enum {
@@ -490,7 +502,6 @@ static void mdv_select(int drive)
 	if (drive == 0) {
 		for (int i = 0; i < 8; i++) {
 			if (mdrive[i].mdvwritten) {
-				printf("saving\n");
 				// write MDV back to disk
 				save_mdv_file(i);
 				mdrive[i].mdvwritten = false;
@@ -1017,6 +1028,7 @@ static bool load_qlay_mdv_file(int fd, int mdvnum)
 	mdrive[mdvnum].no_sectors = QLAY_MDV_NOSECTS;
 	mdrive[mdvnum].data =
 		malloc(sizeof(struct mdvsector) * QLAY_MDV_NOSECTS);
+	mdrive[mdvnum].type = MDV_FORMAT_QLAY;
 
 	/* malloc failed for some reason */
 	if (mdrive[mdvnum].data == NULL) {
@@ -1047,7 +1059,39 @@ static bool load_qlay_mdv_file(int fd, int mdvnum)
 	return true;
 }
 
-static bool load_mdv_file(const char *filename, int mdvNum)
+/* load a MDI formatted MDV
+ */
+static bool load_mdi_mdv_file(int fd, int mdvnum)
+{
+	mdrive[mdvnum].no_sectors = MDI_MDV_NOSECTS;
+	mdrive[mdvnum].data =
+		malloc(sizeof(struct mdvsector) * MDI_MDV_NOSECTS);
+	mdrive[mdvnum].type = MDV_FORMAT_MDI;
+
+	/* malloc failed for some reason */
+	if (mdrive[mdvnum].data == NULL) {
+		log_error("malloc failed %s %d");
+		return false;
+	}
+
+	struct mdvsector *cursect = mdrive[mdvnum].data;
+
+	for (int i = 0; i < MDI_MDV_NOSECTS; i++) {
+		lseek(fd, i * MDI_MDV_SECTLEN, SEEK_SET);
+
+		read(fd, cursect->header, MDI_MDV_HDR_CONTENT_SIZE);
+
+		read(fd, cursect->blockheader, MDI_MDV_DATA_HDR_SIZE);
+
+		read(fd, cursect->block, MDI_MDV_DATA_CONTENT_SIZE);
+
+		cursect++;
+	}
+
+	return true;
+}
+
+static bool load_mdv_file(const char *filename, int mdvnum)
 {
 	struct stat stat;
 	int fd;
@@ -1059,7 +1103,10 @@ static bool load_mdv_file(const char *filename, int mdvNum)
 
 	if (stat.st_size == QLAY_MDV_SIZE) {
 		log_info("%s is a QLAY file", filename);
-		res = load_qlay_mdv_file(fd, mdvNum);
+		res = load_qlay_mdv_file(fd, mdvnum);
+	} else if (stat.st_size == MDI_MDV_SIZE) {
+		log_info("%s is a MDI file", filename);
+		res = load_mdi_mdv_file(fd, mdvnum);
 	}
 
 	close(fd);
@@ -1097,6 +1144,25 @@ static bool save_qlay_mdv_file(int fd, int mdvnum)
 	return true;
 }
 
+static bool save_mdi_mdv_file(int fd, int mdvnum)
+{
+	struct mdvsector *cursect = mdrive[mdvnum].data;
+
+	for (int i = 0; i < MDI_MDV_NOSECTS; i++) {
+		lseek(fd, i * MDI_MDV_SECTLEN, SEEK_SET);
+
+		write(fd, cursect->header, MDI_MDV_HDR_CONTENT_SIZE);
+
+		write(fd, cursect->blockheader, MDI_MDV_DATA_HDR_SIZE);
+
+		write(fd, cursect->block, MDI_MDV_DATA_CONTENT_SIZE);
+
+		cursect++;
+	}
+
+	return true;
+}
+
 static void save_mdv_file(int mdvnum)
 {
 	int fd;
@@ -1125,6 +1191,9 @@ static void save_mdv_file(int mdvnum)
 	switch (mdrive[mdvnum].type) {
 	case MDV_FORMAT_QLAY:
 		res = save_qlay_mdv_file(fd, mdvnum);
+		break;
+	case MDV_FORMAT_MDI:
+		res = save_mdi_mdv_file(fd, mdvnum);
 		break;
 	default:
 		log_error("Unknown mdv format MDV%d\n", mdvnum + 1);
@@ -1169,24 +1238,12 @@ void init_mdvs(void)
 			continue;
 		}
 
-		//mdrive[i].name[0] = "";
 		mdrive[mdvNum].present = 0;
 		mdrive[mdvNum].sector = 0;
 		mdrive[mdvNum].wrprot = wrprot;
 		mdrive[mdvNum].idx = 0;
 		mdrive[mdvNum].mdvstate = MDV_GAP1;
 		mdrive[mdvNum].mdvgapcnt = MDV_GAP_COUNT;
-
-		// TODO: handle read only
-		/*
-		if(mdvName.find("R:") == 0) {
-			if (mdvName.size() == 2) {
-				continue;
-			}
-			mdrive[i].wrprot = 1;
-			mdvName.erase(0, 2);
-		}
-		*/
 
 		res = load_mdv_file(mdvName, mdvNum);
 		if (res) {
@@ -1473,7 +1530,7 @@ void do_mdv_tick(void)
 
 		switch (mdrive[mdvnum].mdvstate) {
 		case MDV_GAP1:
-			log_debug("%s", "GAP1");
+			log_debug("GAP1");
 			mdvgap = 1;
 			mdvrd = 0;
 			set_gap_irq();
@@ -1485,7 +1542,7 @@ void do_mdv_tick(void)
 			}
 			break;
 		case MDV_PREAMBLE1:
-			log_debug("%s", "PREAMBLE1");
+			log_debug("PREAMBLE1");
 			mdvgap = 0;
 			mdvrd = 0;
 			mdrive[mdvnum].mdvgapcnt--;
@@ -1496,7 +1553,7 @@ void do_mdv_tick(void)
 			}
 			break;
 		case MDV_HDR:
-			log_debug("%s", "HDR");
+			log_debug("HDR");
 			mdvgap = 0;
 			mdvrd = 1;
 
@@ -1510,7 +1567,7 @@ void do_mdv_tick(void)
 			}
 			break;
 		case MDV_GAP2:
-			log_debug("%s", "GAP2");
+			log_debug("GAP2");
 			mdvgap = 1;
 			mdvrd = 0;
 
@@ -1528,7 +1585,7 @@ void do_mdv_tick(void)
 			}
 			break;
 		case MDV_PREAMBLE2:
-			log_debug("%s", "PREAMBLE2");
+			log_debug("PREAMBLE2");
 			mdvgap = 0;
 			mdvrd = 0;
 			mdrive[mdvnum].mdvgapcnt--;
@@ -1539,7 +1596,7 @@ void do_mdv_tick(void)
 			}
 			break;
 		case MDV_DATA_HDR:
-			log_debug("%s", "DATA_HDR");
+			log_debug("DATA_HDR");
 			mdvgap = 0;
 
 			if (mdvwrite && !wrprot) {
@@ -1561,7 +1618,7 @@ void do_mdv_tick(void)
 			}
 			break;
 		case MDV_DATA_PREAMBLE:
-			log_debug("%s", "DATA_PREAMBLE");
+			log_debug("DATA_PREAMBLE");
 			mdvgap = 0;
 			mdvrd = 0;
 			mdrive[mdvnum].mdvgapcnt--;
@@ -1572,7 +1629,7 @@ void do_mdv_tick(void)
 			}
 			break;
 		case MDV_DATA:
-			log_debug("%s", "DATA");
+			log_debug("DATA");
 			mdvgap = 0;
 
 			if (mdvwrite && !wrprot) {
@@ -1587,6 +1644,22 @@ void do_mdv_tick(void)
 			mdrive[mdvnum].idx++;
 
 			if (mdrive[mdvnum].idx == MDV_DATA_CONTENT_SIZE) {
+				mdrive[mdvnum].mdvstate = MDV_INTERSECTOR;
+				mdrive[mdvnum].mdvgapcnt =
+					MDV_INTERSECTOR_COUNT;
+			}
+			break;
+		case MDV_INTERSECTOR:
+			log_debug("MDV_INTERSECTOR");
+
+			if (!mdvwrite) {
+				mdvrd = 1;
+				PC_TRAK = 0x5A;
+			}
+
+			mdrive[mdvnum].mdvgapcnt--;
+
+			if (mdrive[mdvnum].mdvgapcnt == 0) {
 				mdrive[mdvnum].mdvstate = MDV_GAP1;
 				mdrive[mdvnum].mdvgapcnt = MDV_GAP_COUNT;
 				mdrive[mdvnum].idx = 0;
