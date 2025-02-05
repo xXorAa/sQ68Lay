@@ -11,7 +11,7 @@ bool trace = false;
 
 void emu_hook_pc(unsigned int pc)
 {
-	if (trace) {
+	if (trace && (pc >= trace_low) && (pc <= trace_high)) {
 		char disBuf[256];
 		uint32_t d[8];
 		uint32_t a[8];
