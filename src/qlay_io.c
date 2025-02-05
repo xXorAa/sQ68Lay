@@ -475,8 +475,13 @@ void wrmdvcntl(uint8_t x)
 		if (!mdvselect) {
 			mdv_select(0);
 		} else {
-			int mdv = uint8_log2(mdvselect);
-			debug_print("MDV Select %d\n", mdv + 1);
+			int mdv;
+
+			for (mdv = 0; mdv < 8; mdv++) {
+				if (BIT(mdv) & mdvselect) {
+					break;
+				}
+			}
 			mdv_select(mdv + 1);
 		}
 	}
