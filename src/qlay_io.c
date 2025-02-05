@@ -515,6 +515,7 @@ static void mdv_select(int drive)
 		mdvixs = 0;
 		mdvwp = 0; /* 1 ->just in case - 0 by Jimmy */
 		mdvmotor = false;
+		mdvtxfl = false;
 	} else {
 		log_debug("MDV MOTOR ON %d", drive);
 		mdvnum = drive - 1;
@@ -522,7 +523,10 @@ static void mdv_select(int drive)
 		mdvpresent = mdrive[mdvnum].present;
 		mdvixs = mdrive[mdvnum].sector;
 		mdvwp = mdrive[mdvnum].wrprot;
+		mdvtxfl = false;
 		mdvmotor = true;
+		mdrive[mdvnum].mdvstate = MDV_GAP1;
+		mdrive[mdvnum].mdvgapcnt = MDV_GAP_COUNT;
 		set_gap_irq();
 	}
 }
