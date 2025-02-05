@@ -9,16 +9,21 @@
 #include <stdio.h>
 
 #include "emulator_options.h"
+#include "log.h"
+#include "qlay_hooks.h"
 #include "uthash.h"
 
 struct trace_entry {
-	int addr;			/* key */
+	int addr; /* key */
 	char name[21];
-	UT_hash_handle hh;		/* makes this structure hashable */
+	UT_hash_handle hh; /* makes this structure hashable */
 };
 
 static bool traceMap = false;
 static struct trace_entry *traceHash;
+
+uint32_t trace_low;
+uint32_t trace_high;
 
 void traceInit(void)
 {
@@ -26,6 +31,17 @@ void traceInit(void)
 	FILE *file;
 	char symbol[21];
 	unsigned int addr;
+
+	/* Initialise high/low */
+	trace_low = emulatorOptionInt("trace-low");
+	trace_high = emulatorOptionInt("trace-high");
+
+	log_info("Tracing range %8.8x - %8.8x", trace_low, trace_high);
+
+	if (emulatorOptionInt("trace")) {
+		trace = true;
+		log_info("Tracing Enabled");
+	}
 
 	if (strlen(mapFile) == 0) {
 		return;
@@ -42,11 +58,13 @@ void traceInit(void)
 
 		HASH_FIND_INT(traceHash, &addr, traceEntry);
 		if (traceEntry != NULL) {
-			fprintf(stderr, "Duplicate address %x,%s\n", addr, symbol);
+			fprintf(stderr, "Duplicate address %x,%s\n", addr,
+				symbol);
 		} else {
 			traceEntry = malloc(sizeof(struct trace_entry));
 			traceEntry->addr = addr;
-			strncpy(traceEntry->name, symbol, sizeof(traceEntry->name));
+			strncpy(traceEntry->name, symbol,
+				sizeof(traceEntry->name));
 			HASH_ADD_INT(traceHash, addr, traceEntry);
 		}
 	}
@@ -72,4 +90,3 @@ const char *traceSymbol(int addr)
 		return NULL;
 	}
 }
-

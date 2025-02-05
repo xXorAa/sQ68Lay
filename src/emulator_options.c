@@ -148,6 +148,10 @@ struct emuOpts emuOptions[] = {
 	  NULL, NULL },
 	{ "sysrom", "r", "system rom", EMU_OPT_CHAR, 0, "JS.rom", NULL },
 	{ "trace", "", "enable tracing", EMU_OPT_INT, 0, NULL, NULL },
+	{ "trace-high", "", "highest address to trace", EMU_OPT_INT, 0xFFFFFF,
+	  NULL, NULL },
+	{ "trace-low", "", "lowest address to trace", EMU_OPT_INT, 0, NULL,
+	  NULL },
 	{ "trace-map", "", "map file for trace addrs to symbols", EMU_OPT_CHAR,
 	  0, NULL, NULL },
 #endif //QLAY_EMU
