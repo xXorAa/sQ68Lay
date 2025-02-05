@@ -435,7 +435,7 @@ int uint8_log2(uint64_t n)
 void wrmdvcntl(uint8_t x)
 {
 	if (x & PC__WRITE) {
-		debug_print("%s\n", "MDV Write On");
+		log_debug("MDV Write On");
 		mdvwrite = true;
 
 		// Unfortunately JS and Minerva use different timing
@@ -448,16 +448,17 @@ void wrmdvcntl(uint8_t x)
 			mdrive[mdvnum].mdvgapcnt = 1;
 		}
 	} else {
+		log_debug("MDV Write Off");
 		mdvwrite = false;
 	}
 
 	if ((x & PC__ERASE) && !mdverase) {
-		debug_print("%s\n", "MDV Erase On");
+		log_debug("MDV Erase On");
 		mdverase = true;
 	}
 
 	if (!(x & PC__ERASE) && mdverase) {
-		debug_print("%s\n", "MDV Erase Off");
+		log_debug("MDV Erase Off");
 		mdverase = false;
 	}
 
@@ -500,6 +501,7 @@ static void mdv_select(int drive)
 	mdvwra = 0;
 
 	if (drive == 0) {
+		log_debug("MDV MOTOR OFF");
 		for (int i = 0; i < 8; i++) {
 			if (mdrive[i].mdvwritten) {
 				// write MDV back to disk
@@ -514,6 +516,7 @@ static void mdv_select(int drive)
 		mdvwp = 0; /* 1 ->just in case - 0 by Jimmy */
 		mdvmotor = false;
 	} else {
+		log_debug("MDV MOTOR ON %d", drive);
 		mdvnum = drive - 1;
 		mdvname = mdrive[mdvnum].name;
 		mdvpresent = mdrive[mdvnum].present;
@@ -1530,7 +1533,9 @@ void do_mdv_tick(void)
 
 		switch (mdrive[mdvnum].mdvstate) {
 		case MDV_GAP1:
-			log_debug("GAP1");
+			if (mdrive[mdvnum].mdvgapcnt == MDV_GAP_COUNT) {
+				log_debug("GAP1");
+			}
 			mdvgap = 1;
 			mdvrd = 0;
 			set_gap_irq();
@@ -1542,7 +1547,9 @@ void do_mdv_tick(void)
 			}
 			break;
 		case MDV_PREAMBLE1:
-			log_debug("PREAMBLE1");
+			if (mdrive[mdvnum].mdvgapcnt == MDV_PREAMBLE_COUNT) {
+				log_debug("PREAMBLE1");
+			}
 			mdvgap = 0;
 			mdvrd = 0;
 			mdrive[mdvnum].mdvgapcnt--;
@@ -1553,7 +1560,9 @@ void do_mdv_tick(void)
 			}
 			break;
 		case MDV_HDR:
-			log_debug("HDR");
+			if (mdrive[mdvnum].idx == 0) {
+				log_debug("HDR");
+			}
 			mdvgap = 0;
 			mdvrd = 1;
 
@@ -1567,7 +1576,9 @@ void do_mdv_tick(void)
 			}
 			break;
 		case MDV_GAP2:
-			log_debug("GAP2");
+			if (mdrive[mdvnum].mdvgapcnt == MDV_GAP_COUNT) {
+				log_debug("GAP2");
+			}
 			mdvgap = 1;
 			mdvrd = 0;
 
@@ -1585,7 +1596,9 @@ void do_mdv_tick(void)
 			}
 			break;
 		case MDV_PREAMBLE2:
-			log_debug("PREAMBLE2");
+			if (mdrive[mdvnum].mdvgapcnt == MDV_PREAMBLE_COUNT) {
+				log_debug("PREAMBLE2");
+			}
 			mdvgap = 0;
 			mdvrd = 0;
 			mdrive[mdvnum].mdvgapcnt--;
@@ -1596,7 +1609,9 @@ void do_mdv_tick(void)
 			}
 			break;
 		case MDV_DATA_HDR:
-			log_debug("DATA_HDR");
+			if (mdrive[mdvnum].idx == 0) {
+				log_debug("DATA_HDR");
+			}
 			mdvgap = 0;
 
 			if (mdvwrite && !wrprot) {
@@ -1618,7 +1633,10 @@ void do_mdv_tick(void)
 			}
 			break;
 		case MDV_DATA_PREAMBLE:
-			log_debug("DATA_PREAMBLE");
+			if (mdrive[mdvnum].mdvgapcnt ==
+			    MDV_DATA_PREAMBLE_COUNT) {
+				log_debug("DATA_PREAMBLE");
+			}
 			mdvgap = 0;
 			mdvrd = 0;
 			mdrive[mdvnum].mdvgapcnt--;
@@ -1629,7 +1647,9 @@ void do_mdv_tick(void)
 			}
 			break;
 		case MDV_DATA:
-			log_debug("DATA");
+			if (mdrive[mdvnum].idx == 0) {
+				log_debug("DATA");
+			}
 			mdvgap = 0;
 
 			if (mdvwrite && !wrprot) {
@@ -1650,7 +1670,9 @@ void do_mdv_tick(void)
 			}
 			break;
 		case MDV_INTERSECTOR:
-			log_debug("MDV_INTERSECTOR");
+			if (mdrive[mdvnum].idx == 0) {
+				log_debug("INTERSECTOR");
+			}
 
 			if (!mdvwrite) {
 				mdvrd = 1;
