@@ -157,6 +157,8 @@ struct emuOpts emuOptions[] = {
 #endif //QLAY_EMU
 
 #ifdef Q68_EMU
+	{ "loglevel", "", "log level 0-5 (5 silent)", EMU_OPT_INT, LOG_ERROR,
+	  NULL, NULL },
 	{ "smsqe", "", "smsqe image to load (at 0x32000)", EMU_OPT_CHAR, 0,
 	  NULL, NULL },
 	{ "sd1", "", "SDHC Image for SD1 slot", EMU_OPT_CHAR, 0, NULL, NULL },
