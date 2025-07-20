@@ -4,7 +4,7 @@
  * SPDX: GPL-2.0-only
  */
 
-#include <SDL.h>
+#include <SDL3/SDL.h>
 #include <stdint.h>
 
 #include "emulator_events.h"

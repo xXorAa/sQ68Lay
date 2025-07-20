@@ -5,7 +5,7 @@
  */
 
 #include <time.h>
-#include <SDL.h>
+#include <SDL3/SDL.h>
 #include <stdint.h>
 #include <sys/time.h>
 
@@ -60,7 +60,7 @@ uint8_t qlHardwareRead8(unsigned int addr)
 	case KBD_CODE: {
 		if (utarray_len(q68_kbd_queue)) {
 			int *key;
-                        key = (int *)utarray_front(q68_kbd_queue);
+			key = (int *)utarray_front(q68_kbd_queue);
 			return *key;
 		}
 
