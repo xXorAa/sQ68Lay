@@ -4,7 +4,7 @@
  * SPDX: GPL-2.0-only
  */
 
-#include <SDL.h>
+#include <SDL3/SDL.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -81,7 +81,7 @@ unsigned int m68k_read_memory_16(unsigned int address)
 
 	if ((address >= Q68_SCREEN) &&
 	    address < (Q68_SCREEN + Q68_SCREEN_SIZE)) {
-		return SDL_SwapBE16(
+		return SDL_Swap16BE(
 			*(uint16_t *)&q68ScreenSpace[address - Q68_SCREEN]);
 	}
 
@@ -94,7 +94,7 @@ unsigned int m68k_read_memory_16(unsigned int address)
 		return 0;
 	}
 
-	return SDL_SwapBE16(*(uint16_t *)&q68MemorySpace[address]);
+	return SDL_Swap16BE(*(uint16_t *)&q68MemorySpace[address]);
 }
 
 unsigned int m68k_read_disassembler_16(unsigned int address)
@@ -103,7 +103,7 @@ unsigned int m68k_read_disassembler_16(unsigned int address)
 		return 0;
 	}
 
-	return SDL_SwapBE16(*(uint16_t *)&q68MemorySpace[address]);
+	return SDL_Swap16BE(*(uint16_t *)&q68MemorySpace[address]);
 }
 
 unsigned int m68k_read_memory_32(unsigned int address)
@@ -126,7 +126,7 @@ unsigned int m68k_read_memory_32(unsigned int address)
 
 	if ((address >= Q68_SCREEN) &&
 	    address < (Q68_SCREEN + Q68_SCREEN_SIZE)) {
-		return SDL_SwapBE32(
+		return SDL_Swap32BE(
 			*(uint32_t *)&q68ScreenSpace[address - Q68_SCREEN]);
 	}
 
@@ -141,7 +141,7 @@ unsigned int m68k_read_memory_32(unsigned int address)
 		return 0;
 	}
 
-	return SDL_SwapBE32(*(uint32_t *)&q68MemorySpace[address]);
+	return SDL_Swap32BE(*(uint32_t *)&q68MemorySpace[address]);
 }
 
 unsigned int m68k_read_disassembler_32(unsigned int address)
@@ -150,7 +150,7 @@ unsigned int m68k_read_disassembler_32(unsigned int address)
 		return 0;
 	}
 
-	return SDL_SwapBE32(*(uint32_t *)&q68MemorySpace[address]);
+	return SDL_Swap32BE(*(uint32_t *)&q68MemorySpace[address]);
 }
 
 void m68k_write_memory_8(unsigned int address, unsigned int value)
@@ -212,7 +212,7 @@ void m68k_write_memory_16(unsigned int address, unsigned int value)
 	if ((address >= Q68_SCREEN) &&
 	    address < (Q68_SCREEN + Q68_SCREEN_SIZE)) {
 		*(uint16_t *)&q68ScreenSpace[address - Q68_SCREEN] =
-			SDL_SwapBE16(value);
+			SDL_Swap16BE(value);
 		return;
 	}
 
@@ -226,7 +226,7 @@ void m68k_write_memory_16(unsigned int address, unsigned int value)
 		return;
 	}
 
-	*(uint16_t *)&q68MemorySpace[address] = SDL_SwapBE16(value);
+	*(uint16_t *)&q68MemorySpace[address] = SDL_Swap16BE(value);
 }
 
 void m68k_write_memory_32(unsigned int address, unsigned int value)
@@ -256,7 +256,7 @@ void m68k_write_memory_32(unsigned int address, unsigned int value)
 	if ((address >= Q68_SCREEN) &&
 	    address < (Q68_SCREEN + Q68_SCREEN_SIZE)) {
 		*(uint32_t *)&q68ScreenSpace[address - Q68_SCREEN] =
-			SDL_SwapBE32(value);
+			SDL_Swap32BE(value);
 		return;
 	}
 
@@ -272,5 +272,5 @@ void m68k_write_memory_32(unsigned int address, unsigned int value)
 		return;
 	}
 
-	*(uint32_t *)&q68MemorySpace[address] = SDL_SwapBE32(value);
+	*(uint32_t *)&q68MemorySpace[address] = SDL_Swap32BE(value);
 }

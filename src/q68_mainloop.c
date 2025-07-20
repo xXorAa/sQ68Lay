@@ -4,7 +4,7 @@
  * SPDX: GPL-2.0-only
  */
 
-#include <SDL.h>
+#include <SDL3/SDL.h>
 
 #include "emulator_events.h"
 #include "emulator_files.h"
@@ -30,10 +30,12 @@ void emulatorMainLoop(void)
 	uint32_t initPc = 0;
 
 	if (strlen(smsqe) > 0) {
-		emulatorLoadFile(smsqe, &emulatorMemorySpace()[Q68_SMSQE_ADDR], 0);
+		emulatorLoadFile(smsqe, &emulatorMemorySpace()[Q68_SMSQE_ADDR],
+				 0);
 		initPc = Q68_SMSQE_ADDR;
 	} else if (strlen(sysrom) > 0) {
-		emulatorLoadFile(sysrom, &emulatorMemorySpace()[Q68_SYSROM_ADDR], 0);
+		emulatorLoadFile(sysrom,
+				 &emulatorMemorySpace()[Q68_SYSROM_ADDR], 0);
 		romProtect = true;
 	}
 
@@ -63,9 +65,9 @@ void emulatorMainLoop(void)
 		uint64_t now = SDL_GetPerformanceCounter();
 
 		if ((now - screenThen) > screenTick) {
-                        emulatorUpdatePixelBuffer();
-                        emulatorRenderScreen();
-                        emulatorProcessEvents();
+			emulatorUpdatePixelBuffer();
+			emulatorRenderScreen();
+			emulatorProcessEvents();
 
 			EMU_PC_INTR |= PC_INTRF;
 			irq = true;

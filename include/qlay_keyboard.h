@@ -9,7 +9,7 @@
 #ifndef QLAY_KEYBOARD_H
 #define QLAY_KEYBOARD_H
 
-#include <SDL.h>
+#include <SDL3/SDL.h>
 #include <stdbool.h>
 #include <utarray.h>
 

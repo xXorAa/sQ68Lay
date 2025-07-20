@@ -4,7 +4,7 @@
  * SPDX: GPL-2.0-only
  */
 
-#include <SDL.h>
+#include <SDL3/SDL.h>
 #include <stdio.h>
 
 #include "emulator_mainloop.h"
@@ -24,10 +24,9 @@ int main(int argc, char **argv)
 	log_set_level(emulatorOptionInt("loglevel"));
 
 #if __EMSCRIPTEN__
-	int ret = SDL_Init(SDL_INIT_EVERYTHING &
-			   ~(SDL_INIT_TIMER | SDL_INIT_HAPTIC));
+	int ret = SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS);
 #else
-	int ret = SDL_Init(SDL_INIT_EVERYTHING);
+	int ret = SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS);
 #endif
 	if (ret < 0) {
 		printf("SDL_Init Error: %s\n", SDL_GetError());

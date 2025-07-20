@@ -5,7 +5,7 @@
  */
 
 #include "uthash/src/utarray.h"
-#include <SDL.h>
+#include <SDL3/SDL.h>
 
 #include "emulator_events.h"
 #include "emulator_hardware.h"

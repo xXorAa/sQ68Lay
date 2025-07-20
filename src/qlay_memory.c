@@ -4,7 +4,7 @@
  * SPDX: GPL-2.0-only
  */
 
-#include <SDL.h>
+#include <SDL3/SDL.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -89,7 +89,7 @@ unsigned int m68k_read_disassembler_16(unsigned int address)
 		return 0;
 	}
 
-	return SDL_SwapBE16(*(uint16_t *)&qlayMemSpace[address]);
+	return SDL_Swap16BE(*(uint16_t *)&qlayMemSpace[address]);
 }
 
 unsigned int m68k_read_memory_32(unsigned int address)
@@ -107,7 +107,7 @@ unsigned int m68k_read_disassembler_32(unsigned int address)
 		return 0;
 	}
 
-	return SDL_SwapBE32(*(uint32_t *)&qlayMemSpace[address]);
+	return SDL_Swap32BE(*(uint32_t *)&qlayMemSpace[address]);
 }
 
 void m68k_write_memory_8(unsigned int address, unsigned int value)

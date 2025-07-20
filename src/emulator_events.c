@@ -4,7 +4,7 @@
  * SPDX: GPL-2.0-only
  */
 
-#include <SDL.h>
+#include <SDL3/SDL.h>
 #include <stdbool.h>
 
 #include "emulator_hardware.h"
@@ -22,14 +22,14 @@ void emulatorProcessEvents(void)
 	}
 
 	switch (event.type) {
-	case SDL_QUIT:
+	case SDL_EVENT_QUIT:
 		exitLoop = 1;
 		break;
-	case SDL_KEYDOWN:
-		emulatorProcessKey(event.key.keysym.sym, event.key.keysym.scancode, 1);
+	case SDL_EVENT_KEY_DOWN:
+		emulatorProcessKey(event.key.key, event.key.scancode, 1);
 		break;
-	case SDL_KEYUP:
-		emulatorProcessKey(event.key.keysym.sym, event.key.keysym.scancode, 0);
+	case SDL_EVENT_KEY_UP:
+		emulatorProcessKey(event.key.key, event.key.scancode, 0);
 		break;
 	default:
 		break;

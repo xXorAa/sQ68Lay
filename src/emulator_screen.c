@@ -4,7 +4,7 @@
  * SPDX: GPL-2.0-only
  */
 
-#include <SDL.h>
+#include <SDL3/SDL.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
@@ -75,8 +75,6 @@ int emulatorScreenInit(int emulatorMode)
 	// Fixed screen res for emulator output
 	int xRes = 1024;
 	int yRes = 768;
-	const char *emulatorVideoDriver;
-	uint32_t emulatorWindowMode;
 
 	emulatorCurrentMode = emulatorMode;
 
@@ -84,36 +82,15 @@ int emulatorScreenInit(int emulatorMode)
 	emulatorDestRect.w = xRes;
 	emulatorDestRect.h = yRes;
 
-	SDL_SetHint(SDL_HINT_GRAB_KEYBOARD, "1");
-	SDL_SetHint(SDL_HINT_VIDEO_MINIMIZE_ON_FOCUS_LOSS, "0");
-	SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "1");
-
-	emulatorVideoDriver = SDL_GetCurrentVideoDriver();
-
-	SDL_DisplayMode emulatorDisplayMode;
-	SDL_GetCurrentDisplayMode(0, &emulatorDisplayMode);
-
-	printf("VideoDriver %s xres %d yres %d\n", emulatorVideoDriver,
-	       emulatorDisplayMode.w, emulatorDisplayMode.h);
-
-	if (strstr(desktops, emulatorVideoDriver)) {
-		emulatorWindowMode = SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE;
-	} else {
-		emulatorWindowMode = SDL_WINDOW_FULLSCREEN_DESKTOP;
-	}
-
-	emulatorWindow = SDL_CreateWindow(emulatorName, SDL_WINDOWPOS_CENTERED,
-					  SDL_WINDOWPOS_CENTERED, xRes, yRes,
-					  emulatorWindowMode);
+	emulatorWindow = SDL_CreateWindow(emulatorName, xRes, yRes,
+					  SDL_WINDOW_RESIZABLE);
 
 	if (emulatorWindow == NULL) {
 		fprintf(stderr, "Failed to Create Window %s\n", SDL_GetError());
 		return 1;
 	}
 
-	emulatorRenderer = SDL_CreateRenderer(
-		emulatorWindow, -1,
-		SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
+	emulatorRenderer = SDL_CreateRenderer(emulatorWindow, NULL);
 
 	if (emulatorRenderer == NULL) {
 		fprintf(stderr, "Failed to Create Renderer %s\n",
@@ -121,15 +98,16 @@ int emulatorScreenInit(int emulatorMode)
 		return 1;
 	}
 
-	SDL_RenderSetLogicalSize(emulatorRenderer, xRes, yRes);
+	SDL_SetRenderLogicalPresentation(emulatorRenderer, xRes, yRes,
+					 SDL_LOGICAL_PRESENTATION_LETTERBOX);
 
 	SDL_RenderClear(emulatorRenderer);
 	SDL_RenderPresent(emulatorRenderer);
 
 	for (int i = 0; i < 8; i++) {
-		qlModes[i].surface = SDL_CreateRGBSurfaceWithFormat(
-			0, qlModes[i].xRes, qlModes[i].yRes, 32,
-			SDL_PIXELFORMAT_RGBA32);
+		qlModes[i].surface = SDL_CreateSurface(qlModes[i].xRes,
+						       qlModes[i].yRes,
+						       SDL_PIXELFORMAT_RGBA32);
 
 		if (qlModes[i].surface == NULL) {
 			fprintf(stderr, "Failed to Create Screen %s\n",
@@ -150,9 +128,9 @@ int emulatorScreenInit(int emulatorMode)
 	}
 
 	for (int i = 0; i < 16; i++) {
-		sdlColors[i] = SDL_MapRGB(qlModes[0].surface->format,
-					  qlColors[i].r, qlColors[i].g,
-					  qlColors[i].b);
+		sdlColors[i] = SDL_MapRGB(
+			SDL_GetPixelFormatDetails(qlModes[0].surface->format),
+			NULL, qlColors[i].r, qlColors[i].g, qlColors[i].b);
 	}
 
 	return 0;
@@ -247,7 +225,7 @@ void emulatorUpdatePixelBuffer33(uint16_t *emulatorScreenPtr,
 		(uint32_t *)qlModes[emulatorCurrentMode].surface->pixels;
 
 	while (emulatorScreenPtr < emulatorScreenPtrEnd) {
-		uint16_t pixel16 = SDL_SwapBE16(*emulatorScreenPtr++);
+		uint16_t pixel16 = SDL_Swap16BE(*emulatorScreenPtr++);
 
 		// red
 		uint8_t red = (pixel16 & 0x07C0) >> 3;
@@ -258,9 +236,10 @@ void emulatorUpdatePixelBuffer33(uint16_t *emulatorScreenPtr,
 		// blue
 		uint8_t blue = (pixel16 & 0x003E) << 2;
 
-		uint32_t pixel32 =
-			SDL_MapRGB(qlModes[emulatorCurrentMode].surface->format,
-				   red, green, blue);
+		uint32_t pixel32 = SDL_MapRGB(
+			SDL_GetPixelFormatDetails(
+				qlModes[emulatorCurrentMode].surface->format),
+			NULL, red, green, blue);
 
 		*pixelPtr32++ = pixel32;
 	}
@@ -293,9 +272,10 @@ void emulatorUpdatePixelBufferAurora(uint8_t *emulatorScreenPtr,
 		blue |= pixel8 & 1;
 		blue *= 35;
 
-		uint32_t pixel32 =
-			SDL_MapRGB(qlModes[emulatorCurrentMode].surface->format,
-				   red, green, blue);
+		uint32_t pixel32 = SDL_MapRGB(
+			SDL_GetPixelFormatDetails(
+				qlModes[emulatorCurrentMode].surface->format),
+			NULL, red, green, blue);
 
 		*pixelPtr32++ = pixel32;
 	}
@@ -366,8 +346,8 @@ void emulatorRenderScreen(void)
 			  qlModes[emulatorCurrentMode].surface->pixels,
 			  qlModes[emulatorCurrentMode].surface->pitch);
 	SDL_RenderClear(emulatorRenderer);
-	SDL_RenderCopy(emulatorRenderer, qlModes[emulatorCurrentMode].texture,
-		       NULL, NULL);
+	SDL_RenderTexture(emulatorRenderer,
+			  qlModes[emulatorCurrentMode].texture, NULL, NULL);
 	SDL_RenderPresent(emulatorRenderer);
 }
 
@@ -375,7 +355,6 @@ void emulatorFullScreen(void)
 {
 	emulatorFullscreen ^= 1;
 
-	SDL_SetWindowFullscreen(
-		emulatorWindow,
-		emulatorFullscreen ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0);
+	SDL_SetWindowFullscreen(emulatorWindow,
+				emulatorFullscreen ? SDL_WINDOW_FULLSCREEN : 0);
 }

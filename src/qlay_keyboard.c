@@ -4,7 +4,7 @@
  * SPDX: GPL-2.0-only
  */
 
-#include <SDL.h>
+#include <SDL3/SDL.h>
 
 #include "qlay_hooks.h"
 #include "qlay_keyboard.h"
@@ -42,8 +42,8 @@ const struct qlayKeyEntry qlMapDefault[] = {
 	{ SDLK_RIGHTBRACKET, { QL_RBRACKET, 0 } },
 	{ SDLK_LEFTBRACKET, { QL_LBRACKET, 0 } },
 	{ SDLK_PERIOD, { QL_PERIOD, 0 } },
-	{ SDLK_BACKQUOTE, { QL_POUND, 0 } },
-	{ SDLK_QUOTE, { QL_QUOTE, 0 } },
+	{ SDLK_GRAVE, { QL_POUND, 0 } },
+	{ SDLK_APOSTROPHE, { QL_QUOTE, 0 } },
 	{ SDLK_BACKSLASH, { QL_BACKSLASH, 0 } },
 	{ SDLK_EQUALS, { QL_EQUAL, 0 } },
 	{ SDLK_SEMICOLON, { QL_SEMICOLON, 0 } },
@@ -62,32 +62,32 @@ const struct qlayKeyEntry qlMapDefault[] = {
 	{ SDLK_8, { QL_8, 0 } },
 	{ SDLK_9, { QL_9, 0 } },
 	// Letters
-	{ SDLK_a, { QL_A, 0 } },
-	{ SDLK_b, { QL_B, 0 } },
-	{ SDLK_c, { QL_C, 0 } },
-	{ SDLK_d, { QL_D, 0 } },
-	{ SDLK_e, { QL_E, 0 } },
-	{ SDLK_f, { QL_F, 0 } },
-	{ SDLK_g, { QL_G, 0 } },
-	{ SDLK_h, { QL_H, 0 } },
-	{ SDLK_i, { QL_I, 0 } },
-	{ SDLK_j, { QL_J, 0 } },
-	{ SDLK_k, { QL_K, 0 } },
-	{ SDLK_l, { QL_L, 0 } },
-	{ SDLK_m, { QL_M, 0 } },
-	{ SDLK_n, { QL_N, 0 } },
-	{ SDLK_o, { QL_O, 0 } },
-	{ SDLK_p, { QL_P, 0 } },
-	{ SDLK_q, { QL_Q, 0 } },
-	{ SDLK_r, { QL_R, 0 } },
-	{ SDLK_s, { QL_S, 0 } },
-	{ SDLK_t, { QL_T, 0 } },
-	{ SDLK_u, { QL_U, 0 } },
-	{ SDLK_v, { QL_V, 0 } },
-	{ SDLK_w, { QL_W, 0 } },
-	{ SDLK_x, { QL_X, 0 } },
-	{ SDLK_y, { QL_Y, 0 } },
-	{ SDLK_z, { QL_Z, 0 } },
+	{ SDLK_A, { QL_A, 0 } },
+	{ SDLK_B, { QL_B, 0 } },
+	{ SDLK_C, { QL_C, 0 } },
+	{ SDLK_D, { QL_D, 0 } },
+	{ SDLK_E, { QL_E, 0 } },
+	{ SDLK_F, { QL_F, 0 } },
+	{ SDLK_G, { QL_G, 0 } },
+	{ SDLK_H, { QL_H, 0 } },
+	{ SDLK_I, { QL_I, 0 } },
+	{ SDLK_J, { QL_J, 0 } },
+	{ SDLK_K, { QL_K, 0 } },
+	{ SDLK_L, { QL_L, 0 } },
+	{ SDLK_M, { QL_M, 0 } },
+	{ SDLK_N, { QL_N, 0 } },
+	{ SDLK_O, { QL_O, 0 } },
+	{ SDLK_P, { QL_P, 0 } },
+	{ SDLK_Q, { QL_Q, 0 } },
+	{ SDLK_R, { QL_R, 0 } },
+	{ SDLK_S, { QL_S, 0 } },
+	{ SDLK_T, { QL_T, 0 } },
+	{ SDLK_U, { QL_U, 0 } },
+	{ SDLK_V, { QL_V, 0 } },
+	{ SDLK_W, { QL_W, 0 } },
+	{ SDLK_X, { QL_X, 0 } },
+	{ SDLK_Y, { QL_Y, 0 } },
+	{ SDLK_Z, { QL_Z, 0 } },
 	// modifier keys
 	{ SDLK_LSHIFT, { QL_SHIFT, 0 } },
 	{ SDLK_RSHIFT, { QL_SHIFT, 0 } },
@@ -98,7 +98,7 @@ const struct qlayKeyEntry qlMapDefault[] = {
 	// composed keys
 	{ SDLK_BACKSPACE, { QL_CTRL | QL_LEFT, 0 } },
 	{ SDLK_DELETE, { QL_CTRL | QL_RIGHT, 0 } },
-	{ 0x00, {0x00, 0x00 } },
+	{ 0x00, { 0x00, 0x00 } },
 };
 
 static int keyState[0x800];
@@ -126,7 +126,8 @@ uint8_t qlayGetKeyrow(uint8_t row)
 	return rv;
 }
 
-void emulatorProcessKey(int keysym, __attribute__ ((unused)) int scancode, bool pressed)
+void emulatorProcessKey(int keysym, __attribute__((unused)) int scancode,
+			bool pressed)
 {
 	int qlKey;
 	int i = 0;
@@ -188,7 +189,8 @@ void emulatorProcessKey(int keysym, __attribute__ ((unused)) int scancode, bool 
 			utarray_push_back(qlayKeyBuffer, &qlKey);
 		} else {
 			if ((qlKey & 0x780) != qlKey) {
-				utarray_push_back(qlayKeyBuffer, &qlKey); // BS & DEL
+				utarray_push_back(qlayKeyBuffer,
+						  &qlKey); // BS & DEL
 			}
 		}
 	}
