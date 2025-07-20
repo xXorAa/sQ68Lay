@@ -11,7 +11,7 @@ jobs:
 #### Prepare build definitions
   get_release_definitions:
     name: Get Release definitions
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
@@ -76,8 +76,8 @@ jobs:
 #### Linux x86_64
   build_x86_64:
     if: ${{ github.event.inputs.job_enabled_x86_64 != 'false' }}
-    name: Build Linux x86_64 on Ubuntu-22.04
-    runs-on: ubuntu-22.04
+    name: Build Linux x86_64 on Ubuntu-25.04
+    runs-on: ubuntu-latest
     needs:
       - get_release_definitions
     env:
@@ -93,8 +93,8 @@ jobs:
       - name: Install Dependencies
         if: ${{ github.event.inputs.build_enabled_x86_64 != 'false' }}
         run: |
-          sudo apt update
-          sudo apt install -y git cmake libsdl2-dev
+          sudo add-apt-repository ppa:hrzhu/sdl3-backport
+          sudo apt-get install -y git cmake libsdl3-dev
       - name: Configure CMake
         if: ${{ github.event.inputs.build_enabled_x86_64 != 'false' }}
         run: |
@@ -128,7 +128,7 @@ jobs:
   build_arm:
     if: ${{ github.event.inputs.job_enabled_arm != 'false' }}
     name: Build Linux arm on ${{ matrix.distro }} ${{ matrix.arch }}
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     needs:
       - get_release_definitions
     env:
@@ -139,12 +139,12 @@ jobs:
         include:
           - arch: aarch64
             arch_source: arm64
-            distro: ubuntu22.04
-            distroDescr: ubuntu22.04-jammy
+            distro: ubuntu_rolling
+            distroDescr: ubuntu_rolling
           - arch: armv7
             arch_source: armhf
-            distro: ubuntu22.04
-            distroDescr: ubuntu22.04-jammy
+            distro: ubuntu_rolling
+            distroDescr: ubuntu_rolling
     steps:
       - uses: actions/checkout@v4
         with:
@@ -152,7 +152,7 @@ jobs:
           fetch-tags: 'true'
           fetch-depth: '1000'
           submodules: 'true'
-      - uses: uraimo/run-on-arch-action@v2.8.1
+      - uses: uraimo/run-on-arch-action@v3.0.1
         if: ${{ github.event.inputs.build_enabled_arm != 'false' }}
         name: Build w/ CMake
         with:
@@ -164,7 +164,7 @@ jobs:
             case "${{ matrix.distro }}" in
               ubuntu*|jessie|stretch|buster|bullseye)
                 apt-get update  -q -y
-                apt-get install -q -y git libsdl2-dev cmake gcc g++ make
+                apt-get install -q -y git libsdl3-dev cmake gcc g++ make
                 ;;
             esac
           run: |
@@ -215,7 +215,7 @@ jobs:
           sysctl machdep.cpu.brand_string
       - name: Install Dependencies
         run: |
-          brew install sdl2
+          brew install sdl3
       - name: Configure CMake
         if: ${{ github.event.inputs.build_enabled_macos != 'false' }}
         run: |
@@ -259,7 +259,6 @@ jobs:
       matrix:
         include:
           - { sys: mingw64, env: x86_64 }
-          - { sys: mingw32, env: i686 }
     steps:
       - uses: actions/checkout@v4
         with:
@@ -277,7 +276,7 @@ jobs:
             make
             zip
             mingw-w64-${{matrix.env}}-cc
-            mingw-w64-${{matrix.env}}-SDL2
+            mingw-w64-${{matrix.env}}-sdl3
             mingw-w64-${{matrix.env}}-cmake
             mingw-w64-${{matrix.env}}-make
       - name: Configure CMake
