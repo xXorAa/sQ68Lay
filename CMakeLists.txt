@@ -13,8 +13,6 @@ if(${CMAKE_SYSTEM_NAME} MATCHES "Emscripten")
   )
   configure_file(q68_wrapper_sample.html q68.html COPYONLY)
 else()
-  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -ggdb -Og")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ggdb -Og")
   find_package(SDL3 REQUIRED)
 endif()
 
@@ -77,11 +75,23 @@ add_executable(
 
 add_dependencies(sq68ux SubmarineGitVersion Musashi)
 
+set_property(TARGET sq68ux PROPERTY C_STANDARD 17)
+
 target_compile_options(sq68ux PRIVATE -DQ68_EMU -DEMU_STR="sq68ux" -Wall
   -Wextra -Wpedantic -Werror
-  -DMUSASHI_CNF=\"emu68kconf.h\")
+  -DMUSASHI_CNF=\"emu68kconf.h\"
+  "$<$<CONFIG:Debug>:-ggdb;-Og>"
+)
 
-set_property(TARGET sq68ux PROPERTY C_STANDARD 17)
+target_link_options(sq68ux PRIVATE
+  "$<$<CONFIG:Debug>:-ggdb;-Og>"
+)
+
+if(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
+  target_link_libraries(sq68ux PRIVATE SDL3::SDL3-static libssp.a)
+else() 
+  target_link_libraries(sq68ux PRIVATE m SDL3::SDL3)
+endif()
 
 add_executable(
   sqlay3
@@ -109,11 +119,23 @@ add_executable(
 
 add_dependencies(sqlay3 SubmarineGitVersion Musashi)
 
+set_property(TARGET sqlay3 PROPERTY C_STANDARD 17)
+
 target_compile_options(sqlay3 PRIVATE -DQLAY_EMU -DEMU_STR="sqlay3" -Wall
   -Wextra -Wpedantic -Werror
-  -DMUSASHI_CNF=\"emu68kconf.h\")
+  -DMUSASHI_CNF=\"emu68kconf.h\"
+  "$<$<CONFIG:Debug>:-ggdb;-Og>"
+)
 
-set_property(TARGET sqlay3 PROPERTY C_STANDARD 17)
+target_link_options(sqlay3 PRIVATE
+  "$<$<CONFIG:Debug>:-ggdb;-Og>"
+)
+
+if(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
+  target_link_libraries(sqlay3 PRIVATE SDL3::SDL3-static libssp.a)
+else() 
+  target_link_libraries(sqlay3 PRIVATE m SDL3::SDL3)
+endif()
 
 # m68kdasm.c doesnt pass _FORTIFY_SOURCE=2
 if(NOT ${CMAKE_C_COMPILER_ID} MATCHES "Clang")
@@ -126,21 +148,5 @@ set_source_files_properties(args/src/args.c Musashi/m68kcpu.c
 set_source_files_properties(Musashi/m68kops.c
   PROPERTIES COMPILE_FLAGS -Wno-unused-variable)
 
-if(SDL3_LIBRARIES)
-  if(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
-    set(EMU_BUILD_LIBS
-      "-Wl,-Bstatic -L/usr/local/x86_64-w64-mingw32/lib -lmingw32 -lSDL3 -lpthread -lssp -Wl,-Bdynamic -lwsock32 -lwinmm -lsetupapi -limm32 -lversion -static-libgcc"
-    )
-  else()
-    set(EMU_BUILD_LIBS ${SDL3_LIBRARIES})
-  endif()
-elseif(${CMAKE_SYSTEM_NAME} MATCHES "Emscripten")
-  set(EMU_BUILD_LIBS ${SDL3_LIBRARIES})
-else()
-  set(EMU_BUILD_LIBS "SDL3::SDL3")
-endif()
-
-target_link_libraries(sq68ux -lm ${EMU_BUILD_LIBS})
-target_link_libraries(sqlay3 -lm ${EMU_BUILD_LIBS})
-
+install(TARGETS sq68ux DESTINATION ${CMAKE_INSTALL_PREFIX}/bin/)
 install(TARGETS sqlay3 DESTINATION ${CMAKE_INSTALL_PREFIX}/bin/)
