@@ -129,7 +129,7 @@ set_source_files_properties(Musashi/m68kops.c
 if(SDL3_LIBRARIES)
   if(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
     set(EMU_BUILD_LIBS
-      "-Wl,-Bstatic -L/usr/local/x86_64-w64-mingw32/lib -lmingw32 -lSDL3main -lSDL3 -lpthread -Wl,-Bdynamic -lwsock32 -lwinmm -lsetupapi -limm32 -lversion -static-libgcc"
+      "-Wl,-Bstatic -L/usr/local/x86_64-w64-mingw32/lib -lmingw32 -lSDL3 -lpthread -lssp -Wl,-Bdynamic -lwsock32 -lwinmm -lsetupapi -limm32 -lversion -static-libgcc"
     )
   else()
     set(EMU_BUILD_LIBS ${SDL3_LIBRARIES})
