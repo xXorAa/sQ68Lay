@@ -31,7 +31,10 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[])
 		return SDL_APP_FAILURE;
 	}
 
+#ifdef QLAY_EMU
+	// limit frame rate to 50Hz for qlay3
 	SDL_SetHint(SDL_HINT_MAIN_CALLBACK_RATE, "50");
+#endif
 
 	// BUG: workaround https://github.com/libsdl-org/SDL/issues/12805
 	SDL_SetHint(SDL_HINT_RENDER_VSYNC, "1");
