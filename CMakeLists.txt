@@ -4,17 +4,7 @@ project(sq68ux C)
 
 add_compile_options(-U_FORTIFY_SOURCE -Werror -Wall -Wextra -Wpedantic)
 
-if(${CMAKE_SYSTEM_NAME} MATCHES "Emscripten")
-  set(USE_FLAGS "-s USE_SDL=2")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 ${USE_FLAGS}")
-  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O2 ${USE_FLAGS}")
-  set(CMAKE_EXE_LINKER_FLAGS
-    "${CMAKE_EXE_LINKER_FLAGS} ${USE_FLAGS} -s ALLOW_MEMORY_GROWTH=1 --preload-file ${CMAKE_SOURCE_DIR}/Q68_SMSQ.bin@./Q68_SMSQ.bin"
-  )
-  configure_file(q68_wrapper_sample.html q68.html COPYONLY)
-else()
-  find_package(SDL3 REQUIRED)
-endif()
+find_package(SDL3 REQUIRED)
 
 include_directories(
   ${CMAKE_CURRENT_LIST_DIR}
@@ -40,6 +30,12 @@ set_source_files_properties(${CMAKE_CURRENT_BINARY_DIR}/version.c
 
 cmake_path(NORMAL_PATH PROJECT_SOURCE_DIR OUTPUT_VARIABLE PROJECT_ROOT_NORMALIZED)
 add_compile_options(-ffile-prefix-map=${PROJECT_ROOT_NORMALIZED}=)
+
+if(${CMAKE_SYSTEM_NAME} MATCHES "Emscripten")
+  set(EM_LINK "-sALLOW_MEMORY_GROWTH")
+  set(QLAY3_LINK "--preload-file" "${CMAKE_SOURCE_DIR}/sqlay3.ini@/sqlay3.ini" "--preload-file" "${CMAKE_SOURCE_DIR}/roms/min1.98a1.bin@/roms/min1.98a1.bin")
+  configure_file(qlay_wrapper_sample.html sqlay3.html COPYONLY)
+endif()
 
 add_custom_target(
   Musashi
@@ -84,12 +80,14 @@ target_compile_options(sq68ux PRIVATE -DQ68_EMU -DEMU_STR="sq68ux" -Wall
 )
 
 target_link_options(sq68ux PRIVATE
+  ${EM_LINK}
+  ${QLAY3_LINK}
   "$<$<CONFIG:Debug>:-ggdb;-Og>"
 )
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
   target_link_libraries(sq68ux PRIVATE SDL3::SDL3-static libssp.a)
-else() 
+else()
   target_link_libraries(sq68ux PRIVATE m SDL3::SDL3)
 endif()
 
@@ -127,13 +125,22 @@ target_compile_options(sqlay3 PRIVATE -DQLAY_EMU -DEMU_STR="sqlay3" -Wall
   "$<$<CONFIG:Debug>:-ggdb;-Og>"
 )
 
-target_link_options(sqlay3 PRIVATE
-  "$<$<CONFIG:Debug>:-ggdb;-Og>"
-)
+
+if(${CMAKE_SYSTEM_NAME} MATCHES "Emscripten")
+  target_link_options(sqlay3 PRIVATE
+    -sALLOW_MEMORY_GROWTH
+    --preload-file=${CMAKE_SOURCE_DIR}/sqlay3.ini@/sqlay3.ini
+    --preload-file=${CMAKE_SOURCE_DIR}/roms/min1.98a1.bin@/roms/min1.98a1.bin
+  )
+else()
+  target_link_options(sqlay3 PRIVATE
+    "$<$<CONFIG:Debug>:-ggdb;-Og>"
+  )
+endif()
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
   target_link_libraries(sqlay3 PRIVATE SDL3::SDL3-static libssp.a)
-else() 
+else()
   target_link_libraries(sqlay3 PRIVATE m SDL3::SDL3)
 endif()
 
