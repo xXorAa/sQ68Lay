@@ -23,8 +23,7 @@ if __name__ == "__main__":
     httpd = server(port)
     try:
         os.chdir('wasm')
-        print("\nserving from build/ at localhost:" + str(port))
-        webbrowser.open("http://localhost:8666/q68.html",new=2)
+        print("\nserving from wasm/ at localhost:" + str(port))
         httpd.serve_forever()
     except KeyboardInterrupt:
         print("\n...shutting down http server")
