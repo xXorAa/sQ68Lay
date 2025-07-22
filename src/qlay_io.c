@@ -1496,7 +1496,7 @@ static void do_mdv_motor(void)
 {
 	if (mdvmotor) {
 		EMU_PC_INTR |= 0x01;
-		doIrq = true;
+		m68k_set_irq(2); /* set MDV interrupt */
 		dt_event(1); /* set time stamp */
 	}
 	return;
@@ -1516,7 +1516,7 @@ static void set_gap_irq(void)
 		return;
 	}
 
-	doIrq = 1;
+	m68k_set_irq(2); /* set MDV interrupt */
 }
 
 void do_mdv_tick(void)

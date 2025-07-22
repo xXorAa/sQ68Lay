@@ -13,6 +13,6 @@
 
 extern bool exitLoop;
 
-void emulatorProcessEvents(void);
+bool emulatorProcessEvents(SDL_Event *event);
 
 #endif /* EMULATOR_EVENTS_H */
