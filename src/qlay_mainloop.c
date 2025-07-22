@@ -25,6 +25,12 @@
 #define FIFTYHZ_CYCLES 150000
 #define POINTONEMS_CYCLES 750
 
+typedef struct {
+	uint64_t cyclesNow;
+	uint64_t cyclesThen;
+	uint64_t cyclesMdv;
+} emulator_state_t;
+
 int msClk = 0;
 
 unsigned int extraCycles;
@@ -37,15 +43,13 @@ uint64_t cycles(void)
 	return cyclesNow / 16;
 }
 
-int emulatorMainLoop(void)
+void *emulatorInitEmulation(void)
 {
-	int expromCount;
-
 	emulatorLoadFile(emulatorOptionString("sysrom"),
 			 &emulatorMemorySpace()[0], 0);
 
 	// TODO: add proper exprom handling
-	expromCount = emulatorOptionDevCount("exprom");
+	int expromCount = emulatorOptionDevCount("exprom");
 	if (expromCount) {
 		emulatorLoadFile(emulatorOptionDev("exprom", 0),
 				 &emulatorMemorySpace()[KB(48)], 0);
@@ -61,68 +65,35 @@ int emulatorMainLoop(void)
 	qlayInitialiseTime();
 	traceInit();
 
-	uint64_t counterFreq = SDL_GetPerformanceFrequency();
-	uint64_t msTick = counterFreq / 10000;
+	emulator_state_t *emu_state = calloc(1, sizeof(emulator_state_t));
+	return emu_state;
+}
 
-	uint64_t screenThen = SDL_GetPerformanceCounter();
-	uint64_t msThen = screenThen;
+bool emulatorInteration(void *state)
+{
+	emulator_state_t *emu_state = (emulator_state_t *)state;
 
-	uint64_t cyclesThen = 0;
+	while ((emu_state->cyclesNow - emu_state->cyclesThen) <
+	       FIFTYHZ_CYCLES) {
+		extraCycles = 0;
+		emu_state->cyclesNow += m68k_execute(1) + extraCycles;
 
-	uint64_t cycles50hz = FIFTYHZ_CYCLES;
-	uint64_t cyclesMdv = MDV_CYCLES;
+		if ((emu_state->cyclesNow - emu_state->cyclesMdv) >
+		    MDV_CYCLES) {
+			do_mdv_tick();
 
-	uint8_t secondTick = 0;
-
-	while (!exitLoop) {
-		while ((cyclesNow - cyclesThen) < POINTONEMS_CYCLES) {
-			extraCycles = 0;
-			cyclesNow += m68k_execute(1) + extraCycles;
-
-			if (cycles() >= cycleNextEvent) {
-				//do_next_event();
-			}
-
-			if (cyclesNow >= cycles50hz) {
-				emulatorUpdatePixelBuffer();
-				emulatorRenderScreen();
-				emulatorProcessEvents();
-
-				EMU_PC_INTR |= PC_INTRF;
-				doIrq = true;
-
-				cycles50hz += FIFTYHZ_CYCLES;
-
-				secondTick++;
-			}
-
-			if (cyclesNow >= cyclesMdv) {
-				do_mdv_tick();
-
-				cyclesMdv += MDV_CYCLES;
-			}
+			emu_state->cyclesMdv += MDV_CYCLES;
 		}
-
-		if (doIrq) {
-			m68k_set_irq(2);
-			doIrq = false;
-		}
-
-		cyclesThen = cyclesNow;
-
-		/* wait for next 0.1ms */
-		uint64_t now = SDL_GetPerformanceCounter();
-		while ((now - msThen) < msTick) {
-			now = SDL_GetPerformanceCounter();
-		}
-
-		if (secondTick == 50) {
-			EMU_PC_CLOCK++;
-			secondTick = 0;
-		}
-
-		msThen = now;
 	}
+
+	emulatorUpdatePixelBuffer();
+	emulatorRenderScreen();
+
+	EMU_PC_INTR |= PC_INTRF;
+
+	m68k_set_irq(2);
+
+	emu_state->cyclesThen += FIFTYHZ_CYCLES;
 
 	return 0;
 }

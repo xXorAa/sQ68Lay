@@ -7,10 +7,9 @@
 #include <stdint.h>
 
 uint64_t cycles(void);
-void emulatorMainLoop(void);
+void *emulatorInitEmulation(void);
+bool emulatorInteration(void *state);
 
 extern unsigned int extraCycles;
-extern uint64_t cyclesNow;
-extern bool doIrq;
 
 #endif /* EMULATOR_MAINLOOP_H */

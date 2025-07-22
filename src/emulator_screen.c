@@ -68,9 +68,7 @@ struct qlMode qlModes[8] = {
 	  NULL } // huge 16 bit            7
 };
 
-const char *const desktops = "x11,cocoa,windows,wayland,emscripten";
-
-int emulatorScreenInit(int emulatorMode)
+int emulatorInitScreen(int emulatorMode)
 {
 	// Fixed screen res for emulator output
 	int xRes = 1024;

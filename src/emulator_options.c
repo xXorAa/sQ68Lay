@@ -5,6 +5,7 @@
  */
 
 #include <ctype.h>
+#include <SDL3/SDL.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -142,8 +143,8 @@ struct emuOpts emuOptions[] = {
 	{ "drive", "l", "nfa file (upto 8 times)", EMU_OPT_DEV, 0, NULL, NULL },
 	{ "exprom", "c", "address@romfile eg C000@NFA.rom", EMU_OPT_DEV, 0,
 	  NULL, NULL },
-	{ "loglevel", "", "log level 0-5 (5 silent)", EMU_OPT_INT, LOG_ERROR,
-	  NULL, NULL },
+	{ "loglevel", "", "log level 0-7 (7 silent)", EMU_OPT_INT,
+	  SDL_LOG_PRIORITY_INFO, NULL, NULL },
 	{ "ramsize", "m", "amount of ram in K (max 8192)", EMU_OPT_INT, 128,
 	  NULL, NULL },
 	{ "sysrom", "r", "system rom", EMU_OPT_CHAR, 0, "JS.rom", NULL },
