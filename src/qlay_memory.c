@@ -17,7 +17,7 @@
 #include "qlay_disk.h"
 
 static uint8_t *qlayMemSpace = NULL;
-static size_t qlayMemSize = 0;
+static unsigned int qlayMemSize = 0;
 
 // how many extra cycles accessing screen ram costs
 #define CONTENTION_CYCLES 6
@@ -39,7 +39,7 @@ int emulatorInitMemory(void)
 
 	if (qlayMemSize < KB(256)) {
 		SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
-			     "Ramsize Error too small %zu\n", qlayMemSize);
+			     "Ramsize Error too small %u\n", qlayMemSize);
 		return 1;
 	}
 
@@ -50,7 +50,7 @@ int emulatorInitMemory(void)
 		return 1;
 	}
 
-	SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Initialzed RAM %zuk\n",
+	SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Initialzed RAM %uk\n",
 		    (qlayMemSize / 1024) - 128);
 
 	return 0;
