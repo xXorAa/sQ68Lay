@@ -23,7 +23,10 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[])
 {
 	emulatorOptionParse(argc, argv);
 
-	if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS)) {
+	SDL_SetAppMetadata(EMU_STR " emulator for the Sinclair QL", "0.1",
+			   "https://github.com/xXorAa/sQ68Lay/");
+
+	if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS | SDL_INIT_AUDIO)) {
 		SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "SDL_Init Error: %s",
 			     SDL_GetError());
 		return SDL_APP_FAILURE;
