@@ -29,6 +29,7 @@ typedef struct {
 	uint64_t cyclesNow;
 	uint64_t cyclesThen;
 	uint64_t cyclesMdv;
+	uint64_t frameCount;
 } emulator_state_t;
 
 int msClk = 0;
@@ -94,6 +95,12 @@ bool emulatorInteration(void *state)
 	m68k_set_irq(2);
 
 	emu_state->cyclesThen += FIFTYHZ_CYCLES;
+
+	// update the RTC register
+	emu_state->frameCount++;
+	if (emu_state->frameCount % 50 == 0) {
+		EMU_PC_CLOCK++;
+	}
 
 	return 0;
 }
