@@ -27,6 +27,7 @@
 #include "m68k.h"
 #include "qlay_hooks.h"
 #include "qlay_keyboard.h"
+#include "qlay_sound.h"
 #include "utarray.h"
 #include "utstring.h"
 
@@ -500,6 +501,8 @@ static void mdv_select(int drive)
 		mdvwp = 0; /* 1 ->just in case - 0 by Jimmy */
 		mdvmotor = false;
 		mdvtxfl = false;
+
+		qlayStopMdvSound();
 	} else {
 		SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION, "MDV MOTOR ON %d",
 			     drive);
@@ -513,6 +516,8 @@ static void mdv_select(int drive)
 		mdrive[mdvnum].mdvstate = MDV_GAP1;
 		mdrive[mdvnum].mdvgapcnt = MDV_GAP_COUNT;
 		set_gap_irq();
+
+		qlayStartMdvSound();
 	}
 }
 
@@ -1189,6 +1194,8 @@ void init_mdvs(void)
 	int i = 0;
 	int noDrives = emulatorOptionDevCount("drive");
 	bool res;
+
+	qlayInitMdvSound();
 
 	memset(mdrive, 0, sizeof(mdrive));
 

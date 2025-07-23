@@ -103,6 +103,7 @@ add_executable(
   src/qlay_io.c
   src/qlay_keyboard.c
   src/qlay_mainloop.c
+  src/qlay_sound.c
   src/qlay_trace.c
   args/src/args.c
   inih/ini.c
