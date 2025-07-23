@@ -12,7 +12,6 @@ include_directories(
   Musashi/
   args/src/
   inih/
-  log.c/src/
   external/
   qlay/
   uthash/src/)
