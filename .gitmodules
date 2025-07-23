@@ -10,6 +10,3 @@
 [submodule "Musashi"]
 	path = Musashi
 	url = https://github.com/xXorAa/Musashi
-[submodule "log.c"]
-	path = log.c
-	url = https://github.com/rxi/log.c
