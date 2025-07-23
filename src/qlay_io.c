@@ -36,10 +36,6 @@ uint32_t qlay1msec = 7500 / 16;
 uint8_t qliord_b(uint32_t a);
 uint32_t qliord_l(uint32_t a);
 void qliowr_b(uint32_t a, uint8_t d);
-void QL_exit(void);
-
-/* internal */
-static void do_mdv_motor(void);
 
 /* internal */
 void wr8049(uint8_t data);
@@ -54,7 +50,6 @@ static int dt_event(int dt_type);
 static void mdv_select(int drive);
 static void init_events(void);
 static void eval_next_event(void);
-static void do_tx(void);
 static void ser_rcv_init(void);
 static int ser_rcv_dequeue(int ch);
 static int ser_rcv_size(int ch);
@@ -416,23 +411,6 @@ static void wrmdvdata(uint8_t x)
 static uint8_t mdvselect = 0;
 static bool mdvselbit = false;
 
-int uint8_log2(uint64_t n)
-{
-#define S(k)                          \
-	if (n >= (UINT8_C(1) << k)) { \
-		i += k;               \
-		n >>= k;              \
-	}
-
-	int i = -(n == 0);
-	S(4);
-	S(2);
-	S(1);
-	return i;
-
-#undef S
-}
-
 void wrmdvcntl(uint8_t x)
 {
 	if (x & PC__WRITE) {
@@ -722,28 +700,6 @@ static int ser_rcv_dequeue(int ch)
 	return ser_rcv_buf[ch][next];
 }
 
-// called from ser rcv thread
-void ser_rcv_enqueue(int ch, int len, uint8_t *b)
-{
-	int next, i;
-
-	if (len > SER_RCV_LEN - ser_rcv_fill[ch]) {
-		// fpr is NOT fully reentrant
-		fpr("RCV buffer overflow; dropping chars\n");
-		len = SER_RCV_LEN - ser_rcv_fill[ch];
-	}
-	ser_rcv_fill[ch] += len;
-
-	next = ser_rcv_1st[ch];
-	for (i = 0; i < len; i++) {
-		ser_rcv_buf[ch][next] = b[i];
-		next++;
-		if (next >= SER_RCV_LEN)
-			next = 0;
-	}
-	ser_rcv_1st[ch] = next;
-}
-
 static int ser_rcv_size(int ch)
 {
 	return ser_rcv_fill[ch];
@@ -1029,10 +985,6 @@ void qlayInitIPC(void)
 	//start_speaker();
 	qlclkoff = 0;
 	cycleNextEvent = 0;
-}
-
-void QL_exit(void)
-{
 }
 
 /* load a qlay formatted MDV
@@ -1323,204 +1275,6 @@ uint32_t	d50,dmdv,dmouse,dsound,dtx;
 	//	if (dc < dmin)
 	//		dmin = dc;
 	cycleNextEvent = cycles() + dmin;
-}
-
-/* a simple brute force implementation that works just fine ... */
-void do_next_event(void)
-{
-	int e;
-
-	uint8_t intmask = (m68k_get_reg(NULL, M68K_REG_SR) >> 8) & 7;
-	e = 0;
-	if (cycles() >= e50) { /* 50Hz interrupt, 20 msec */
-		// do_50Hz();
-		//m68k_set_irq(2);
-		//doIrq = true;
-		//EMU_PC_INTR |= PC_INTRF;
-		e50 = cycles() + (20 * qlay1msec);
-		e++;
-		if (0)
-			fpr("I5 ");
-	}
-	if (cycles() >= emdv) { /* MDV gap interrupt, 31 msec */
-		if (intmask < 2) {
-			do_mdv_motor();
-		}
-		emdv = cycles() +
-		       (5 *
-			qlay1msec); // Jimmy 093 - To increase MDV Speed ! - 5 -> 31
-		e++;
-		if (0)
-			fpr("IM ");
-	}
-#if 0
-	if (emulator::cycle == emouse) { /* mouse interrupt, x msec */
-		do_mouse_xm();
-		emouse = emulator::cycle + 2 * qlay1msec;
-		e++;
-		if (0)
-			fpr("IMo ");
-	}
-#endif
-#if 0
-	if (emulator::cycle == esound) {
-		esound = emulator::cycle + sound_process(0);
-		e++;
-		if (0)
-			fpr("IS ");
-	}
-#endif
-	if (cycles() == etx) {
-		do_tx();
-		etx = cycles() - 1; /* nothing more */
-		e++;
-		if (0)
-			fpr("ITX ");
-	}
-
-	/* decide who's next */
-	eval_next_event();
-
-	if (!e) {
-		fpr("\nError NoE c: %d ", cycles());
-		fpr("e: %d %d %d %d %d\n", e50, emdv, emouse, esound, etx);
-	}
-}
-
-#if 0
-/* if 'initbeep' first init BEEP parameters */
-/* return number of ticks till next process; -1 for stop process */
-static int sound_process(int initbeep)
-{
-	/* these are the SuperBasic equivalent values */
-	static int dur, pitch1, pitch2, gradx, grady, wrap, random, fuzzy;
-	static int dur_decr, cpitch, cpstep, cpdelay, us72;
-	int rv;
-
-	if (!IPCbeeping)
-		return -1;
-	if (initbeep) {
-		pitch1 = BEEPpars[0] * 16 + BEEPpars[1];
-		if (pitch1 == 0)
-			pitch1 = 256;
-		pitch2 = BEEPpars[2] * 16 + BEEPpars[3];
-		if (pitch2 == 0)
-			pitch2 = 256;
-		gradx = ((BEEPpars[6] * 16 + BEEPpars[7]) * 16 + BEEPpars[4]) *
-				16 +
-			BEEPpars[5];
-		dur = ((BEEPpars[10] * 16 + BEEPpars[11]) * 16 + BEEPpars[8]) *
-			      16 +
-		      BEEPpars[9];
-		if (dur == 0)
-			dur_decr = 0;
-		else
-			dur_decr = 1;
-		grady = BEEPpars[12];
-		if (grady > 7)
-			grady = 16 - grady;
-		wrap = BEEPpars[13];
-		random = BEEPpars[14];
-		fuzzy = BEEPpars[15];
-		if (0)
-			fpr("\nBP: D:%d P1:%d P2:%d GX:%d GY:%d W:%d R:%d F:%d \n",
-			    dur, pitch1 - 1, pitch2 - 1, gradx, grady, wrap,
-			    random, fuzzy);
-		/* prepare ourselves */
-		us72 = qlay1msec / 13; /* 72 microseconds */
-		cpdelay = gradx;
-		cpstep = grady;
-		if (cpstep > 0)
-			if (pitch1 > pitch2) {
-				int a = pitch2;
-				pitch2 = pitch1;
-				pitch1 = a;
-			}
-		if (cpstep < 0)
-			if (pitch2 > pitch1) {
-				int a = pitch2;
-				pitch2 = pitch1;
-				pitch1 = a;
-			}
-		/* assert pitch steps from pitch1 towards pitch2 */
-		cpitch = pitch1;
-		/*		cpitch=pitch2;
-		if (cpstep<0) cpitch=pitch1;
-		if (pitch1>pitch2) if (cpstep<0) cpstep-=cpstep;
-		if (pitch1<pitch2) if (cpstep>0) cpstep-=cpstep;
-*/
-		/* get me started */
-		esound = emulator::cycle + 1; /* next emulator::cycle we will start */
-		eval_next_event();
-		return 1; /* return value is actually don't care now */
-	}
-	do_speaker(); /* blip */
-	if (dur_decr) {
-		if (dur <= 0) {
-			IPCbeeping = 0;
-			stop_speaker();
-			return -1;
-		}
-	}
-	rv = cpitch * us72;
-	dur -= cpitch;
-	cpdelay -= cpitch;
-	if (cpdelay <= 0) {
-		cpdelay = gradx;
-		cpitch += cpstep;
-	}
-	if (cpstep > 0) {
-		if (cpitch > pitch2) {
-			cpitch = pitch2;
-			cpstep = -cpstep;
-			{
-				int a = pitch2;
-				pitch2 = pitch1;
-				pitch1 = a;
-			}
-		}
-	} else {
-		if (cpstep < 0) {
-			if (cpitch < pitch2) {
-				cpitch = pitch2;
-				cpstep = -cpstep;
-				{
-					int a = pitch2;
-					pitch2 = pitch1;
-					pitch1 = a;
-				}
-			}
-		}
-	}
-	if (rv == 0) {
-		fpr("ErrorSND ");
-		rv = us72; /* we'll be back soon... */
-	}
-	return rv;
-}
-#endif
-
-int irq_level(void)
-{
-	if (REG18021 & 0x1f)
-		return 2;
-	else
-		return -1;
-}
-
-static void do_mdv_motor(void)
-{
-	if (mdvmotor) {
-		EMU_PC_INTR |= 0x01;
-		m68k_set_irq(2); /* set MDV interrupt */
-		dt_event(1); /* set time stamp */
-	}
-	return;
-}
-
-static void do_tx(void)
-{
-	REG18020tx &= ~0x02; /* clear tx busy bit: byte is transmitted */
 }
 
 static void set_gap_irq(void)

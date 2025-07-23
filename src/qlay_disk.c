@@ -36,12 +36,6 @@ static int get_dir(int drivenr, int offset, int bytecnt);
 static int fnum2fname(int drivenr, int fnum, char *fname);
 static int fnum2dirname(int drivenr, char *fname);
 
-static void print_byte(uint8_t val);
-#if 0
-static void print_open(void);
-#endif
-static void print_close(void);
-
 #define END_CMD 0x00
 #define RD_CMD 0x81
 #define WR_CMD 0x82
@@ -71,9 +65,6 @@ static uint8_t dir[MAXDRIVE][MAXDLEN];
 static uint8_t sector[512];
 static FILE *nfa;
 static char *filename;
-
-static FILE *prttmp;
-static int prtopen;
 
 void qlayInitDisk(void)
 {
@@ -112,13 +103,6 @@ void qlayInitDisk(void)
 	}
 
 	filename = calloc(256, 1);
-}
-
-void exit_qldisk(void)
-{
-	if (prtopen == 1)
-		print_close();
-	prtopen = 0;
 }
 
 /* store part of directory in 'sector' into 'dir' */
@@ -174,13 +158,6 @@ int fnum2dirname(int drivenr, char *fname)
 	return 0;
 }
 
-static int win_drives = 0;
-
-int win_avail(void)
-{
-	return win_drives;
-}
-
 void wrnfa(uint32_t addr, uint8_t data)
 {
 	int drivenr, filenum, sectnum, bytenum, bytecnt,
@@ -198,8 +175,6 @@ void wrnfa(uint32_t addr, uint8_t data)
 			  emulatorMemorySpace()[0x18107];
 		bytecnt = emulatorMemorySpace()[0x18108] * 256 +
 			  emulatorMemorySpace()[0x18109];
-
-		win_drives |= (1 << (drivenr - 1));
 
 		switch (data) {
 		case END_CMD:
@@ -480,48 +455,4 @@ int rennfa(int drivenr, int filenum, __attribute__((unused)) int sectnum,
 	if (rv != 0)
 		rv = -1; /*NC*/
 	return rv;
-}
-
-uint8_t rdserpar(__attribute__((unused)) uint32_t a)
-{
-	return 0;
-}
-
-void wrserpar(uint32_t a, uint8_t d)
-{
-	if (a == 0x180c0)
-		print_byte(d);
-}
-
-#if 0
-static void print_open(void)
-{
-	// prttmp = fopen(prtname, "wb");
-	// if (prttmp == NULL) {
-	// 	prtopen = -1;
-	// } else {
-	// 	prtopen = 1;
-	//}
-}
-#endif
-static void print_close(void)
-{
-	if (prttmp != NULL)
-		fclose(prttmp);
-	prtopen = 0;
-}
-
-static void print_byte(__attribute__((unused)) uint8_t val)
-{
-	/*
-	if (prtopen == 0)
-		print_open();
-	if (prtopen == 1) {
-		fputc(val, prttmp);
-		fflush(prttmp);
-		if (val == 0x1A) {
-			print_close();
-		}
-	}
-	*/
 }
