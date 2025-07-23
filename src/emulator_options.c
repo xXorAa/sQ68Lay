@@ -18,7 +18,6 @@
 #pragma GCC diagnostic pop
 
 #include "ini.h"
-#include "log.h"
 #include "utlist.h"
 #include "utstring.h"
 #include "version.h"
@@ -143,8 +142,6 @@ struct emuOpts emuOptions[] = {
 	{ "drive", "l", "nfa file (upto 8 times)", EMU_OPT_DEV, 0, NULL, NULL },
 	{ "exprom", "c", "address@romfile eg C000@NFA.rom", EMU_OPT_DEV, 0,
 	  NULL, NULL },
-	{ "loglevel", "", "log level 0-7 (7 silent)", EMU_OPT_INT,
-	  SDL_LOG_PRIORITY_INFO, NULL, NULL },
 	{ "ramsize", "m", "amount of ram in K (max 8192)", EMU_OPT_INT, 128,
 	  NULL, NULL },
 	{ "sysrom", "r", "system rom", EMU_OPT_CHAR, 0, "JS.rom", NULL },
@@ -158,8 +155,6 @@ struct emuOpts emuOptions[] = {
 #endif //QLAY_EMU
 
 #ifdef Q68_EMU
-	{ "loglevel", "", "log level 0-5 (5 silent)", EMU_OPT_INT, LOG_ERROR,
-	  NULL, NULL },
 	{ "smsqe", "", "smsqe image to load (at 0x32000)", EMU_OPT_CHAR, 0,
 	  NULL, NULL },
 	{ "sd1", "", "SDHC Image for SD1 slot", EMU_OPT_CHAR, 0, NULL, NULL },

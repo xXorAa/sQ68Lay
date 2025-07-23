@@ -4,6 +4,8 @@
 	QL disk access functions
 */
 
+#include <SDL3/SDL.h>
+
 #include <ctype.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -15,9 +17,7 @@
 #include "emulator_options.h"
 #include "m68k.h"
 
-static const char* winfn[8] = {
-"", "", "", "", "", "", "", ""
-};
+static const char *winfn[8] = { "", "", "", "", "", "", "", "" };
 
 /* internal */
 static int wrnfafile(int drivenr, int filenum, int sectnum, int bytenum,
@@ -33,8 +33,8 @@ static int rennfa(int drivenr, int filenum, int sectnum, int bytenum,
 static int drvcfgnfa(int drivenr);
 static int store_dir(int drivenr, int offset, int bytecnt);
 static int get_dir(int drivenr, int offset, int bytecnt);
-static int fnum2fname(int drivenr, int fnum, char* fname);
-static int fnum2dirname(int drivenr, char* fname);
+static int fnum2fname(int drivenr, int fnum, char *fname);
+static int fnum2dirname(int drivenr, char *fname);
 
 static void print_byte(uint8_t val);
 #if 0
@@ -70,7 +70,7 @@ static void print_close(void);
 static uint8_t dir[MAXDRIVE][MAXDLEN];
 static uint8_t sector[512];
 static FILE *nfa;
-static char* filename;
+static char *filename;
 
 static FILE *prttmp;
 static int prtopen;
@@ -87,7 +87,7 @@ void qlayInitDisk(void)
 		int drvNum;
 
 		if (!(strncmp(drive, "win", 3) == 0) || !isdigit(drive[3]) ||
-			(drive[4] != '@')) {
+		    (drive[4] != '@')) {
 			continue;
 		}
 
@@ -101,7 +101,8 @@ void qlayInitDisk(void)
 
 		winfn[drvNum] = drvName;
 
-		printf("WIN%d is %s\n", drvNum + 1, drvName);
+		SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "WIN%d is %s",
+			    drvNum + 1, drvName);
 
 		i++;
 	}
@@ -148,7 +149,7 @@ int get_dir(int drivenr, int offset, int bytecnt)
 	return 0; /*OK*/
 }
 
-int fnum2fname(int drivenr, int fnum, char* fname)
+int fnum2fname(int drivenr, int fnum, char *fname)
 {
 	if (fnum == 0) {
 		strcpy(fname, winfn[drivenr - 1]);
@@ -189,10 +190,14 @@ void wrnfa(uint32_t addr, uint8_t data)
 		//draw_LED(First_Led_X - 16, First_Led_Y, LED_GREEN,
 		//	 1); /* full yellow */
 		drivenr = emulatorMemorySpace()[0x18101];
-		filenum = emulatorMemorySpace()[0x18102] * 256 + emulatorMemorySpace()[0x18103];
-		sectnum = emulatorMemorySpace()[0x18104] * 256 + emulatorMemorySpace()[0x18105];
-		bytenum = emulatorMemorySpace()[0x18106] * 256 + emulatorMemorySpace()[0x18107];
-		bytecnt = emulatorMemorySpace()[0x18108] * 256 + emulatorMemorySpace()[0x18109];
+		filenum = emulatorMemorySpace()[0x18102] * 256 +
+			  emulatorMemorySpace()[0x18103];
+		sectnum = emulatorMemorySpace()[0x18104] * 256 +
+			  emulatorMemorySpace()[0x18105];
+		bytenum = emulatorMemorySpace()[0x18106] * 256 +
+			  emulatorMemorySpace()[0x18107];
+		bytecnt = emulatorMemorySpace()[0x18108] * 256 +
+			  emulatorMemorySpace()[0x18109];
 
 		win_drives |= (1 << (drivenr - 1));
 
@@ -236,7 +241,8 @@ void wrnfa(uint32_t addr, uint8_t data)
 			r = -19; /*NIyet*/
 		}
 		// Type cast add by Jimmy (uint32_t) & (uint8_t)
-		m68k_write_memory_8((uint32_t)0x1810a, (uint8_t)((r >> 8) & 0xff));
+		m68k_write_memory_8((uint32_t)0x1810a,
+				    (uint8_t)((r >> 8) & 0xff));
 		m68k_write_memory_8((uint32_t)0x1810b, (uint8_t)(r & 0xff));
 		//draw_LED(First_Led_X - 16, First_Led_Y, LED_GREEN,
 		//	 0); /* full black */
@@ -330,7 +336,8 @@ int rdnfafile(int drivenr, int filenum, int sectnum, int bytenum, int bytecnt)
 			if (get_dir(drivenr, offset, bytecnt) < 0)
 				return -7; /*NF*/
 			for (i = 0; i < bytecnt; i++)
-				m68k_write_memory_8(i + 0x18200 + bytenum, sector[i]);
+				m68k_write_memory_8(i + 0x18200 + bytenum,
+						    sector[i]);
 			return 0;
 		}
 
@@ -441,7 +448,8 @@ int truncnfa(int drivenr, int filenum, int sectnum, int bytenum, int bytecnt)
 }
 
 /* rename file. filename in sector, return QDOS error code */
-int rennfa(int drivenr, int filenum, __attribute__ ((unused)) int sectnum, __attribute__ ((unused)) int bytenum, int bytecnt)
+int rennfa(int drivenr, int filenum, __attribute__((unused)) int sectnum,
+	   __attribute__((unused)) int bytenum, int bytecnt)
 {
 	int i, rv, fnlen;
 	char newname[512];
@@ -474,7 +482,7 @@ int rennfa(int drivenr, int filenum, __attribute__ ((unused)) int sectnum, __att
 	return rv;
 }
 
-uint8_t rdserpar(__attribute__ ((unused)) uint32_t a)
+uint8_t rdserpar(__attribute__((unused)) uint32_t a)
 {
 	return 0;
 }
@@ -498,11 +506,12 @@ static void print_open(void)
 #endif
 static void print_close(void)
 {
-	if(prttmp!=NULL) fclose(prttmp);
+	if (prttmp != NULL)
+		fclose(prttmp);
 	prtopen = 0;
 }
 
-static void print_byte(__attribute__ ((unused)) uint8_t val)
+static void print_byte(__attribute__((unused)) uint8_t val)
 {
 	/*
 	if (prtopen == 0)
