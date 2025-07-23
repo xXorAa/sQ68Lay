@@ -4,6 +4,8 @@
 	QL input and output
 */
 
+#include <SDL3/SDL.h>
+
 #include <ctype.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -22,7 +24,6 @@
 #include "emulator_hardware.h"
 #include "emulator_mainloop.h"
 #include "emulator_memory.h"
-#include "log.h"
 #include "m68k.h"
 #include "qlay_hooks.h"
 #include "qlay_keyboard.h"
@@ -435,7 +436,7 @@ int uint8_log2(uint64_t n)
 void wrmdvcntl(uint8_t x)
 {
 	if (x & PC__WRITE) {
-		log_debug("MDV Write On");
+		SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION, "MDV Write On");
 		mdvwrite = true;
 
 		// Unfortunately JS and Minerva use different timing
@@ -448,17 +449,17 @@ void wrmdvcntl(uint8_t x)
 			mdrive[mdvnum].mdvgapcnt = 1;
 		}
 	} else {
-		log_debug("MDV Write Off");
+		SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION, "MDV Write Off");
 		mdvwrite = false;
 	}
 
 	if ((x & PC__ERASE) && !mdverase) {
-		log_debug("MDV Erase On");
+		SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION, "MDV Erase On");
 		mdverase = true;
 	}
 
 	if (!(x & PC__ERASE) && mdverase) {
-		log_debug("MDV Erase Off");
+		SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION, "MDV Erase Off");
 		mdverase = false;
 	}
 
@@ -506,7 +507,7 @@ static void mdv_select(int drive)
 	mdvwra = 0;
 
 	if (drive == 0) {
-		log_debug("MDV MOTOR OFF");
+		SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION, "MDV MOTOR OFF");
 		for (int i = 0; i < 8; i++) {
 			if (mdrive[i].mdvwritten) {
 				// write MDV back to disk
@@ -522,7 +523,8 @@ static void mdv_select(int drive)
 		mdvmotor = false;
 		mdvtxfl = false;
 	} else {
-		log_debug("MDV MOTOR ON %d", drive);
+		SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION, "MDV MOTOR ON %d",
+			     drive);
 		mdvnum = drive - 1;
 		mdvname = mdrive[mdvnum].name;
 		mdvpresent = mdrive[mdvnum].present;
@@ -1044,7 +1046,8 @@ static bool load_qlay_mdv_file(int fd, int mdvnum)
 
 	/* malloc failed for some reason */
 	if (mdrive[mdvnum].data == NULL) {
-		log_error("malloc failed %s %d");
+		SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
+			     "malloc failed %s %d", __FILE__, __LINE__);
 		return false;
 	}
 
@@ -1082,7 +1085,8 @@ static bool load_mdi_mdv_file(int fd, int mdvnum)
 
 	/* malloc failed for some reason */
 	if (mdrive[mdvnum].data == NULL) {
-		log_error("malloc failed %s %d");
+		SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION,
+			     "malloc failed %s %d", __FILE__, __LINE__);
 		return false;
 	}
 
@@ -1114,17 +1118,20 @@ static bool load_mdv_file(const char *filename, int mdvnum)
 	fstat(fd, &stat);
 
 	if (stat.st_size == QLAY_MDV_SIZE) {
-		log_info("%s is a QLAY file", filename);
+		SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "%s is a QLAY file",
+			    filename);
 		res = load_qlay_mdv_file(fd, mdvnum);
 	} else if (stat.st_size == MDI_MDV_SIZE) {
-		log_info("%s is a MDI file", filename);
+		SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "%s is a MDI file",
+			    filename);
 		res = load_mdi_mdv_file(fd, mdvnum);
 	}
 
 	close(fd);
 
 	if (res == false) {
-		log_error("Failed to load file %s", filename);
+		SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
+			     "Failed to load file %s", filename);
 		return false;
 	}
 
@@ -1180,23 +1187,28 @@ static void save_mdv_file(int mdvnum)
 	int fd;
 	bool res = false;
 
-	log_info("Saving: %s", mdrive[mdvnum].name);
+	SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Saving: %s",
+		    mdrive[mdvnum].name);
 
 	if (mdrive[mdvnum].name == NULL) {
-		log_error("MDV%d name (NULL)", mdvnum + 1);
+		SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "MDV%d name (NULL)",
+			     mdvnum + 1);
 		return;
 	}
 
 	if (mdrive[mdvnum].wrprot) {
-		log_info("MDV%d write protected NOT saving", mdvnum + 1);
+		SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION,
+			    "MDV%d write protected NOT saving", mdvnum + 1);
 		return;
 	}
 
-	log_debug("MDV Saving %s %d", mdrive[mdvnum].name, mdvnum);
+	SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION, "MDV Saving %s %d",
+		     mdrive[mdvnum].name, mdvnum);
 
 	fd = open(mdrive[mdvnum].name, O_WRONLY | O_CREAT);
 	if (fd < 0) {
-		log_error("opening MDV for write %s", strerror(errno));
+		SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
+			     "opening MDV for write %s", strerror(errno));
 		return;
 	}
 
@@ -1208,13 +1220,15 @@ static void save_mdv_file(int mdvnum)
 		res = save_mdi_mdv_file(fd, mdvnum);
 		break;
 	default:
-		log_error("Unknown mdv format MDV%d\n", mdvnum + 1);
+		SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
+			     "Unknown mdv format MDV%d\n", mdvnum + 1);
 	}
 
 	close(fd);
 
 	if (res == false) {
-		log_error("Failed to save file %s", mdrive[mdvnum].name);
+		SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
+			     "Failed to save file %s", mdrive[mdvnum].name);
 	}
 }
 
@@ -1264,9 +1278,11 @@ void init_mdvs(void)
 			mdrive[mdvNum].sector = 0;
 			mdvpresent = 1;
 			mdvname = mdvName;
-			log_info("MDV%01d is %s", mdvNum + 1, mdvname);
+			SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION,
+				    "MDV%01d is %s", mdvNum + 1, mdvname);
 		} else {
-			log_info("MDV%01d is ejected", mdvNum + 1);
+			SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION,
+				    "MDV%01d is ejected", mdvNum + 1);
 		}
 	}
 }
@@ -1543,7 +1559,8 @@ void do_mdv_tick(void)
 		switch (mdrive[mdvnum].mdvstate) {
 		case MDV_GAP1:
 			if (mdrive[mdvnum].mdvgapcnt == MDV_GAP_COUNT) {
-				log_debug("GAP1");
+				SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION,
+					     "GAP1");
 			}
 			mdvgap = 1;
 			mdvrd = 0;
@@ -1557,7 +1574,8 @@ void do_mdv_tick(void)
 			break;
 		case MDV_PREAMBLE1:
 			if (mdrive[mdvnum].mdvgapcnt == MDV_PREAMBLE_COUNT) {
-				log_debug("PREAMBLE1");
+				SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION,
+					     "PREAMBLE1");
 			}
 			mdvgap = 0;
 			mdvrd = 0;
@@ -1570,7 +1588,8 @@ void do_mdv_tick(void)
 			break;
 		case MDV_HDR:
 			if (mdrive[mdvnum].idx == 0) {
-				log_debug("HDR");
+				SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION,
+					     "HDR");
 			}
 			mdvgap = 0;
 			mdvrd = 1;
@@ -1586,7 +1605,8 @@ void do_mdv_tick(void)
 			break;
 		case MDV_GAP2:
 			if (mdrive[mdvnum].mdvgapcnt == MDV_GAP_COUNT) {
-				log_debug("GAP2");
+				SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION,
+					     "GAP2");
 			}
 			mdvgap = 1;
 			mdvrd = 0;
@@ -1606,7 +1626,8 @@ void do_mdv_tick(void)
 			break;
 		case MDV_PREAMBLE2:
 			if (mdrive[mdvnum].mdvgapcnt == MDV_PREAMBLE_COUNT) {
-				log_debug("PREAMBLE2");
+				SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION,
+					     "PREAMBLE2");
 			}
 			mdvgap = 0;
 			mdvrd = 0;
@@ -1619,7 +1640,8 @@ void do_mdv_tick(void)
 			break;
 		case MDV_DATA_HDR:
 			if (mdrive[mdvnum].idx == 0) {
-				log_debug("DATA_HDR");
+				SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION,
+					     "DATA_HDR");
 			}
 			mdvgap = 0;
 
@@ -1644,7 +1666,8 @@ void do_mdv_tick(void)
 		case MDV_DATA_PREAMBLE:
 			if (mdrive[mdvnum].mdvgapcnt ==
 			    MDV_DATA_PREAMBLE_COUNT) {
-				log_debug("DATA_PREAMBLE");
+				SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION,
+					     "DATA_PREAMBLE");
 			}
 			mdvgap = 0;
 			mdvrd = 0;
@@ -1657,7 +1680,8 @@ void do_mdv_tick(void)
 			break;
 		case MDV_DATA:
 			if (mdrive[mdvnum].idx == 0) {
-				log_debug("DATA");
+				SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION,
+					     "DATA");
 			}
 			mdvgap = 0;
 
@@ -1680,7 +1704,8 @@ void do_mdv_tick(void)
 			break;
 		case MDV_INTERSECTOR:
 			if (mdrive[mdvnum].idx == 0) {
-				log_debug("INTERSECTOR");
+				SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION,
+					     "INTERSECTOR");
 			}
 
 			if (!mdvwrite) {
@@ -1700,7 +1725,8 @@ void do_mdv_tick(void)
 			}
 			break;
 		default:
-			log_error("MDV in unknown state");
+			SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
+				     "MDV in unknown state");
 			break;
 		}
 	} else {

@@ -38,17 +38,20 @@ int emulatorInitMemory(void)
 	qlayMemSize = KB(emulatorOptionInt("ramsize")) + KB(128);
 
 	if (qlayMemSize < KB(256)) {
-		fprintf(stderr, "Ramsize Error too small %zu\n", qlayMemSize);
+		SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
+			     "Ramsize Error too small %zu\n", qlayMemSize);
 		return 1;
 	}
 
 	qlayMemSpace = calloc(qlayMemSize, 1);
 	if (qlayMemSpace == NULL) {
-		fprintf(stderr, "%s: malloc failed\n", __func__);
+		SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
+			     "malloc failed %s %d", __FILE__, __LINE__);
 		return 1;
 	}
 
-	printf("Initialzed RAM %zuk\n", (qlayMemSize / 1024) - 128);
+	SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Initialzed RAM %zuk\n",
+		    (qlayMemSize / 1024) - 128);
 
 	return 0;
 }

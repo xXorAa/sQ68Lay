@@ -14,7 +14,6 @@
 #include "emulator_memory.h"
 #include "emulator_options.h"
 #include "emulator_screen.h"
-#include "log.h"
 
 #if __EMSCRIPTEN__
 #include <emscripten/emscripten.h>
@@ -24,10 +23,9 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[])
 {
 	emulatorOptionParse(argc, argv);
 
-	log_set_level(emulatorOptionInt("loglevel"));
-
 	if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS)) {
-		SDL_Log("SDL_Init Error: %s\n", SDL_GetError());
+		SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "SDL_Init Error: %s",
+			     SDL_GetError());
 		return SDL_APP_FAILURE;
 	}
 

@@ -1,8 +1,7 @@
 # Dependencies
 
 ```
-libglib
-SDL2
+SDL3
 ```
 
 # Building
@@ -13,6 +12,20 @@ cmake --build build
 ```
 
 # Running
+## Log Messages
+
+Logging is controlled by the SDL_LOGGING variable for example to silence all logs
+
+```
+SDL_LOGGING=app=quiet ./build/sqlay3
+```
+
+or to enable debug messages
+
+```
+SDL_LOGGING=app=debug ./build/sqlay3
+```
+
 ## sq68ux
 
 ```

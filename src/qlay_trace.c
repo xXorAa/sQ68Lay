@@ -5,11 +5,12 @@
  * SPDX: GPL-2.0-only
  */
 
+#include <SDL3/SDL.h>
+
 #include <stdbool.h>
 #include <stdio.h>
 
 #include "emulator_options.h"
-#include "log.h"
 #include "qlay_hooks.h"
 #include "uthash.h"
 
@@ -36,11 +37,12 @@ void traceInit(void)
 	trace_low = emulatorOptionInt("trace-low");
 	trace_high = emulatorOptionInt("trace-high");
 
-	log_info("Tracing range %8.8x - %8.8x", trace_low, trace_high);
+	SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Tracing range %8.8x - %8.8x",
+		    trace_low, trace_high);
 
 	if (emulatorOptionInt("trace")) {
 		trace = true;
-		log_info("Tracing Enabled");
+		SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Tracing Enabled");
 	}
 
 	if (strlen(mapFile) == 0) {
