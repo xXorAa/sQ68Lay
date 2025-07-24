@@ -9,6 +9,7 @@
 #ifndef QLAY_SOUND_H
 #define QLAY_SOUND_H
 
+bool qlayInitSount(void);
 bool qlayInitMdvSound(void);
 bool qlayStartMdvSound(void);
 bool qlayStopMdvSound(void);

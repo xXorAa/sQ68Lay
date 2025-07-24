@@ -260,7 +260,30 @@ static void SDLCALL qlayStreamMdvSound(void *userdata, SDL_AudioStream *astream,
 	SDL_PutAudioStreamData(astream, mdvsnd_wav, sizeof(mdvsnd_wav));
 }
 
+static SDL_AudioDeviceID audio_dev = 0;
 static SDL_AudioStream *stream = NULL;
+static SDL_AudioSpec audio_spec;
+
+bool qlayInitSount(void)
+{
+	audio_dev =
+		SDL_OpenAudioDevice(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, NULL);
+	if (!audio_dev) {
+		SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
+			     "Couldn't open audio device: %s", SDL_GetError());
+		return false;
+	}
+
+	if (!SDL_GetAudioDeviceFormat(audio_dev, &audio_spec, NULL)) {
+		SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
+			     "Couldn't get audio device format: %s",
+			     SDL_GetError());
+		SDL_CloseAudioDevice(audio_dev);
+		return false;
+	}
+
+	return true;
+}
 
 bool qlayInitMdvSound(void)
 {
@@ -271,8 +294,7 @@ bool qlayInitMdvSound(void)
 	spec.channels = 1;
 	spec.format = SDL_AUDIO_U8;
 	spec.freq = 8000;
-	stream = SDL_OpenAudioDeviceStream(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK,
-					   &spec, qlayStreamMdvSound, NULL);
+	stream = SDL_CreateAudioStream(&spec, &audio_spec);
 	if (!stream) {
 		SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
 			     "Couldn't create audio stream: %s",
@@ -280,6 +302,20 @@ bool qlayInitMdvSound(void)
 		return false;
 	}
 
+	if (!SDL_SetAudioStreamGetCallback(stream, qlayStreamMdvSound, NULL)) {
+		SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
+			     "Couldn't set audio stream callback: %s",
+			     SDL_GetError());
+		SDL_DestroyAudioStream(stream);
+		return false;
+	}
+
+	if (!SDL_BindAudioStream(audio_dev, stream)) {
+		SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
+			     "Couldn't bind audio stream: %s", SDL_GetError());
+		SDL_DestroyAudioStream(stream);
+		return false;
+	}
 	return true;
 }
 
