@@ -19,6 +19,7 @@
 #include "qlay_hooks.h"
 #include "qlay_io.h"
 #include "qlay_keyboard.h"
+#include "qlay_sound.h"
 #include "qlay_trace.h"
 
 #define MDV_CYCLES 230
@@ -60,6 +61,7 @@ void *emulatorInitEmulation(void)
 	m68k_init();
 	m68k_pulse_reset();
 
+	qlayInitSount();
 	qlayInitKbd();
 	qlayInitIPC();
 	qlayInitDisk();
