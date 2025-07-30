@@ -10,3 +10,6 @@
 [submodule "Musashi"]
 	path = Musashi
 	url = https://github.com/xXorAa/Musashi
+[submodule "ayumi"]
+	path = ayumi
+	url = https://github.com/true-grue/ayumi
