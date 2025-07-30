@@ -11,6 +11,7 @@ include_directories(
   include/
   Musashi/
   args/src/
+  ayumi/
   inih/
   external/
   qlay/
@@ -106,6 +107,7 @@ add_executable(
   src/qlay_sound.c
   src/qlay_trace.c
   args/src/args.c
+  ayumi/ayumi.c
   inih/ini.c
   Musashi/m68kcpu.c
   Musashi/m68kops.c
