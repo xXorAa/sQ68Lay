@@ -142,6 +142,7 @@ struct emuOpts emuOptions[] = {
 	{ "drive", "l", "nfa file (upto 8 times)", EMU_OPT_DEV, 0, NULL, NULL },
 	{ "exprom", "c", "address@romfile eg C000@NFA.rom", EMU_OPT_DEV, 0,
 	  NULL, NULL },
+	{ "ipcvol", "", "volume in range 1-8", EMU_OPT_INT, 3, NULL, NULL },
 	{ "ramsize", "m", "amount of ram in K (max 8192)", EMU_OPT_INT, 128,
 	  NULL, NULL },
 	{ "sysrom", "r", "system rom", EMU_OPT_CHAR, 0, "JS.rom", NULL },

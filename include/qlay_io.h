@@ -14,4 +14,6 @@ void writeMdvSer(uint8_t data);
 void do_next_event(void);
 void do_mdv_tick(void);
 
+extern bool qlayIPCBeeping;
+
 #endif /* QLAY_IPC_H */

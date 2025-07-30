@@ -62,8 +62,8 @@ static int IPCcnt; /* send bit counter */
 static int IPCwfc = 1; /* wait for command */
 uint8_t REG18021 = 0; /* interrupt control/status register 18021 */
 static int ser12oc = 0; /* ser1,2 open: bit0: SER1, bit1: SER2 */
-static int IPCbeeping = 0; /* BEEP is sounding */
-int BEEPpars[16]; /* IPC beep parameters */
+bool qlayIPCBeeping = false; /* BEEP is sounding */
+Uint8 BEEPpars[16]; /* IPC beep parameters */
 
 #define SERBUFLEN 23
 //uint8_t	IPCserbuf[2][SERBUFLEN];/* serial receive buffers from 8049 */
@@ -780,10 +780,9 @@ static void exec_IPCcmd(int cmd)
 			fpr("B%d:%x ", params, cmd);
 		params++;
 		if (params > 15) {
-			IPCbeeping = 1;
 			IPCpcmd = 0x10;
 			params = 0;
-			//sound_process(1);
+			qlayIPCBeepSound(BEEPpars);
 		}
 		IPCwfc = 1;
 		return;
@@ -829,7 +828,7 @@ static void exec_IPCcmd(int cmd)
 		}
 		//if (use_debugger || fakeF1)
 		//	IPCreturn |= 0x01; /* fake kbd interrupt */
-		if (IPCbeeping)
+		if (qlayIPCBeeping)
 			IPCreturn |= 0x02;
 		if (ser12oc & 0x01) { /* SER1 */
 			if (ser_rcv_size(0) > 0) {
@@ -929,7 +928,7 @@ static void exec_IPCcmd(int cmd)
 	case 0xb: /* kill sound */
 		if (0)
 			fpr("KILLBEEP ");
-		IPCbeeping = 0;
+		qlayIPCKillSound();
 		IPCwfc = 1;
 		break;
 	case 0xc: /* test interrupt 2?? */

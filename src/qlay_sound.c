@@ -9,6 +9,9 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include "emulator_options.h"
+#include "qlay_io.h"
+
 /*
  Sample taken from:
  https : //www.lingula.org.uk/~steve/share/vdrive-sound/mdvsnd-attiny85.c
@@ -248,23 +251,11 @@ static const uint8_t mdvsnd_wav[] = {
 	0x52, 0x24, 0x69, 0x95, 0x96, 0xac
 };
 
-static void SDLCALL qlayStreamMdvSound(void *userdata, SDL_AudioStream *astream,
-				       int additional_amount, int total_amount)
-{
-	(void)userdata;
-	(void)additional_amount;
-	(void)total_amount;
-
-	SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION, "Streaming MDV sound data");
-
-	SDL_PutAudioStreamData(astream, mdvsnd_wav, sizeof(mdvsnd_wav));
-}
-
+// Global audio device
 static SDL_AudioDeviceID audio_dev = 0;
-static SDL_AudioStream *stream = NULL;
 static SDL_AudioSpec audio_spec;
 
-bool qlayInitSount(void)
+bool qlayInitSound(void)
 {
 	audio_dev =
 		SDL_OpenAudioDevice(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, NULL);
@@ -285,6 +276,31 @@ bool qlayInitSount(void)
 	return true;
 }
 
+// mdv audio stream
+static SDL_AudioStream *mdv_audio_stream = NULL;
+static Uint8 *mdv_silence = NULL;
+static bool mdv_running = false;
+static Uint32 mdv_sound_loc = 0;
+
+static void SDLCALL qlayStreamMdvSound(void *userdata, SDL_AudioStream *astream,
+				       int additional_amount, int total_amount)
+{
+	(void)userdata;
+	(void)total_amount;
+
+	if (mdv_running) {
+		SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION,
+			     "Streaming MDV sound data");
+
+		SDL_PutAudioStreamData(astream, mdvsnd_wav + mdv_sound_loc,
+				       additional_amount);
+		mdv_sound_loc += additional_amount;
+		if (mdv_sound_loc >= sizeof(mdvsnd_wav)) {
+			mdv_sound_loc = 0;
+		}
+	}
+}
+
 bool qlayInitMdvSound(void)
 {
 	SDL_AudioSpec spec;
@@ -294,26 +310,32 @@ bool qlayInitMdvSound(void)
 	spec.channels = 1;
 	spec.format = SDL_AUDIO_U8;
 	spec.freq = 8000;
-	stream = SDL_CreateAudioStream(&spec, &audio_spec);
-	if (!stream) {
+
+	mdv_silence = SDL_malloc(256);
+	int silenceVal = SDL_GetSilenceValueForFormat(SDL_AUDIO_U8);
+	SDL_memset(mdv_silence, silenceVal, 256);
+
+	mdv_audio_stream = SDL_CreateAudioStream(&spec, &audio_spec);
+	if (!mdv_audio_stream) {
 		SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
 			     "Couldn't create audio stream: %s",
 			     SDL_GetError());
 		return false;
 	}
 
-	if (!SDL_SetAudioStreamGetCallback(stream, qlayStreamMdvSound, NULL)) {
+	if (!SDL_SetAudioStreamGetCallback(mdv_audio_stream, qlayStreamMdvSound,
+					   NULL)) {
 		SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
 			     "Couldn't set audio stream callback: %s",
 			     SDL_GetError());
-		SDL_DestroyAudioStream(stream);
+		SDL_DestroyAudioStream(mdv_audio_stream);
 		return false;
 	}
 
-	if (!SDL_BindAudioStream(audio_dev, stream)) {
+	if (!SDL_BindAudioStream(audio_dev, mdv_audio_stream)) {
 		SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
 			     "Couldn't bind audio stream: %s", SDL_GetError());
-		SDL_DestroyAudioStream(stream);
+		SDL_DestroyAudioStream(mdv_audio_stream);
 		return false;
 	}
 	return true;
@@ -321,14 +343,494 @@ bool qlayInitMdvSound(void)
 
 bool qlayStartMdvSound(void)
 {
-	SDL_ResumeAudioStreamDevice(stream);
+	SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION, "Start MDV sound");
+
+	mdv_running = true;
 
 	return true;
 }
 
 bool qlayStopMdvSound(void)
 {
-	SDL_PauseAudioStreamDevice(stream);
+	SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION, "Stop MDV sound");
+	SDL_ClearAudioStream(mdv_audio_stream);
+
+	mdv_running = false;
 
 	return true;
+}
+
+/*
+ * Original Authour of below IPC sound code:
+ * https://github.com/ikjordan
+ *
+ * Used with permission.
+ */
+
+/*
+ * Structures only used in this file
+ */
+typedef struct { // Beep parameters written to ipc8049
+	unsigned int length;
+	unsigned int pitch;
+	unsigned int pitch_2;
+	unsigned int grd_x;
+	int grd_y;
+	unsigned int wrap;
+	unsigned int random;
+	unsigned int fuzz;
+} ipc_sound;
+
+typedef struct {
+	SDL_Mutex *mutex; // Mutex protecting writing to the structure
+	int in_use; // Index to pic_sound buffer being played
+	int last_written; // Latest buffer to play
+	ipc_sound beep[3]; // The buffers
+} sound_data;
+
+typedef struct {
+	unsigned int
+		current_pitch; // currently playing pitch - may include random
+	int random; // Random number to be added to pitch
+	int fuzz; // Random adjustment in wavelength
+	int left; // Total samples left to write
+	int pitch_left; // Sample left for current pitch
+	int half_cycle; // sample per half period
+	int wave_state; // High or low (with silence in between)
+	int cycle_point; // Current sample position in wave cycle
+	int w_count; // wrap count
+	int direction; // Direction of pitch travel
+} current_sound;
+
+/*
+ * Local variables
+ */
+static int audio_volume; // audio volume, 0 to 127
+
+static SDL_AudioStream *ipc_audio_stream = NULL;
+
+static sound_data sound;
+static current_sound c_sound;
+
+static Sint8 *sound_buffer = NULL;
+static int sound_buffer_size = 1024;
+
+/*
+ * Local functions
+ */
+void qlayIPCAudioCallback(void *userdata, SDL_AudioStream *stream,
+			  int additional_amount, int total_amount);
+
+static void setVolume(int volume);
+static void setPitchDuration(void);
+static void getNewPitch(void);
+static void randomAdjust(void);
+static void fuzzAdjust(void);
+
+static int pitchToHalfSampleCount(int pitch);
+static void qlayIPCPopulateBuffer(int start, int samples, Sint8 *buffer,
+				  int len);
+static void silenceBuffer(int start, Sint8 *buffer, int len);
+
+/*
+ * Local definitions
+ */
+#define UNUSED(x) (void)(x)
+#define TICK_8049 22917 // Number of IPC ticks per second
+
+#define FREQUENCY 24000 // Requested sampling frequency
+#define SAMPLES 256 // Number of samples in a callback
+#define MAX_IPC_PARAMS 16 // For the case where all 16 slots yield 8 bits
+
+bool qlayInitIPCSound(void)
+{
+	SDL_AudioSpec spec;
+
+	SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION, "Init IPC sound");
+
+	spec.channels = 1;
+	spec.format = SDL_AUDIO_S8;
+	spec.freq = FREQUENCY;
+	ipc_audio_stream = SDL_CreateAudioStream(&spec, &audio_spec);
+	if (!ipc_audio_stream) {
+		SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
+			     "Couldn't create IPC audio stream: %s",
+			     SDL_GetError());
+		return false;
+	}
+
+	if (!SDL_SetAudioStreamGetCallback(ipc_audio_stream,
+					   qlayIPCAudioCallback, NULL)) {
+		SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
+			     "Couldn't set audio stream callback: %s",
+			     SDL_GetError());
+		SDL_DestroyAudioStream(ipc_audio_stream);
+		return false;
+	}
+
+	//SDL_PauseAudioStreamDevice(ipc_audio_stream);
+
+	if (!SDL_BindAudioStream(audio_dev, ipc_audio_stream)) {
+		SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
+			     "Couldn't bind audio stream: %s", SDL_GetError());
+		SDL_DestroyAudioStream(ipc_audio_stream);
+		return false;
+	}
+
+	setVolume(emulatorOptionInt("ipcvol"));
+
+	sound_buffer = SDL_malloc(sound_buffer_size);
+	if (!sound_buffer) {
+		SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
+			     "Couldn't allocate sound buffer: %s",
+			     SDL_GetError());
+		SDL_DestroyAudioStream(ipc_audio_stream);
+		return false;
+	}
+
+	return true;
+}
+
+static void setVolume(int volume)
+{
+	volume = SDL_abs(volume);
+
+	if (volume > 10)
+		volume = 10;
+
+	audio_volume = 12 * volume;
+}
+
+/*
+ * IPC Information comes as 4 bit nibbles, pack them into 8 bit bytes
+*/
+void PackIPCCommand(Uint8 *arg, Uint8 *pack)
+{
+	for (int i = 0; i < MAX_IPC_PARAMS; i += 2) {
+		pack[i / 2] = arg[i] << 4;
+		pack[i / 2] |= arg[i + 1] & 0x0f;
+	}
+}
+
+void qlayIPCBeepSound(Uint8 *arg)
+{
+	Uint8 params[MAX_IPC_PARAMS] = { 0 }; // Init to all 0
+	PackIPCCommand(arg, params);
+
+	// Find correct param structure
+	int write_num;
+
+	qlayIPCBeeping = true; // Sound will soon be on!
+
+	SDL_LockMutex(sound.mutex);
+	for (write_num = 0; write_num < 3; ++write_num) {
+		if ((write_num != sound.in_use) &&
+		    (write_num != sound.last_written))
+			break;
+	}
+
+	sound.beep[write_num].pitch = params[0];
+	sound.beep[write_num].pitch_2 = params[1];
+
+	sound.beep[write_num].grd_x = params[2] | ((params[3] & 0x7f) << 8);
+	sound.beep[write_num].length = params[4] | ((params[5] & 0x7f) << 8);
+
+	sound.beep[write_num].grd_y = ((params[6] & 0xf0) >> 4);
+	if (sound.beep[write_num].grd_y > 7)
+		sound.beep[write_num].grd_y -= 0x10;
+
+	sound.beep[write_num].wrap = (params[6] & 0x0f);
+	sound.beep[write_num].random = ((params[7] & 0xf0) >> 4);
+	sound.beep[write_num].fuzz = (params[7] & 0x0f);
+
+	// Calculate data and write
+	sound.last_written = write_num;
+	SDL_UnlockMutex(sound.mutex);
+
+	SDL_LogDebug(
+		SDL_LOG_CATEGORY_APPLICATION,
+		"length %u pitch %u pitch2 %u grd_x %u grd_y %i wrap %u fuzz %u random %u",
+		sound.beep[write_num].length, sound.beep[write_num].pitch,
+		sound.beep[write_num].pitch_2, sound.beep[write_num].grd_x,
+		sound.beep[write_num].grd_y, sound.beep[write_num].wrap,
+		sound.beep[write_num].fuzz, sound.beep[write_num].random);
+
+	// Always unpause the sound here, in case the callback has paused itself
+	SDL_ResumeAudioStreamDevice(ipc_audio_stream);
+}
+
+void qlayIPCKillSound(void)
+{
+	SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION, "Kill sound");
+
+	SDL_LockMutex(sound.mutex);
+	sound.in_use = -1;
+	sound.last_written = -1;
+	SDL_UnlockMutex(sound.mutex);
+
+	qlayIPCBeeping = false;
+}
+
+void qlayIPCAudioCallback(void *userdata, SDL_AudioStream *stream,
+			  int additional_amount, int total_amount)
+{
+	(void)userdata;
+	(void)total_amount;
+
+	if (additional_amount > sound_buffer_size) {
+		sound_buffer = SDL_realloc(sound_buffer, additional_amount);
+		if (!sound_buffer) {
+			SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
+				     "Couldn't reallocate sound buffer: %s",
+				     SDL_GetError());
+		} else {
+			sound_buffer_size = additional_amount;
+		}
+	}
+
+	if (qlayIPCBeeping == false) {
+		//return; // No sound to play
+	}
+
+	//SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION,
+	//	     "IPC audio callback, additional amount: %d",
+	//	     additional_amount);
+
+	int written = 0; // Total samples written this callback
+	int to_write = 0; // Samples to write in next iteration
+
+	bool new_found = false;
+	SDL_LockMutex(sound.mutex);
+
+	if (c_sound.left < 0) {
+		// Used all of the buffer, so no longer in use
+		sound.in_use = -1;
+	}
+
+	if ((sound.last_written >= 0) && (sound.last_written != sound.in_use)) {
+		sound.in_use = sound.last_written;
+		sound.last_written = -1; // Have taken latest buffer
+		new_found = true;
+	}
+
+	SDL_UnlockMutex(sound.mutex);
+
+	if (new_found) {
+		c_sound.current_pitch =
+			(sound.beep[sound.in_use].grd_y < 0) ?
+				sound.beep[sound.in_use].pitch_2 :
+				sound.beep[sound.in_use].pitch;
+		c_sound.random = 0; // No randomness on first pitch
+		c_sound.fuzz = 0;
+		c_sound.half_cycle =
+			pitchToHalfSampleCount(c_sound.current_pitch);
+		c_sound.left = (sound.beep[sound.in_use].length * FREQUENCY) /
+			       TICK_8049;
+
+		setPitchDuration();
+		c_sound.cycle_point = 0;
+		c_sound.wave_state = 0;
+		c_sound.direction = 1;
+		c_sound.w_count = sound.beep[sound.in_use].wrap;
+		fuzzAdjust();
+	}
+
+	if ((c_sound.left < 0) || (sound.in_use == -1)) {
+		//SDL_PauseAudioStreamDevice(ipc_audio_stream);
+		qlayIPCBeeping = false;
+	} else {
+		do {
+			if (c_sound.pitch_left == 0) {
+				// Play one note forever
+				to_write = additional_amount - written;
+			} else if (c_sound.pitch_left >
+				   (additional_amount - written)) {
+				// Can fill buffer with current note
+				to_write = additional_amount - written;
+				c_sound.pitch_left -= to_write;
+				if (c_sound.left) {
+					c_sound.left -= to_write;
+				}
+			} else {
+				// Need to change note or stop playing
+				to_write = c_sound.pitch_left;
+				if (c_sound.left) {
+					if (c_sound.left > c_sound.pitch_left) {
+						c_sound.left -= to_write;
+					} else {
+						c_sound.left = -1;
+					}
+				}
+				c_sound.pitch_left = -1;
+			}
+
+			qlayIPCPopulateBuffer(written, to_write, sound_buffer,
+					      additional_amount);
+			written += to_write;
+
+			if (written < additional_amount) {
+				// Reached the end of the pitch
+				// New pitch, or silence?
+				if (c_sound.left >= 0) {
+					getNewPitch();
+					setPitchDuration();
+				} else {
+					silenceBuffer(written, sound_buffer,
+						      additional_amount);
+					written = additional_amount;
+				}
+			}
+		} while (written < additional_amount);
+	}
+
+	SDL_PutAudioStreamData(stream, sound_buffer, written);
+}
+
+static void getNewPitch(void)
+{
+	int change = sound.beep[sound.in_use].grd_y;
+	unsigned int try_pitch = c_sound.current_pitch;
+
+	if (change) {
+		if (change == -8) {
+			// we cycle through the whole set of pitches
+			// this is confirmed on a BBQL
+			c_sound.current_pitch =
+				(c_sound.current_pitch + 248) % 0x100;
+		} else {
+			// Now have -7 to +7
+			try_pitch += change * c_sound.direction;
+			try_pitch &= 0xff;
+
+			if ((try_pitch > sound.beep[sound.in_use].pitch) &&
+			    (try_pitch < sound.beep[sound.in_use].pitch_2)) {
+				// Pitch in range
+				c_sound.current_pitch = try_pitch;
+			} else {
+				// Reached the end of the sequence - are we wrapping?
+				if (c_sound.w_count > 0) {
+					// We are not so go back to the original pitch
+					c_sound.current_pitch =
+						((change * c_sound.direction) <
+						 0) ?
+							sound.beep[sound.in_use]
+								.pitch_2 :
+							sound.beep[sound.in_use]
+								.pitch;
+
+					if (c_sound.w_count != 15) {
+						--c_sound.w_count;
+					}
+				} else {
+					// Use the pitch we have calculated
+					c_sound.current_pitch = try_pitch;
+					c_sound.w_count =
+						sound.beep[sound.in_use].wrap;
+					c_sound.direction *= -1;
+				}
+			}
+		}
+	}
+	randomAdjust();
+	c_sound.half_cycle = pitchToHalfSampleCount(
+		c_sound.current_pitch + c_sound.random + c_sound.fuzz);
+
+	// Emulate the BBQL "click"
+	c_sound.cycle_point = ((c_sound.cycle_point + 1) < c_sound.half_cycle) ?
+				      c_sound.cycle_point + 1 :
+				      c_sound.cycle_point - 1;
+}
+
+/*
+ * Fuzz adjust is called whenever the wave_state changes
+ */
+static void fuzzAdjust(void)
+{
+	if (sound.beep[sound.in_use].fuzz > 7) {
+		int val = (sound.beep[sound.in_use].fuzz - 7);
+		c_sound.fuzz = SDL_rand(0x1 << val);
+		c_sound.half_cycle = pitchToHalfSampleCount(
+			c_sound.current_pitch + c_sound.random + c_sound.fuzz);
+	} else {
+		c_sound.fuzz = 0;
+	}
+}
+
+/*
+ * Random adjust is called whenever a pich change is evaluated
+ */
+static void randomAdjust(void)
+{
+	if (sound.beep[sound.in_use].random > 7) {
+		int val = (sound.beep[sound.in_use].random - 7);
+		c_sound.random = SDL_rand(0x1 << val);
+
+	} else {
+		c_sound.random = 0;
+	}
+}
+
+static void setPitchDuration(void)
+{
+	c_sound.pitch_left =
+		(sound.beep[sound.in_use].grd_x * FREQUENCY) / TICK_8049;
+
+	// Bound pitch_left, if it is bigger than left
+	if (c_sound.left) {
+		if (c_sound.pitch_left) {
+			c_sound.pitch_left =
+				(c_sound.pitch_left > c_sound.left) ?
+					c_sound.left :
+					c_sound.pitch_left;
+		} else {
+			c_sound.pitch_left = c_sound.left;
+		}
+	}
+}
+
+/*
+ * The number of samples in one *half cycle* for a given QL pich value
+ */
+static int pitchToHalfSampleCount(int pitch)
+{
+	// Correct for off by 1 in ROM
+	pitch = (pitch + 255) % 256;
+
+	float b = pitch + 10.6;
+
+	return (int)((FREQUENCY * b / TICK_8049) + 0.5f);
+}
+
+static void qlayIPCPopulateBuffer(int start, int samples, Sint8 *buffer,
+				  int len)
+{
+	(void)len;
+
+	if (!c_sound.wave_state) {
+		c_sound.wave_state = -1;
+		fuzzAdjust();
+		c_sound.cycle_point = 0;
+	}
+	int buffer_pos = start;
+
+	while (buffer_pos < (samples + start)) {
+		buffer[buffer_pos++] = audio_volume * c_sound.wave_state;
+		++c_sound.cycle_point;
+
+		if (c_sound.cycle_point >= (c_sound.half_cycle)) {
+			c_sound.wave_state *= -1;
+			fuzzAdjust();
+			c_sound.cycle_point = 0;
+		}
+	}
+}
+
+static void silenceBuffer(int start, Sint8 *buffer, int len)
+{
+	int buffer_pos = start;
+	while (buffer_pos < len) {
+		buffer[buffer_pos++] = 0;
+	}
+	c_sound.wave_state = 0;
+	c_sound.cycle_point = 0;
 }
