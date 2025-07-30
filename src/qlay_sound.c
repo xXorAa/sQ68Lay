@@ -315,6 +315,15 @@ bool qlayInitMdvSound(void)
 	int silenceVal = SDL_GetSilenceValueForFormat(SDL_AUDIO_U8);
 	SDL_memset(mdv_silence, silenceVal, 256);
 
+	double gain = emulatorOptionInt("mdvvol");
+	if (gain < 0.0) {
+		gain = 0.0;
+	} else if (gain > 10.0) {
+		gain = 10.0;
+	}
+
+	gain /= 10.0; // Normalize gain to 0.0 - 1.0
+
 	mdv_audio_stream = SDL_CreateAudioStream(&spec, &audio_spec);
 	if (!mdv_audio_stream) {
 		SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
@@ -322,6 +331,9 @@ bool qlayInitMdvSound(void)
 			     SDL_GetError());
 		return false;
 	}
+
+	// Set the volume for this stream
+	SDL_SetAudioStreamGain(mdv_audio_stream, gain);
 
 	if (!SDL_SetAudioStreamGetCallback(mdv_audio_stream, qlayStreamMdvSound,
 					   NULL)) {
