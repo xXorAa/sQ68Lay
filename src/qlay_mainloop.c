@@ -61,7 +61,8 @@ void *emulatorInitEmulation(void)
 	m68k_init();
 	m68k_pulse_reset();
 
-	qlayInitSount();
+	qlayInitSound();
+	qlayInitIPCSound();
 	qlayInitKbd();
 	qlayInitIPC();
 	qlayInitDisk();
