@@ -20,7 +20,7 @@ static uint8_t *qlayMemSpace = NULL;
 static unsigned int qlayMemSize = 0;
 
 // how many extra cycles accessing screen ram costs
-#define CONTENTION_CYCLES 6
+#define CONTENTION_CYCLES 3
 
 uint8_t *emulatorMemorySpace(void)
 {
