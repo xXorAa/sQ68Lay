@@ -11,6 +11,7 @@
 
 #include "emulator_options.h"
 #include "qlay_io.h"
+#include "qlay_sound.h"
 
 /*
  Sample taken from:
@@ -460,6 +461,10 @@ bool qlayInitIPCSound(void)
 
 	SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION, "Init IPC sound");
 
+	// Initialize sound structure
+	sound.in_use = -1;
+	sound.last_written = -1;
+
 	spec.channels = 1;
 	spec.format = SDL_AUDIO_S8;
 	spec.freq = FREQUENCY;
@@ -468,6 +473,15 @@ bool qlayInitIPCSound(void)
 		SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
 			     "Couldn't create IPC audio stream: %s",
 			     SDL_GetError());
+		return false;
+	}
+
+	sound_buffer = SDL_malloc(sound_buffer_size);
+	if (!sound_buffer) {
+		SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
+			     "Couldn't allocate sound buffer: %s",
+			     SDL_GetError());
+		SDL_DestroyAudioStream(ipc_audio_stream);
 		return false;
 	}
 
@@ -480,8 +494,6 @@ bool qlayInitIPCSound(void)
 		return false;
 	}
 
-	//SDL_PauseAudioStreamDevice(ipc_audio_stream);
-
 	if (!SDL_BindAudioStream(audio_dev, ipc_audio_stream)) {
 		SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
 			     "Couldn't bind audio stream: %s", SDL_GetError());
@@ -490,15 +502,6 @@ bool qlayInitIPCSound(void)
 	}
 
 	setVolume(emulatorOptionInt("ipcvol"));
-
-	sound_buffer = SDL_malloc(sound_buffer_size);
-	if (!sound_buffer) {
-		SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
-			     "Couldn't allocate sound buffer: %s",
-			     SDL_GetError());
-		SDL_DestroyAudioStream(ipc_audio_stream);
-		return false;
-	}
 
 	return true;
 }
