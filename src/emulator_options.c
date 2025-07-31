@@ -218,7 +218,7 @@ int emulatorOptionParse(int argc, char **argv)
 	const char *configFile;
 
 	utstring_new(helptext);
-	utstring_printf(helptext, helpTextInit);
+	utstring_printf(helptext, "%s", helpTextInit);
 
 	parser = ap_new_parser();
 	if (!parser) {
@@ -260,7 +260,7 @@ int emulatorOptionParse(int argc, char **argv)
 
 		i++;
 	}
-	utstring_printf(helptext, helpTextTail);
+	utstring_printf(helptext, "%s", helpTextTail);
 
 	ap_set_helptext(parser, utstring_body(helptext));
 	ap_set_version(parser, release);
