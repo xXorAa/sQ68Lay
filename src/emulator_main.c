@@ -38,7 +38,9 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[])
 #endif
 
 	// BUG: workaround https://github.com/libsdl-org/SDL/issues/12805
+#if __EMSCRIPTEN__
 	SDL_SetHint(SDL_HINT_RENDER_VSYNC, "1");
+#endif
 
 	SDL_Log("Directory: %s", SDL_GetCurrentDirectory());
 
