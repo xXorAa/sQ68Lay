@@ -844,7 +844,8 @@ static void silenceBuffer(int start, Sint8 *buffer, int len)
 {
 	int buffer_pos = start;
 	while (buffer_pos < len) {
-		buffer[buffer_pos++] = 0;
+		buffer[buffer_pos++] =
+			SDL_GetSilenceValueForFormat(SDL_AUDIO_S8);
 	}
 	c_sound.wave_state = 0;
 	c_sound.cycle_point = 0;
