@@ -4,7 +4,6 @@
  * SPDX: GPL-2.0-only
  */
 
-#include <ctype.h>
 #include <SDL3/SDL.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -142,7 +141,8 @@ struct emuOpts emuOptions[] = {
 	{ "drive", "l", "nfa file (upto 8 times)", EMU_OPT_DEV, 0, NULL, NULL },
 	{ "exprom", "c", "address@romfile eg C000@NFA.rom", EMU_OPT_DEV, 0,
 	  NULL, NULL },
-	{ "ipcvol", "", "volume of IPC sound in range 0-10", EMU_OPT_INT, 3, NULL, NULL },
+	{ "ipcvol", "", "volume of IPC sound in range 0-10", EMU_OPT_INT, 3,
+	  NULL, NULL },
 	{ "mdvvol", "", "volume of MDV sound effect in range 0-10", EMU_OPT_INT,
 	  3, NULL, NULL },
 	{ "ramsize", "m", "amount of ram in K (max 8192)", EMU_OPT_INT, 128,
