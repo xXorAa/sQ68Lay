@@ -418,8 +418,6 @@ typedef struct {
 /*
  * Local variables
  */
-static int audio_volume; // audio volume, 0 to 127
-
 static SDL_AudioStream *ipc_audio_stream = NULL;
 
 static sound_data sound;
@@ -434,7 +432,6 @@ static int sound_buffer_size = 1024;
 void qlayIPCAudioCallback(void *userdata, SDL_AudioStream *stream,
 			  int additional_amount, int total_amount);
 
-static void setVolume(int volume);
 static void setPitchDuration(void);
 static void getNewPitch(void);
 static void randomAdjust(void);
@@ -454,6 +451,7 @@ static void silenceBuffer(int start, Sint8 *buffer, int len);
 #define FREQUENCY 24000 // Requested sampling frequency
 #define SAMPLES 256 // Number of samples in a callback
 #define MAX_IPC_PARAMS 16 // For the case where all 16 slots yield 8 bits
+#define AUDIO_VOLUME 127
 
 bool qlayInitIPCSound(void)
 {
@@ -468,6 +466,16 @@ bool qlayInitIPCSound(void)
 	spec.channels = 1;
 	spec.format = SDL_AUDIO_S8;
 	spec.freq = FREQUENCY;
+
+	double gain = emulatorOptionInt("ipcvol");
+	if (gain < 0.0) {
+		gain = 0.0;
+	} else if (gain > 10.0) {
+		gain = 10.0;
+	}
+
+	gain /= 10.0; // Normalize gain to 0.0 - 1.0
+
 	ipc_audio_stream = SDL_CreateAudioStream(&spec, &audio_spec);
 	if (!ipc_audio_stream) {
 		SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
@@ -475,6 +483,8 @@ bool qlayInitIPCSound(void)
 			     SDL_GetError());
 		return false;
 	}
+
+	SDL_SetAudioStreamGain(ipc_audio_stream, gain);
 
 	sound_buffer = SDL_malloc(sound_buffer_size);
 	if (!sound_buffer) {
@@ -501,19 +511,7 @@ bool qlayInitIPCSound(void)
 		return false;
 	}
 
-	setVolume(emulatorOptionInt("ipcvol"));
-
 	return true;
-}
-
-static void setVolume(int volume)
-{
-	volume = SDL_abs(volume);
-
-	if (volume > 10)
-		volume = 10;
-
-	audio_volume = 12 * volume;
 }
 
 /*
@@ -602,14 +600,6 @@ void qlayIPCAudioCallback(void *userdata, SDL_AudioStream *stream,
 			sound_buffer_size = additional_amount;
 		}
 	}
-
-	if (qlayIPCBeeping == false) {
-		//return; // No sound to play
-	}
-
-	//SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION,
-	//	     "IPC audio callback, additional amount: %d",
-	//	     additional_amount);
 
 	int written = 0; // Total samples written this callback
 	int to_write = 0; // Samples to write in next iteration
@@ -829,7 +819,7 @@ static void qlayIPCPopulateBuffer(int start, int samples, Sint8 *buffer,
 	int buffer_pos = start;
 
 	while (buffer_pos < (samples + start)) {
-		buffer[buffer_pos++] = audio_volume * c_sound.wave_state;
+		buffer[buffer_pos++] = AUDIO_VOLUME * c_sound.wave_state;
 		++c_sound.cycle_point;
 
 		if (c_sound.cycle_point >= (c_sound.half_cycle)) {
