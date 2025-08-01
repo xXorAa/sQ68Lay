@@ -14,4 +14,6 @@ Musashi/m68kmake
 Musashi/example
 wasm/
 build/
+mingw64/
+mingw32/
 .cache/
