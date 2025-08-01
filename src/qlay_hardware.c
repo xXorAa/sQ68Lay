@@ -5,12 +5,13 @@
  */
 
 #include <SDL3/SDL.h>
+#include <SDL3/SDL_log.h>
 #include <stdint.h>
 #include <sys/time.h>
 
 #include "emulator_hardware.h"
+#include "emulator_options.h"
 #include "emulator_screen.h"
-#include "m68k.h"
 #include "qlay_io.h"
 
 // ghost irq registers
@@ -23,12 +24,34 @@ uint8_t EMU_PC_TRAK2 = 0;
 // ghost RTC register
 uint32_t EMU_PC_CLOCK = 0;
 
+// qsound state
+bool qsound_enabled = false;
+Uint32 qsound_addr = 0;
+
 void qlayInitialiseTime(void)
 {
 	struct timeval tv;
 	gettimeofday(&tv, NULL);
 
 	EMU_PC_CLOCK = tv.tv_sec + QDOS_TIME;
+}
+
+void qlayInitialiseQsound(void)
+{
+	const char *qsound = emulatorOptionString("qsound");
+
+	// no qsound set
+	if (!qsound) {
+		return;
+	}
+
+	qsound_addr = SDL_strtol(qsound, NULL, 16);
+
+	if (qsound_addr != 0) {
+		SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "QSound address 0x%X",
+			    qsound_addr);
+		qsound_enabled = true;
+	}
 }
 
 uint8_t qlHardwareRead8(unsigned int addr)
