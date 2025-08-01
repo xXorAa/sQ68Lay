@@ -6,7 +6,6 @@
 
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_log.h>
-#include <stdint.h>
 #include <sys/time.h>
 
 #include "emulator_hardware.h"
@@ -15,14 +14,14 @@
 #include "qlay_io.h"
 
 // ghost irq registers
-uint8_t EMU_PC_INTR = 0;
-uint8_t EMU_PC_INTR_MASK = 0;
-uint8_t EMU_MC_STAT = 0;
-uint8_t EMU_PC_TRAK1 = 0;
-uint8_t EMU_PC_TRAK2 = 0;
+Uint8 EMU_PC_INTR = 0;
+Uint8 EMU_PC_INTR_MASK = 0;
+Uint8 EMU_MC_STAT = 0;
+Uint8 EMU_PC_TRAK1 = 0;
+Uint8 EMU_PC_TRAK2 = 0;
 
 // ghost RTC register
-uint32_t EMU_PC_CLOCK = 0;
+Uint32 EMU_PC_CLOCK = 0;
 
 // qsound state
 bool qsound_enabled = false;
@@ -54,7 +53,7 @@ void qlayInitialiseQsound(void)
 	}
 }
 
-uint8_t qlHardwareRead8(unsigned int addr)
+Uint8 qlHardwareRead8(unsigned int addr)
 {
 	switch (addr) {
 	case PC_CLOCK: // 18000
@@ -81,9 +80,8 @@ uint8_t qlHardwareRead8(unsigned int addr)
 	return 0;
 }
 
-void qlHardwareWrite8(unsigned int addr, uint8_t val)
+void qlHardwareWrite8(unsigned int addr, Uint8 val)
 {
-	//std::cout << "HWW8: " << std::hex << addr << "," << val << std::endl;
 	switch (addr) {
 	case PC_CLOCK:
 		EMU_PC_CLOCK = 0;
@@ -115,7 +113,7 @@ void qlHardwareWrite8(unsigned int addr, uint8_t val)
 		return;
 	case PC_INTR: // 18021
 	{
-		uint8_t tmp;
+		Uint8 tmp;
 		EMU_PC_INTR_MASK = (val & 0xE0);
 		tmp = val & 0x1F;
 		EMU_PC_INTR &= ~tmp;
