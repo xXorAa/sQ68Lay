@@ -139,3 +139,42 @@ void qlHardwareWrite8(unsigned int addr, Uint8 val)
 		break;
 	}
 }
+
+enum { QSOUND_PA, QSOUND_CA, QSOUND_PB, QSOUND_CB };
+#define QSOUND_REG_BIT (1 << 0)
+#define QSOUND_LATCH_BIT (1 << 2)
+static Uint8 qsound_pa_last;
+static Uint8 qsound_pb_last;
+static Uint8 qsound_reg_num;
+
+void qsoundWrite(Uint32 address, Uint8 val)
+{
+	switch (address % 4) {
+	case QSOUND_PA:
+		SDL_LogTrace(SDL_LOG_CATEGORY_APPLICATION,
+			     "QSound PA data 0x%X", val);
+		qsound_pa_last = val;
+		break;
+	case QSOUND_PB:
+		SDL_LogTrace(SDL_LOG_CATEGORY_APPLICATION,
+			     "QSound PB data 0x%X", val);
+		if ((qsound_pb_last & QSOUND_LATCH_BIT) &&
+		    !(val & QSOUND_LATCH_BIT)) {
+			if (qsound_pb_last & QSOUND_REG_BIT) {
+				SDL_LogTrace(SDL_LOG_CATEGORY_APPLICATION,
+					     "QSound Latching reg_num 0x%2.2X",
+					     qsound_pa_last);
+				qsound_reg_num = qsound_pa_last;
+			} else {
+				SDL_LogTrace(SDL_LOG_CATEGORY_APPLICATION,
+					     "QSound Latching reg_val 0x%2.2X",
+					     qsound_pa_last);
+			}
+		}
+		qsound_pb_last = val;
+		break;
+	default:
+		SDL_LogTrace(SDL_LOG_CATEGORY_APPLICATION,
+			     "QSound control 0x%X", val);
+	}
+}

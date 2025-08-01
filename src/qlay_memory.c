@@ -238,6 +238,12 @@ void m68k_write_memory_8(unsigned int address, unsigned int value)
 		qlayMemSpace[address] = value;
 	}
 
+	if (qsound_enabled && (address >= qsound_addr) &&
+	    (address < (qsound_addr + 4))) {
+		qsoundWrite(address, value);
+		return;
+	}
+
 	if (address >= qlayRamSize) {
 		return;
 	}
