@@ -35,10 +35,10 @@ Options:\n\
 
 #ifdef QLAY_EMU
 static const char *const helpTextInit = "\n\
-Usage: sqlay3 [OPTIONS] [args...]\n\
+Usage: sqlay3 [OPTIONS] [qlpak file]\n\
 \n\
 Positionals:\n\
-  args                        Arguments passed to QDOS\n\
+  qlpak file                  Q-Emulator style qlpak file\n\
 \n\
 Options:\n\
   -h,--help                   Print this help message and exit\n\
@@ -138,8 +138,9 @@ struct emuOpts emuOptions[] = {
 #endif //SQLUX_EMU
 
 #ifdef QLAY_EMU
-	{ "drive", "l", "nfa file (upto 8 times)", EMU_OPT_DEV, 0, NULL, NULL },
-	{ "exprom", "c", "address@romfile eg C000@NFA.rom", EMU_OPT_DEV, 0,
+	{ "drive", "l", "winX@dir or mdvX@file (upto 16 times)", EMU_OPT_DEV, 0,
+	  NULL, NULL },
+	{ "exprom", "c", "romfile@address eg NFA.rom@0xC000", EMU_OPT_DEV, 0,
 	  NULL, NULL },
 	{ "ipcvol", "", "volume of IPC sound in range 0-10", EMU_OPT_INT, 3,
 	  NULL, NULL },
