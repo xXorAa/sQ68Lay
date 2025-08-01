@@ -5,53 +5,156 @@
  */
 
 #include <SDL3/SDL.h>
-#include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
 
+#include "emulator_files.h"
 #include "emulator_hardware.h"
 #include "emulator_mainloop.h"
 #include "emulator_memory.h"
 #include "emulator_options.h"
 #include "m68k.h"
 #include "qlay_disk.h"
+#include "utarray.h"
 
-static uint8_t *qlayMemSpace = NULL;
+static Uint8 *qlayMemSpace = NULL;
 static unsigned int qlayMemSize = 0;
+static unsigned int qlayRamSize = 0;
+static unsigned int qlayRomLow = 0;
+
+typedef struct {
+	char *romname;
+	Uint32 romaddr;
+} exprom_t;
+
+static const UT_icd exprom_icd = { sizeof(exprom_t), NULL, NULL, NULL };
 
 // how many extra cycles accessing screen ram costs
 #define CONTENTION_CYCLES 3
 
-uint8_t *emulatorMemorySpace(void)
+Uint8 *emulatorMemorySpace(void)
 {
 	return qlayMemSpace;
 }
 
-uint8_t *emulatorScreenSpace(void)
+Uint8 *emulatorScreenSpace(void)
 {
 	return NULL;
 }
 
 int emulatorInitMemory(void)
 {
-	// ROM 64K and IO space 64K added to ramsize
-	qlayMemSize = KB(emulatorOptionInt("ramsize")) + KB(128);
+	int i;
+	unsigned int minRomAddr = 0;
+	unsigned int maxRomAddr = 0;
 
-	if (qlayMemSize < KB(256)) {
+	UT_array *expromArray;
+	utarray_new(expromArray, &exprom_icd);
+
+	// TODO: add proper exprom handling
+	int expromCount = emulatorOptionDevCount("exprom");
+	for (i = 0; i < expromCount; i++) {
+		const char *rom = emulatorOptionDev("exprom", i);
+		const char *romat = SDL_strchr(rom, '@');
+
+		if (romat == NULL) {
+			SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
+				     "No address for rom %i %s, rom ignored", i,
+				     rom);
+			continue;
+		}
+
+		Uint32 romAddr = SDL_strtol(romat + 1, NULL, 16);
+		if (romAddr == 0) {
+			SDL_LogError(
+				SDL_LOG_CATEGORY_APPLICATION,
+				"Invalid address for rom %i %s, rom ignored", i,
+				rom);
+			continue;
+		}
+
+		if (romAddr % KB(16)) {
+			SDL_LogError(
+				SDL_LOG_CATEGORY_APPLICATION,
+				"Address must be on 16KB boundary %i %s, rom ignored",
+				i, rom);
+			continue;
+		}
+
+		exprom_t expromItem;
+		expromItem.romname = SDL_strndup(rom, romat - rom);
+		expromItem.romaddr = romAddr;
+
+		utarray_push_back(expromArray, &expromItem);
+
+		// update the minimum rom address if it is going to shrink memory
+		if (romAddr >= KB(128)) {
+			if (minRomAddr == 0) {
+				minRomAddr = romAddr;
+			} else if (romAddr < minRomAddr) {
+				minRomAddr = romAddr;
+			}
+
+			if (maxRomAddr < romAddr) {
+				maxRomAddr = romAddr;
+			}
+		}
+	}
+
+	// account for the rom slot size
+	maxRomAddr += KB(16);
+
+	// ROM 64K and IO space 64K added to ramsize
+	qlayRamSize = KB(emulatorOptionInt("ramsize")) + KB(128);
+
+	if (qlayRamSize < KB(256)) {
 		SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
 			     "Ramsize Error too small %u\n", qlayMemSize);
 		return 1;
 	}
 
-	qlayMemSpace = calloc(qlayMemSize, 1);
+	if (qlayRamSize > minRomAddr) {
+		SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
+			     "Ramsize overlaps with rom %u %u\n", qlayRamSize,
+			     minRomAddr);
+		return 1;
+	}
+
+	qlayMemSize = maxRomAddr > qlayRamSize ? maxRomAddr : qlayRamSize;
+
+	qlayMemSpace = SDL_calloc(qlayMemSize, 1);
 	if (qlayMemSpace == NULL) {
 		SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
 			     "malloc failed %s %d", __FILE__, __LINE__);
 		return 1;
 	}
 
+	// load the roms now
+	exprom_t *expromItem = NULL;
+	while ((expromItem =
+			(exprom_t *)utarray_next(expromArray, expromItem))) {
+		SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION,
+			    "Loading Expansion ROM %s at 0x%X\n",
+			    expromItem->romname, expromItem->romaddr);
+		emulatorLoadFile(expromItem->romname,
+				 &emulatorMemorySpace()[expromItem->romaddr],
+				 0);
+
+		free(expromItem->romname);
+		expromItem->romname = NULL;
+	}
+	utarray_free(expromArray);
+
+	// set the lowest rom address
+	if (minRomAddr == 0) {
+		qlayRomLow = qlayMemSize;
+	} else {
+		qlayRomLow = minRomAddr;
+	}
+
+	emulatorLoadFile(emulatorOptionString("sysrom"),
+			 &emulatorMemorySpace()[0], 0);
+
 	SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Initialzed RAM %uk\n",
-		    (qlayMemSize / 1024) - 128);
+		    (qlayRamSize / 1024) - 128);
 
 	return 0;
 }
@@ -68,6 +171,10 @@ unsigned int m68k_read_memory_8(unsigned int address)
 	}
 
 	if (address >= qlayMemSize) {
+		return 0;
+	}
+
+	if ((address >= qlayRamSize) && (address < qlayRomLow)) {
 		return 0;
 	}
 
@@ -92,7 +199,7 @@ unsigned int m68k_read_disassembler_16(unsigned int address)
 		return 0;
 	}
 
-	return SDL_Swap16BE(*(uint16_t *)&qlayMemSpace[address]);
+	return SDL_Swap16BE(*(Uint16 *)&qlayMemSpace[address]);
 }
 
 unsigned int m68k_read_memory_32(unsigned int address)
@@ -110,7 +217,7 @@ unsigned int m68k_read_disassembler_32(unsigned int address)
 		return 0;
 	}
 
-	return SDL_Swap32BE(*(uint32_t *)&qlayMemSpace[address]);
+	return SDL_Swap32BE(*(Uint32 *)&qlayMemSpace[address]);
 }
 
 void m68k_write_memory_8(unsigned int address, unsigned int value)
@@ -131,7 +238,7 @@ void m68k_write_memory_8(unsigned int address, unsigned int value)
 		qlayMemSpace[address] = value;
 	}
 
-	if (address >= qlayMemSize) {
+	if (address >= qlayRamSize) {
 		return;
 	}
 
