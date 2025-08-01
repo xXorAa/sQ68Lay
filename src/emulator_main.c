@@ -4,6 +4,7 @@
  * SPDX: GPL-2.0-only
  */
 
+#include <SDL3/SDL_init.h>
 #define SDL_MAIN_USE_CALLBACKS 1
 #include <SDL3/SDL_main.h>
 #include <SDL3/SDL.h>
@@ -42,9 +43,9 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[])
 	SDL_SetHint(SDL_HINT_RENDER_VSYNC, "1");
 #endif
 
-	SDL_Log("Directory: %s", SDL_GetCurrentDirectory());
-
-	emulatorInitMemory();
+	if (emulatorInitMemory()) {
+		return SDL_APP_FAILURE;
+	}
 	emulatorInitScreen(1);
 
 	*appstate = emulatorInitEmulation();
