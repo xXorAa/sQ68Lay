@@ -146,6 +146,8 @@ struct emuOpts emuOptions[] = {
 	  NULL, NULL },
 	{ "mdvvol", "", "volume of MDV sound effect in range 0-10", EMU_OPT_INT,
 	  3, NULL, NULL },
+	{ "qsound", "", "address in hex of qsound registers", EMU_OPT_CHAR, 0,
+	  NULL, NULL },
 	{ "ramsize", "m", "amount of ram in K (max 8192)", EMU_OPT_INT, 128,
 	  NULL, NULL },
 	{ "sysrom", "r", "system rom", EMU_OPT_CHAR, 0, "JS.rom", NULL },

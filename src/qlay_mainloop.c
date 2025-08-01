@@ -57,6 +57,7 @@ void *emulatorInitEmulation(void)
 	qlayInitIPC();
 	qlayInitDisk();
 	qlayInitialiseTime();
+	qlayInitialiseQsound();
 	traceInit();
 
 	emulator_state_t *emu_state = calloc(1, sizeof(emulator_state_t));
