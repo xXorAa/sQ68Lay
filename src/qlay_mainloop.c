@@ -47,16 +47,6 @@ uint64_t cycles(void)
 
 void *emulatorInitEmulation(void)
 {
-	emulatorLoadFile(emulatorOptionString("sysrom"),
-			 &emulatorMemorySpace()[0], 0);
-
-	// TODO: add proper exprom handling
-	int expromCount = emulatorOptionDevCount("exprom");
-	if (expromCount) {
-		emulatorLoadFile(emulatorOptionDev("exprom", 0),
-				 &emulatorMemorySpace()[KB(48)], 0);
-	}
-
 	m68k_set_cpu_type(M68K_CPU_TYPE_68000);
 	m68k_init();
 	m68k_pulse_reset();
