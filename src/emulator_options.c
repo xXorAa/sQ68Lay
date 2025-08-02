@@ -138,6 +138,8 @@ struct emuOpts emuOptions[] = {
 #endif //SQLUX_EMU
 
 #ifdef QLAY_EMU
+	{ "ayvol", "", "volume of QSound sound in range 0-10", EMU_OPT_INT, 3,
+	  NULL, NULL },
 	{ "drive", "l", "winX@dir or mdvX@file (upto 16 times)", EMU_OPT_DEV, 0,
 	  NULL, NULL },
 	{ "exprom", "c", "romfile@address eg NFA.rom@0xC000", EMU_OPT_DEV, 0,

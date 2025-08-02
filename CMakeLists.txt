@@ -11,7 +11,7 @@ include_directories(
   include/
   Musashi/
   args/src/
-  ayumi/
+  libayemu/include/
   inih/
   external/
   qlay/
@@ -33,7 +33,8 @@ add_compile_options(-ffile-prefix-map=${PROJECT_ROOT_NORMALIZED}=)
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Emscripten")
   set(EM_LINK "-sALLOW_MEMORY_GROWTH")
-  set(QLAY3_LINK "--preload-file" "${CMAKE_SOURCE_DIR}/sqlay3.ini@/sqlay3.ini" "--preload-file" "${CMAKE_SOURCE_DIR}/roms/min1.98a1.bin@/roms/min1.98a1.bin")
+  set(QLAY3_LINK "--preload-file" "${CMAKE_SOURCE_DIR}/sqlay3.ini@/sqlay3.ini"
+  "--preload-file" "${CMAKE_SOURCE_DIR}/roms/min1.98a1.bin@/roms/min1.98a1.bin")
   configure_file(qlay_wrapper_sample.html sqlay3.html COPYONLY)
 endif()
 
@@ -107,13 +108,16 @@ add_executable(
   src/qlay_sound.c
   src/qlay_trace.c
   args/src/args.c
-  ayumi/ayumi.c
+  libayemu/src/ay8912.c
   inih/ini.c
   Musashi/m68kcpu.c
   Musashi/m68kops.c
   Musashi/m68kdasm.c
   Musashi/softfloat/softfloat.c
   ${CMAKE_CURRENT_BINARY_DIR}/version.c)
+
+set_source_files_properties(libayemu/src/ay8912.c PROPERTIES COMPILE_FLAGS
+"-Wno-unused-variable -Wno-format -Wno-unused-parameter")
 
 add_dependencies(sqlay3 SubmarineGitVersion Musashi)
 

@@ -87,6 +87,12 @@ void qlHardwareWrite8(unsigned int addr, uint8_t val);
 /* qlay RTC initialise */
 void qlayInitialiseTime(void);
 
+/* qlay QSound stuff */
+void qlayInitialiseQsound(void);
+void qsoundWrite(Uint32 address, Uint8 val);
+extern bool qsound_enabled;
+extern Uint32 qsound_addr;
+
 /* Shadow registers */
 extern uint8_t EMU_PC_INTR;
 extern uint8_t EMU_PC_INTR_MASK;
