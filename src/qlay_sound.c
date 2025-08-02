@@ -476,6 +476,14 @@ bool qlayInitIPCSound(void)
 
 	gain /= 10.0; // Normalize gain to 0.0 - 1.0
 
+	sound.mutex = SDL_CreateMutex();
+	if (!sound.mutex) {
+		SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
+			     "Couldn't create IPC audio mutex: %s",
+			     SDL_GetError());
+		return false;
+	}
+
 	ipc_audio_stream = SDL_CreateAudioStream(&spec, &audio_spec);
 	if (!ipc_audio_stream) {
 		SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
