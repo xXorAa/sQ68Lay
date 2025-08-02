@@ -53,6 +53,7 @@ void *emulatorInitEmulation(void)
 
 	qlayInitSound();
 	qlayInitIPCSound();
+	qlayInitAYSound();
 	qlayInitKbd();
 	qlayInitIPC();
 	qlayInitDisk();

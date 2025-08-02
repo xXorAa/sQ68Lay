@@ -5,10 +5,10 @@
  */
 
 #include <SDL3/SDL.h>
-
 #include <stdbool.h>
 #include <stdint.h>
 
+#include "ayemu.h"
 #include "emulator_options.h"
 #include "qlay_io.h"
 #include "qlay_sound.h"
@@ -290,9 +290,6 @@ static void SDLCALL qlayStreamMdvSound(void *userdata, SDL_AudioStream *astream,
 	(void)total_amount;
 
 	if (mdv_running) {
-		SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION,
-			     "Streaming MDV sound data");
-
 		SDL_PutAudioStreamData(astream, mdvsnd_wav + mdv_sound_loc,
 				       additional_amount);
 		mdv_sound_loc += additional_amount;
@@ -847,4 +844,112 @@ static void silenceBuffer(int start, Sint8 *buffer, int len)
 	}
 	c_sound.wave_state = 0;
 	c_sound.cycle_point = 0;
+}
+
+static SDL_AudioStream *ay_audio_stream = NULL;
+static Uint8 *ay_sound_buffer = NULL;
+static int ay_sound_buffer_size = 1024;
+SDL_Mutex *ay_mutex;
+ayemu_ay_t ay = { 0 };
+ayemu_ay_reg_frame_t ay_regs = { 0 };
+
+static void SDLCALL qlayStreamAYSound(void *userdata, SDL_AudioStream *astream,
+				      int additional_amount, int total_amount)
+{
+	(void)userdata;
+	(void)total_amount;
+
+	if (additional_amount > ay_sound_buffer_size) {
+		ay_sound_buffer = SDL_realloc(sound_buffer, additional_amount);
+		if (!ay_sound_buffer) {
+			SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
+				     "Couldn't reallocate sound buffer: %s",
+				     SDL_GetError());
+		} else {
+			ay_sound_buffer_size = additional_amount;
+		}
+	}
+
+	SDL_LockMutex(ay_mutex);
+	ayemu_gen_sound(&ay, ay_sound_buffer, additional_amount);
+	SDL_UnlockMutex(ay_mutex);
+
+	SDL_PutAudioStreamData(astream, ay_sound_buffer, additional_amount);
+}
+
+bool qlayInitAYSound(void)
+{
+	SDL_AudioSpec spec;
+
+	SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION, "Init AY sound");
+
+	spec.channels = 1;
+	spec.format = SDL_AUDIO_U8;
+	spec.freq = FREQUENCY;
+
+	double gain = emulatorOptionInt("ayvol");
+	if (gain < 0.0) {
+		gain = 0.0;
+	} else if (gain > 10.0) {
+		gain = 10.0;
+	}
+
+	gain /= 10.0; // Normalize gain to 0.0 - 1.0
+
+	ay_mutex = SDL_CreateMutex();
+	if (!ay_mutex) {
+		SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
+			     "Couldn't create AY mutex: %s", SDL_GetError());
+		return false;
+	}
+
+	ayemu_init(&ay);
+	ayemu_set_sound_format(&ay, FREQUENCY, 1, 8);
+	ayemu_set_chip_freq(&ay, 750000);
+	ayemu_reset(&ay);
+
+	ay_audio_stream = SDL_CreateAudioStream(&spec, &audio_spec);
+	if (!ay_audio_stream) {
+		SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
+			     "Couldn't create AY audio stream: %s",
+			     SDL_GetError());
+		return false;
+	}
+
+	SDL_SetAudioStreamGain(ay_audio_stream, gain);
+
+	ay_sound_buffer = SDL_malloc(ay_sound_buffer_size);
+	if (!sound_buffer) {
+		SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
+			     "Couldn't allocate sound buffer: %s",
+			     SDL_GetError());
+		SDL_DestroyAudioStream(ay_audio_stream);
+		return false;
+	}
+
+	if (!SDL_SetAudioStreamGetCallback(ay_audio_stream, qlayStreamAYSound,
+					   NULL)) {
+		SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
+			     "Couldn't set audio stream callback: %s",
+			     SDL_GetError());
+		SDL_DestroyAudioStream(ay_audio_stream);
+		return false;
+	}
+
+	if (!SDL_BindAudioStream(audio_dev, ay_audio_stream)) {
+		SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
+			     "Couldn't bind audio stream: %s", SDL_GetError());
+		SDL_DestroyAudioStream(ay_audio_stream);
+		return false;
+	}
+
+	return true;
+}
+
+void qlaySetAYRegister(Uint8 regNum, Uint8 regVal)
+{
+	SDL_LockMutex(ay_mutex);
+	ay_regs[regNum] = regVal;
+	ayemu_set_regs(&ay, ay_regs);
+	SDL_UnlockMutex(ay_mutex);
 }

@@ -5,13 +5,13 @@
  */
 
 #include <SDL3/SDL.h>
-#include <SDL3/SDL_log.h>
 #include <sys/time.h>
 
 #include "emulator_hardware.h"
 #include "emulator_options.h"
 #include "emulator_screen.h"
 #include "qlay_io.h"
+#include "qlay_sound.h"
 
 // ghost irq registers
 Uint8 EMU_PC_INTR = 0;
@@ -166,9 +166,13 @@ void qsoundWrite(Uint32 address, Uint8 val)
 					     qsound_pa_last);
 				qsound_reg_num = qsound_pa_last;
 			} else {
-				SDL_LogTrace(SDL_LOG_CATEGORY_APPLICATION,
-					     "QSound Latching reg_val 0x%2.2X",
-					     qsound_pa_last);
+				SDL_LogTrace(
+					SDL_LOG_CATEGORY_APPLICATION,
+					"QSound Latching reg_val 0x%2.2X 0x%2.2X",
+					qsound_reg_num, qsound_pa_last);
+
+				qlaySetAYRegister(qsound_reg_num,
+						  qsound_pa_last);
 			}
 		}
 		qsound_pb_last = val;
