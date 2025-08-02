@@ -117,7 +117,7 @@ add_executable(
   ${CMAKE_CURRENT_BINARY_DIR}/version.c)
 
 set_source_files_properties(libayemu/src/ay8912.c PROPERTIES COMPILE_FLAGS
-"-Wno-unused-variable -Wno-format -Wno-unused-parameter")
+"-Wno-unused-variable -Wno-format -Wno-unused-parameter -Wno-strict-prototypes -Wno-invalid-utf8 -Wno-format-pedantic")
 
 add_dependencies(sqlay3 SubmarineGitVersion Musashi)
 
