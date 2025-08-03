@@ -79,6 +79,15 @@ int emulatorInitMemory(void)
 			continue;
 		}
 
+		// don't allow the rom inside the IO or screen RAM
+		if ((romAddr >= QL_INTERNAL_IO) && (romAddr < KB(256))) {
+			SDL_LogError(
+				SDL_LOG_CATEGORY_APPLICATION,
+				"Invalid address for rom 0x%8.8X %s, rom ignored",
+				romAddr, rom);
+			continue;
+		}
+
 		exprom_t expromItem;
 		expromItem.romname = SDL_strndup(rom, romat - rom);
 		expromItem.romaddr = romAddr;
@@ -111,7 +120,7 @@ int emulatorInitMemory(void)
 		return 1;
 	}
 
-	if (qlayRamSize > minRomAddr) {
+	if ((minRomAddr >= KB(256)) && (qlayRamSize > minRomAddr)) {
 		SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
 			     "Ramsize overlaps with rom %u %u\n", qlayRamSize,
 			     minRomAddr);
