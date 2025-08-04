@@ -30,8 +30,12 @@ QLAY logging levels
 
 ```
 QLAY_LOG_SOUND = 19
-
+QLAY_LOG_IPC = 20
+QLAY_LOG_MDV = 21
+QLAY_LOG_IO = 22
+QLAY_LOG_HW = 23
 ```
+
 ## sq68ux
 
 ```
@@ -72,4 +76,3 @@ Options:
   --trace [0]                 enable tracing
   --version                   version number
 ```
-
