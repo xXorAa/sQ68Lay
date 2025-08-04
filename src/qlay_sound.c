@@ -9,6 +9,7 @@
 #include <stdint.h>
 
 #include "ayemu.h"
+#include "emulator_logging.h"
 #include "emulator_options.h"
 #include "qlay_io.h"
 #include "qlay_sound.h"
@@ -261,13 +262,13 @@ bool qlayInitSound(void)
 	audio_dev =
 		SDL_OpenAudioDevice(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, NULL);
 	if (!audio_dev) {
-		SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
-			     "Couldn't open audio device: %s", SDL_GetError());
+		SDL_LogError(QLAY_LOG_SOUND, "Couldn't open audio device: %s",
+			     SDL_GetError());
 		return false;
 	}
 
 	if (!SDL_GetAudioDeviceFormat(audio_dev, &audio_spec, NULL)) {
-		SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
+		SDL_LogError(QLAY_LOG_SOUND,
 			     "Couldn't get audio device format: %s",
 			     SDL_GetError());
 		SDL_CloseAudioDevice(audio_dev);
@@ -303,7 +304,7 @@ bool qlayInitMdvSound(void)
 {
 	SDL_AudioSpec spec;
 
-	SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION, "Init MDV sound");
+	SDL_LogDebug(QLAY_LOG_SOUND, "Init MDV sound");
 
 	spec.channels = 1;
 	spec.format = SDL_AUDIO_U8;
@@ -324,8 +325,7 @@ bool qlayInitMdvSound(void)
 
 	mdv_audio_stream = SDL_CreateAudioStream(&spec, &audio_spec);
 	if (!mdv_audio_stream) {
-		SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
-			     "Couldn't create audio stream: %s",
+		SDL_LogError(QLAY_LOG_SOUND, "Couldn't create audio stream: %s",
 			     SDL_GetError());
 		return false;
 	}
@@ -335,7 +335,7 @@ bool qlayInitMdvSound(void)
 
 	if (!SDL_SetAudioStreamGetCallback(mdv_audio_stream, qlayStreamMdvSound,
 					   NULL)) {
-		SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
+		SDL_LogError(QLAY_LOG_SOUND,
 			     "Couldn't set audio stream callback: %s",
 			     SDL_GetError());
 		SDL_DestroyAudioStream(mdv_audio_stream);
@@ -343,8 +343,8 @@ bool qlayInitMdvSound(void)
 	}
 
 	if (!SDL_BindAudioStream(audio_dev, mdv_audio_stream)) {
-		SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
-			     "Couldn't bind audio stream: %s", SDL_GetError());
+		SDL_LogError(QLAY_LOG_SOUND, "Couldn't bind audio stream: %s",
+			     SDL_GetError());
 		SDL_DestroyAudioStream(mdv_audio_stream);
 		return false;
 	}
@@ -353,7 +353,7 @@ bool qlayInitMdvSound(void)
 
 bool qlayStartMdvSound(void)
 {
-	SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION, "Start MDV sound");
+	SDL_LogDebug(QLAY_LOG_SOUND, "Start MDV sound");
 
 	mdv_running = true;
 
@@ -362,7 +362,7 @@ bool qlayStartMdvSound(void)
 
 bool qlayStopMdvSound(void)
 {
-	SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION, "Stop MDV sound");
+	SDL_LogDebug(QLAY_LOG_SOUND, "Stop MDV sound");
 	SDL_ClearAudioStream(mdv_audio_stream);
 
 	mdv_running = false;
@@ -454,7 +454,7 @@ bool qlayInitIPCSound(void)
 {
 	SDL_AudioSpec spec;
 
-	SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION, "Init IPC sound");
+	SDL_LogDebug(QLAY_LOG_SOUND, "Init IPC sound");
 
 	// Initialize sound structure
 	sound.in_use = -1;
@@ -475,7 +475,7 @@ bool qlayInitIPCSound(void)
 
 	sound.mutex = SDL_CreateMutex();
 	if (!sound.mutex) {
-		SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
+		SDL_LogError(QLAY_LOG_SOUND,
 			     "Couldn't create IPC audio mutex: %s",
 			     SDL_GetError());
 		return false;
@@ -483,7 +483,7 @@ bool qlayInitIPCSound(void)
 
 	ipc_audio_stream = SDL_CreateAudioStream(&spec, &audio_spec);
 	if (!ipc_audio_stream) {
-		SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
+		SDL_LogError(QLAY_LOG_SOUND,
 			     "Couldn't create IPC audio stream: %s",
 			     SDL_GetError());
 		return false;
@@ -493,7 +493,7 @@ bool qlayInitIPCSound(void)
 
 	sound_buffer = SDL_malloc(sound_buffer_size);
 	if (!sound_buffer) {
-		SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
+		SDL_LogError(QLAY_LOG_SOUND,
 			     "Couldn't allocate sound buffer: %s",
 			     SDL_GetError());
 		SDL_DestroyAudioStream(ipc_audio_stream);
@@ -502,7 +502,7 @@ bool qlayInitIPCSound(void)
 
 	if (!SDL_SetAudioStreamGetCallback(ipc_audio_stream,
 					   qlayIPCAudioCallback, NULL)) {
-		SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
+		SDL_LogError(QLAY_LOG_SOUND,
 			     "Couldn't set audio stream callback: %s",
 			     SDL_GetError());
 		SDL_DestroyAudioStream(ipc_audio_stream);
@@ -510,8 +510,8 @@ bool qlayInitIPCSound(void)
 	}
 
 	if (!SDL_BindAudioStream(audio_dev, ipc_audio_stream)) {
-		SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
-			     "Couldn't bind audio stream: %s", SDL_GetError());
+		SDL_LogError(QLAY_LOG_SOUND, "Couldn't bind audio stream: %s",
+			     SDL_GetError());
 		SDL_DestroyAudioStream(ipc_audio_stream);
 		return false;
 	}
@@ -566,7 +566,7 @@ void qlayIPCBeepSound(Uint8 *arg)
 	SDL_UnlockMutex(sound.mutex);
 
 	SDL_LogDebug(
-		SDL_LOG_CATEGORY_APPLICATION,
+		QLAY_LOG_SOUND,
 		"length %u pitch %u pitch2 %u grd_x %u grd_y %i wrap %u fuzz %u random %u",
 		sound.beep[write_num].length, sound.beep[write_num].pitch,
 		sound.beep[write_num].pitch_2, sound.beep[write_num].grd_x,
@@ -579,7 +579,7 @@ void qlayIPCBeepSound(Uint8 *arg)
 
 void qlayIPCKillSound(void)
 {
-	SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION, "Kill sound");
+	SDL_LogDebug(QLAY_LOG_SOUND, "Kill sound");
 
 	SDL_LockMutex(sound.mutex);
 	sound.in_use = -1;
@@ -598,7 +598,7 @@ void qlayIPCAudioCallback(void *userdata, SDL_AudioStream *stream,
 	if (additional_amount > sound_buffer_size) {
 		sound_buffer = SDL_realloc(sound_buffer, additional_amount);
 		if (!sound_buffer) {
-			SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
+			SDL_LogError(QLAY_LOG_SOUND,
 				     "Couldn't reallocate sound buffer: %s",
 				     SDL_GetError());
 		} else {
@@ -862,7 +862,7 @@ static void SDLCALL qlayStreamAYSound(void *userdata, SDL_AudioStream *astream,
 	if (additional_amount > ay_sound_buffer_size) {
 		ay_sound_buffer = SDL_realloc(sound_buffer, additional_amount);
 		if (!ay_sound_buffer) {
-			SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
+			SDL_LogError(QLAY_LOG_SOUND,
 				     "Couldn't reallocate sound buffer: %s",
 				     SDL_GetError());
 		} else {
@@ -881,7 +881,7 @@ bool qlayInitAYSound(void)
 {
 	SDL_AudioSpec spec;
 
-	SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION, "Init AY sound");
+	SDL_LogDebug(QLAY_LOG_SOUND, "Init AY sound");
 
 	spec.channels = 1;
 	spec.format = SDL_AUDIO_U8;
@@ -898,8 +898,8 @@ bool qlayInitAYSound(void)
 
 	ay_mutex = SDL_CreateMutex();
 	if (!ay_mutex) {
-		SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
-			     "Couldn't create AY mutex: %s", SDL_GetError());
+		SDL_LogError(QLAY_LOG_SOUND, "Couldn't create AY mutex: %s",
+			     SDL_GetError());
 		return false;
 	}
 
@@ -910,7 +910,7 @@ bool qlayInitAYSound(void)
 
 	ay_audio_stream = SDL_CreateAudioStream(&spec, &audio_spec);
 	if (!ay_audio_stream) {
-		SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
+		SDL_LogError(QLAY_LOG_SOUND,
 			     "Couldn't create AY audio stream: %s",
 			     SDL_GetError());
 		return false;
@@ -920,7 +920,7 @@ bool qlayInitAYSound(void)
 
 	ay_sound_buffer = SDL_malloc(ay_sound_buffer_size);
 	if (!sound_buffer) {
-		SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
+		SDL_LogError(QLAY_LOG_SOUND,
 			     "Couldn't allocate sound buffer: %s",
 			     SDL_GetError());
 		SDL_DestroyAudioStream(ay_audio_stream);
@@ -929,7 +929,7 @@ bool qlayInitAYSound(void)
 
 	if (!SDL_SetAudioStreamGetCallback(ay_audio_stream, qlayStreamAYSound,
 					   NULL)) {
-		SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
+		SDL_LogError(QLAY_LOG_SOUND,
 			     "Couldn't set audio stream callback: %s",
 			     SDL_GetError());
 		SDL_DestroyAudioStream(ay_audio_stream);
@@ -937,8 +937,8 @@ bool qlayInitAYSound(void)
 	}
 
 	if (!SDL_BindAudioStream(audio_dev, ay_audio_stream)) {
-		SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
-			     "Couldn't bind audio stream: %s", SDL_GetError());
+		SDL_LogError(QLAY_LOG_SOUND, "Couldn't bind audio stream: %s",
+			     SDL_GetError());
 		SDL_DestroyAudioStream(ay_audio_stream);
 		return false;
 	}
