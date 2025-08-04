@@ -8,6 +8,7 @@
 #include <sys/time.h>
 
 #include "emulator_hardware.h"
+#include "emulator_logging.h"
 #include "emulator_options.h"
 #include "emulator_screen.h"
 #include "qlay_io.h"
@@ -47,8 +48,7 @@ void qlayInitialiseQsound(void)
 	qsound_addr = SDL_strtol(qsound, NULL, 16);
 
 	if (qsound_addr != 0) {
-		SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "QSound address 0x%X",
-			    qsound_addr);
+		SDL_LogInfo(QLAY_LOG_HW, "QSound address 0x%X", qsound_addr);
 		qsound_enabled = true;
 	}
 }
@@ -151,23 +151,21 @@ void qsoundWrite(Uint32 address, Uint8 val)
 {
 	switch (address % 4) {
 	case QSOUND_PA:
-		SDL_LogTrace(SDL_LOG_CATEGORY_APPLICATION,
-			     "QSound PA data 0x%X", val);
+		SDL_LogDebug(QLAY_LOG_HW, "QSound PA data 0x%X", val);
 		qsound_pa_last = val;
 		break;
 	case QSOUND_PB:
-		SDL_LogTrace(SDL_LOG_CATEGORY_APPLICATION,
-			     "QSound PB data 0x%X", val);
+		SDL_LogDebug(QLAY_LOG_HW, "QSound PB data 0x%X", val);
 		if ((qsound_pb_last & QSOUND_LATCH_BIT) &&
 		    !(val & QSOUND_LATCH_BIT)) {
 			if (qsound_pb_last & QSOUND_REG_BIT) {
-				SDL_LogTrace(SDL_LOG_CATEGORY_APPLICATION,
+				SDL_LogDebug(QLAY_LOG_HW,
 					     "QSound Latching reg_num 0x%2.2X",
 					     qsound_pa_last);
 				qsound_reg_num = qsound_pa_last;
 			} else {
-				SDL_LogTrace(
-					SDL_LOG_CATEGORY_APPLICATION,
+				SDL_LogDebug(
+					QLAY_LOG_HW,
 					"QSound Latching reg_val 0x%2.2X 0x%2.2X",
 					qsound_reg_num, qsound_pa_last);
 
@@ -178,7 +176,6 @@ void qsoundWrite(Uint32 address, Uint8 val)
 		qsound_pb_last = val;
 		break;
 	default:
-		SDL_LogTrace(SDL_LOG_CATEGORY_APPLICATION,
-			     "QSound control 0x%X", val);
+		SDL_LogDebug(QLAY_LOG_HW, "QSound control 0x%X", val);
 	}
 }
