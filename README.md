@@ -26,6 +26,12 @@ or to enable debug messages
 SDL_LOGGING=app=debug ./build/sqlay3
 ```
 
+QLAY logging levels
+
+```
+QLAY_LOG_SOUND = 19
+
+```
 ## sq68ux
 
 ```
