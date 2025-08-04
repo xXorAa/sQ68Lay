@@ -478,6 +478,8 @@ void wrmdvcntl(uint8_t x)
 
 static void set_gap_irq(void);
 
+static bool qlay_turbo_load = false;
+
 /* in: drive; 0: no drive, 1..8: select MDVdrive */
 static void mdv_select(int drive)
 {
@@ -504,6 +506,9 @@ static void mdv_select(int drive)
 		mdvmotor = false;
 		mdvtxfl = false;
 
+		if (qlay_turbo_load) {
+			SDL_SetHint(SDL_HINT_MAIN_CALLBACK_RATE, "50");
+		}
 		qlayStopMdvSound();
 	} else {
 		SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION, "MDV MOTOR ON %d",
@@ -519,6 +524,9 @@ static void mdv_select(int drive)
 		mdrive[mdvnum].mdvgapcnt = MDV_GAP_COUNT;
 		set_gap_irq();
 
+		if (qlay_turbo_load) {
+			SDL_SetHint(SDL_HINT_MAIN_CALLBACK_RATE, "0");
+		}
 		qlayStartMdvSound();
 	}
 }
@@ -1178,6 +1186,10 @@ void init_mdvs(void)
 	bool res;
 
 	qlayInitMdvSound();
+
+	if (emulatorOptionInt("turboload")) {
+		qlay_turbo_load = true;
+	}
 
 	memset(mdrive, 0, sizeof(mdrive));
 
