@@ -4,8 +4,10 @@
 	QL input and output
 */
 
+#include "emulator_logging.h"
 #include <SDL3/SDL.h>
 
+#include <SDL3/SDL_log.h>
 #include <ctype.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -631,7 +633,7 @@ repeat for any number of bits to be received (MSB first)
 
 */
 
-void wr8049(uint8_t data)
+void wr8049(Uint8 data)
 {
 	static int IPCrcvd = 1; /* bit marker */
 	int IPCcmd;
@@ -652,10 +654,10 @@ void wr8049(uint8_t data)
 	} else {
 		/* expect 0x0e */
 		if (data != 0x0e) {
-			fpr("ERRORIPC?:%x %x ", m68k_get_reg(NULL, M68K_REG_PC),
-			    data);
+			SDL_LogDebug(QLAY_LOG_IPC, "ERRORIPC?:%x %x",
+				     m68k_get_reg(NULL, M68K_REG_PC), data);
 		}
-		/*970718*/ IPC020 = 0;
+		IPC020 = 0;
 		IPCcnt--;
 		if (IPCreturn & (1 << IPCcnt))
 			IPC020 |= 0x80;
@@ -731,8 +733,7 @@ static void exec_IPCcmd(int cmd)
 	static int IPCbaud = 0;
 
 	if (IPCpcmd == 0x0d) { /*baudr*/
-		if (0)
-			fpr("BRC:%d ", cmd);
+		SDL_LogDebug(QLAY_LOG_IPC, "BRC: %d", cmd);
 		switch (cmd) {
 		case 7:
 			IPCbaud = 75;
@@ -759,8 +760,7 @@ static void exec_IPCcmd(int cmd)
 			IPCbaud = 19200;
 			break;
 		}
-		if (0)
-			fpr("BR:%d ", IPCbaud);
+		SDL_LogDebug(QLAY_LOG_IPC, "BR: %d", IPCbaud);
 		IPCwfc = 1;
 		cmd = 0x10;
 	}
@@ -776,8 +776,7 @@ static void exec_IPCcmd(int cmd)
 	if (IPCpcmd == 0x0a) { /*sound*/
 		static int params = 0;
 		BEEPpars[params] = cmd;
-		if (0)
-			fpr("B%d:%x ", params, cmd);
+		SDL_LogDebug(QLAY_LOG_IPC, "B %d:%x", params, cmd);
 		params++;
 		if (params > 15) {
 			IPCpcmd = 0x10;
@@ -790,7 +789,7 @@ static void exec_IPCcmd(int cmd)
 
 	/*082d ipc cmd C has 1 nibble parameter, no reply */
 	if (IPCpcmd == 0x0c) {
-		fpr("IPCc'C'par%d ", cmd);
+		SDL_LogDebug(QLAY_LOG_IPC, "IPCc'C'par%d", cmd);
 		IPCwfc = 1;
 		IPCpcmd = 0x10;
 		return;
@@ -800,16 +799,17 @@ static void exec_IPCcmd(int cmd)
 		static int params = 0;
 		static int testval = 0;
 		params++;
-		fpr("TP%d:%x ", params, cmd);
+		SDL_LogDebug(QLAY_LOG_IPC, "TP%d:%x", params, cmd);
 		testval = 16 * testval + cmd;
 		if (params > 1) {
-			fpr("RTV%02x ", testval);
+			SDL_LogDebug(QLAY_LOG_IPC, "RTV%02x", testval);
 			IPCpcmd = 0x10;
 			params = 0;
 			IPCreturn = testval;
 			testval = 0; /* for next time 'round */
 			IPCcnt = 8;
 			cmd = 0x10;
+			IPCwfc = 1;
 		} else {
 			IPCwfc = 1;
 			return;
@@ -818,16 +818,14 @@ static void exec_IPCcmd(int cmd)
 
 	switch (cmd) {
 	case 0: /* init */
-		fpr("IPC%02x ", cmd);
+		SDL_LogDebug(QLAY_LOG_IPC, "IPC%02x", cmd);
 		break;
 	case 1: /* get interrupt status */
-		/*fpr("GI ");*/
+		SDL_LogDebug(QLAY_LOG_IPC, "Interrupt Status");
 		IPCreturn = 0;
 		if (utarray_len(qlayKeyBuffer) || qlayKeysPressed) {
 			IPCreturn |= 0x01;
 		}
-		//if (use_debugger || fakeF1)
-		//	IPCreturn |= 0x01; /* fake kbd interrupt */
 		if (qlayIPCBeeping)
 			IPCreturn |= 0x02;
 		if (ser12oc & 0x01) { /* SER1 */
@@ -848,32 +846,34 @@ static void exec_IPCcmd(int cmd)
 	case 5: /* SER2 close */
 		if (cmd == 2) {
 			ser12oc |= 1;
-			fpr("Open Ser 1, ZXb: %d\n", ZXbaud);
+			SDL_LogDebug(QLAY_LOG_IPC, "Open Ser 1, ZXb: %d",
+				     ZXbaud);
 			//open_serial(0, ZXbaud, 0);
 		}
 		if (cmd == 3) {
 			ser12oc |= 2;
-			fpr("Open Ser 2, ZXb: %d\n", ZXbaud);
+			SDL_LogDebug(QLAY_LOG_IPC, "Open Ser 2, ZXb: %d",
+				     ZXbaud);
 			//open_serial(1, ZXbaud, 0);
 		}
 		if (cmd == 4) {
 			ser12oc &= 0xfe;
-			fpr("Close Ser 1\n");
+			SDL_LogDebug(QLAY_LOG_IPC, "Close Ser 1");
 			//close_serial(0);
 		}
 		if (cmd == 5) {
 			ser12oc &= 0xfd;
-			fpr("Close Ser 2\n");
+			SDL_LogDebug(QLAY_LOG_IPC, "Close Ser 2");
 			//close_serial(1);
 		}
-		fpr("IPC %02x, SER12OC %02x ", cmd, ser12oc);
+		SDL_LogDebug(QLAY_LOG_IPC, "IPC %02x, SER12OC %02x", cmd,
+			     ser12oc);
 		IPCwfc = 1;
 		break;
 	case 6: /* SER1 rcv */
 	case 7: /* SER2 rcv */
 		/* only called when 8049 sent a SER RCV interrupt */
-		if (0)
-			fpr("IPCrcv%02x ", cmd);
+		SDL_LogDebug(QLAY_LOG_IPC, "IPCrcv%02x", cmd);
 		IPCchan = cmd & 0x01;
 		//			IPCsersptr=0;
 		IPCsercnt = ser_rcv_size(IPCchan);
@@ -884,75 +884,58 @@ static void exec_IPCcmd(int cmd)
 		break;
 	case 8: /* read keyboard */
 	{
-		/*fpr("C8 ");*/
+		SDL_LogDebug(QLAY_LOG_IPC, "C8");
 		IPCreturn = 0;
 		IPCcnt = 4;
 		if (utarray_len(qlayKeyBuffer)) { /* just double check */
 			int *key;
 			key = (int *)utarray_front(qlayKeyBuffer);
 			utarray_erase(qlayKeyBuffer, 0, 1);
-			/*fpr("Dec %x ",key);*/
 			IPCreturn = decode_key(*key);
 			IPCcnt = 16;
 		} else {
 			if (qlayKeysPressed) { /* still pressed: autorepeat */
-				/*fpr("Dec KP ");*/
 				IPCreturn = 0x8; /* just the repeat bit */
 				IPCcnt = 4;
-				/*970705: not good!*/
-				/*					IPCreturn=decode_key(lastkey);
-					IPCreturn|=0x8000;
-					IPCcnt=16;
-*/
 			}
 		}
-#if 0
-		if (use_debugger || fakeF1) {
-			IPCreturn =
-				0x1039; /* 1 char, no spec.key, F1=39, F2=3b */
-			IPCcnt = 16;
-			fakeF1--;
-		}
-#endif
 		break;
 	}
 	case 0x9: /* keyrow */
-		/*			fpr("KEYR ");*/
+		SDL_LogDebug(QLAY_LOG_IPC, "KEYR");
 		IPCwfc = 1;
 		break;
 	case 0xa: /* set sound */
-		if (0)
-			fpr("BEEP ");
+		SDL_LogDebug(QLAY_LOG_IPC, "BEEP");
 		IPCwfc = 1;
 		break;
 	case 0xb: /* kill sound */
-		if (0)
-			fpr("KILLBEEP ");
+		SDL_LogDebug(QLAY_LOG_IPC, "KILLBEEP");
 		qlayIPCKillSound();
 		IPCwfc = 1;
 		break;
 	case 0xc: /* test interrupt 2?? */
-		fpr("IPCcINT ");
+		SDL_LogDebug(QLAY_LOG_IPC, "IPCcINT");
 		IPCwfc = 1;
 		break;
 	case 0xd: /* set baud rate */
-		/*			fpr("BRATE ");*/
+		SDL_LogDebug(QLAY_LOG_IPC, "BRATE");
 		IPCwfc = 1;
 		break;
 	case 0xe: /* get random, return 16 bits */
-		IPCreturn = 0xabcd; /* can do better.. */
+		IPCreturn = SDL_rand(65535);
 		IPCcnt = 16;
-		fpr("IPCrnd %04x ", IPCreturn);
+		SDL_LogDebug(QLAY_LOG_IPC, "IPCrnd %04x", IPCreturn);
 		IPCwfc = 1;
 		break;
 	case 0xf: /* test, return received byte */
-		fpr("IPCtest ");
+		SDL_LogDebug(QLAY_LOG_IPC, "IPCtest");
 		IPCwfc = 1;
 		break;
 	case 0x10: /* fake: no more parameters */
 		break;
 	default:
-		fpr("ERRORunexpIPCcmd:%x ", cmd);
+		SDL_LogDebug(QLAY_LOG_IPC, "ERRORunexpIPCcmd:%x", cmd);
 		IPCreturn = 0;
 		IPCcnt = 4;
 		break;
