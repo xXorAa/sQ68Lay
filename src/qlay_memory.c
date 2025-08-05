@@ -162,7 +162,7 @@ int emulatorInitMemory(void)
 	emulatorLoadFile(emulatorOptionString("sysrom"),
 			 &emulatorMemorySpace()[0], 0);
 
-	SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Initialzed RAM %uk\n",
+	SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Initialized RAM %uk\n",
 		    (qlayRamSize / 1024) - 128);
 
 	return 0;

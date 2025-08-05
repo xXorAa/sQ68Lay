@@ -767,7 +767,7 @@ static void fuzzAdjust(void)
 }
 
 /*
- * Random adjust is called whenever a pich change is evaluated
+ * Random adjust is called whenever a pitch change is evaluated
  */
 static void randomAdjust(void)
 {
@@ -799,7 +799,7 @@ static void setPitchDuration(void)
 }
 
 /*
- * The number of samples in one *half cycle* for a given QL pich value
+ * The number of samples in one *half cycle* for a given QL pitch value
  */
 static int pitchToHalfSampleCount(int pitch)
 {
