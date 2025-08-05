@@ -31,6 +31,10 @@
 #include "utarray.h"
 #include "utstring.h"
 
+#ifndef  O_BINARY
+#define  O_BINARY 0
+#endif
+
 uint32_t qlay1msec = 7500 / 16;
 
 /* xternal? */
@@ -1069,7 +1073,7 @@ static bool load_mdv_file(const char *filename, int mdvnum)
 	int fd;
 	bool res = false;
 
-	fd = open(filename, O_RDONLY);
+	fd = open(filename, O_RDONLY | O_BINARY);
 
 	fstat(fd, &stat);
 
@@ -1161,7 +1165,7 @@ static void save_mdv_file(int mdvnum)
 	SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION, "MDV Saving %s %d",
 		     mdrive[mdvnum].name, mdvnum);
 
-	fd = open(mdrive[mdvnum].name, O_WRONLY | O_CREAT);
+	fd = open(mdrive[mdvnum].name, O_WRONLY | O_CREAT | O_BINARY);
 	if (fd < 0) {
 		SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
 			     "opening MDV for write %s", strerror(errno));
