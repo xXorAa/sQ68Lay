@@ -1,6 +1,9 @@
-cmake_minimum_required(VERSION 3.21)
+cmake_minimum_required(VERSION 3.10)
+include(CheckIPOSupported)
 
 project(sq68ux C)
+
+check_ipo_supported(RESULT ipo_supported OUTPUT ipo_error)
 
 add_compile_options(-U_FORTIFY_SOURCE -Werror -Wall -Wextra -Wpedantic)
 
@@ -74,6 +77,13 @@ add_dependencies(sq68ux SubmarineGitVersion Musashi)
 
 set_property(TARGET sq68ux PROPERTY C_STANDARD 17)
 
+if(ipo_supported)
+    message(STATUS "IPO / LTO enabled")
+    set_property(TARGET sq68ux PROPERTY INTERPROCEDURAL_OPTIMIZATION TRUE)
+else()
+    message(STATUS "IPO / LTO not supported: <${ipo_error}>")
+endif()
+
 target_compile_options(
   sq68ux
   PRIVATE -DQ68_EMU
@@ -129,6 +139,13 @@ set_source_files_properties(
 add_dependencies(sqlay3 SubmarineGitVersion Musashi)
 
 set_property(TARGET sqlay3 PROPERTY C_STANDARD 17)
+
+if(ipo_supported)
+    message(STATUS "IPO / LTO enabled")
+    set_property(TARGET sqlay3 PROPERTY INTERPROCEDURAL_OPTIMIZATION TRUE)
+else()
+    message(STATUS "IPO / LTO not supported: <${ipo_error}>")
+endif()
 
 target_compile_options(
   sqlay3
