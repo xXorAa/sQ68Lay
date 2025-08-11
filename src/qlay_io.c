@@ -33,8 +33,8 @@
 #include "utarray.h"
 #include "utstring.h"
 
-#ifndef  O_BINARY
-#define  O_BINARY 0
+#ifndef O_BINARY
+#define O_BINARY 0
 #endif
 
 uint32_t qlay1msec = 7500 / 16;
@@ -177,12 +177,7 @@ const uint8_t preamble[12] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 const uint8_t data_preamble[8] = { 0x00, 0x00, 0x00, 0x00,
 				   0x00, 0x00, 0xFF, 0xFF };
 
-const char *mdvname; /* mdv file name */
 int mdvnum; /* current mdv */
-int mdvpresent; /* mdv in drive? */
-int mdvwp; /* mdv write protected */
-int mdvixb; /* mdv byte index */
-int mdvixs; /* mdv sector index */
 static bool mdvwrite = false; /* mdv r/w */
 static bool mdvmotor = false; /* mdv motor running */
 int mdvghstate; /* mdv g/h/g/s progress indicator */
@@ -487,7 +482,6 @@ static bool qlay_turbo_load = false;
 /* in: drive; 0: no drive, 1..8: select MDVdrive */
 static void mdv_select(int drive)
 {
-	mdvixb = 0;
 	mdvwrite = false;
 	mdvghstate = 0;
 	mdvdoub2 = 0;
@@ -503,10 +497,6 @@ static void mdv_select(int drive)
 			}
 		}
 		mdvnum = -1;
-		mdvname = NULL;
-		mdvpresent = 0;
-		mdvixs = 0;
-		mdvwp = 0; /* 1 ->just in case - 0 by Jimmy */
 		mdvmotor = false;
 		mdvtxfl = false;
 
@@ -518,10 +508,6 @@ static void mdv_select(int drive)
 		SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION, "MDV MOTOR ON %d",
 			     drive);
 		mdvnum = drive - 1;
-		mdvname = mdrive[mdvnum].name;
-		mdvpresent = mdrive[mdvnum].present;
-		mdvixs = mdrive[mdvnum].sector;
-		mdvwp = mdrive[mdvnum].wrprot;
 		mdvtxfl = false;
 		mdvmotor = true;
 		mdrive[mdvnum].mdvstate = MDV_GAP1;
@@ -1233,10 +1219,8 @@ void init_mdvs(void)
 			mdrive[mdvNum].name = mdvName;
 			mdrive[mdvNum].present = 1;
 			mdrive[mdvNum].sector = 0;
-			mdvpresent = 1;
-			mdvname = mdvName;
 			SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION,
-				    "MDV%01d is %s", mdvNum + 1, mdvname);
+				    "MDV%01d is %s", mdvNum + 1, mdvName);
 		} else {
 			SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION,
 				    "MDV%01d is ejected", mdvNum + 1);
