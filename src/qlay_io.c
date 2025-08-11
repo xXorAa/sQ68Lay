@@ -53,10 +53,8 @@ static void wrserdata(uint8_t x);
 void wrZX8302(uint8_t x);
 static int decode_key(int key);
 static void init_mdvs(void);
-static int dt_event(int dt_type);
 static void mdv_select(int drive);
 static void init_events(void);
-static void eval_next_event(void);
 static void ser_rcv_init(void);
 static int ser_rcv_dequeue(int ch);
 static int ser_rcv_size(int ch);
@@ -595,7 +593,6 @@ static void wrserdata(uint8_t d)
 	etx = cycles() +
 	      10000 * qlay1msec /
 		      ZXbaud; /* clear busy after 10 bits transmitted */
-	eval_next_event();
 	if (p)
 		fpr("ETX%ld ", etx);
 }
@@ -636,7 +633,6 @@ void wr8049(Uint8 data)
 	static int IPCrcvd = 1; /* bit marker */
 	int IPCcmd;
 
-	dt_event(1); /* mark this here, check delay when reading 18020 */
 	if (IPCwfc) {
 		if ((data & 0x0c) == 0x0c) {
 			IPCrcvd <<= 1;
@@ -941,23 +937,6 @@ static void exec_IPCcmd(int cmd)
 	IPCpcmd = cmd;
 }
 
-/* return how many cycles past previous dt_event() call */
-/* dt_type=0 will read only since last update; 1 will update time */
-static int dt_event(int dt_type)
-{
-	static uint32_t prevevent = 0x80000000;
-	uint32_t rv;
-	/* this is wrong?? see QABS 970801 */
-	if (cycles() < prevevent)
-		rv = prevevent - cycles();
-	else
-		rv = cycles() - prevevent;
-	/*fpr("DT%d ",rv);*/
-	if (dt_type)
-		prevevent = cycles();
-	return rv;
-}
-
 void qlayInitIPC(void)
 {
 	init_mdvs();
@@ -1231,39 +1210,6 @@ void init_mdvs(void)
 void init_events(void)
 {
 	e50 = emdv = emouse = esound = etx = 0;
-}
-
-void eval_next_event(void)
-{
-	/*
-uint32_t	d50,dmdv,dmouse,dsound,dtx;
-#define QMIN(a,b) ( (a)<(b) ? (a) : (b) )
-#define QABSD(a,b) ( (a)-(b) )
-
-	d50=QABSD(e50,emulator::cycle);
-	dmdv=QABSD(emdv,emulator::cycle);
-	dmouse=QABSD(emouse,emulator::cycle);
-	dsound=QABSD(esound,emulator::cycle);
-	dtx=QABSD(etx,emulator::cycle);
-	emulator::cycle_next_event=emulator::cycle+QMIN(QMIN(QMIN(dsound,dtx),d50),QMIN(dmouse,dmdv));
-*/
-	uint32_t dc, dmin;
-	dmin = e50 - cycles();
-	dc = emdv - cycles();
-	if (dc < dmin)
-		dmin = dc;
-#if 0
-	dc = emouse - emulator::cycle;
-	if (dc < dmin)
-		dmin = dc;
-	dc = esound - emulator::cycle;
-	if (dc < dmin)
-		dmin = dc;
-#endif
-	//	dc = etx - cycles();
-	//	if (dc < dmin)
-	//		dmin = dc;
-	cycleNextEvent = cycles() + dmin;
 }
 
 static void set_gap_irq(void)
