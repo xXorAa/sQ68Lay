@@ -24,6 +24,8 @@ uint8_t Q68_KBD_STATUS = KBD_ISINT; // interrupt driven kbd
 static uint8_t q68_q68_dmode = 0;
 uint8_t EMU_Q68_MMC1_READ = 0;
 uint8_t EMU_Q68_MMC1_WRIT = 0;
+uint8_t EMU_Q68_MMC2_READ = 0;
+uint8_t EMU_Q68_MMC2_WRIT = 0;
 bool sd1en = false, sd2en = false;
 
 static uint32_t q68_update_time(void)
@@ -79,6 +81,12 @@ uint8_t qlHardwareRead8(unsigned int addr)
 			     EMU_Q68_MMC1_READ);
 		return EMU_Q68_MMC1_READ;
 	}
+	case Q68_MMC2_READ:
+	case Q68_MMC2_READ + 1: {
+		SDL_LogDebug(Q68_LOG_HW, "Q68_MMC2_READ: %2.2x",
+			     EMU_Q68_MMC2_READ);
+		return EMU_Q68_MMC2_READ;
+	}
 	case Q68_DMODE:
 		return q68_q68_dmode;
 	default:
@@ -127,6 +135,22 @@ void qlHardwareWrite8(unsigned int addr, uint8_t val)
 		if (sd1en) {
 			EMU_Q68_MMC1_READ = card_byte_out(0);
 			card_byte_in(0, EMU_Q68_MMC1_WRIT);
+		}
+		break;
+	case Q68_MMC2_CS:
+		sd2en = !!val;
+		SDL_LogDebug(Q68_LOG_HW, "Q68_MMC2_CS: %2.2x", val);
+		if (sd2en) {
+			EMU_Q68_MMC1_READ = card_byte_out(0);
+		}
+		break;
+	case Q68_MMC2_WRIT:
+		EMU_Q68_MMC1_WRIT = val;
+		break;
+	case Q68_MMC2_XFER:
+		if (sd2en) {
+			EMU_Q68_MMC2_READ = card_byte_out(0);
+			card_byte_in(0, EMU_Q68_MMC2_WRIT);
 		}
 		break;
 	case Q68_DMODE:
