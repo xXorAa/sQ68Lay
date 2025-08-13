@@ -169,6 +169,8 @@ struct emuOpts emuOptions[] = {
 	  NULL, NULL },
 	{ "sd1", "", "SDHC Image for SD1 slot", EMU_OPT_CHAR, 0, NULL, NULL },
 	{ "sd2", "", "SDHC Image for SD1 slot", EMU_OPT_CHAR, 0, NULL, NULL },
+	{ "sssvol", "", "volume of SSS sound in range 0-10", EMU_OPT_INT, 3,
+	  NULL, NULL },
 	{ "sysrom", "r", "system rom to load (at 0x0)", EMU_OPT_CHAR, 0, NULL,
 	  NULL },
 	{ "trace", "", "enable tracing", EMU_OPT_INT, 0, NULL, NULL },

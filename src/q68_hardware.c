@@ -14,6 +14,7 @@
 #include "emulator_screen.h"
 #include "q68_keyboard.h"
 #include "q68_sd.h"
+#include "q68_sound.h"
 #include "spi_sdcard.h"
 #include "utarray.h"
 
@@ -152,6 +153,12 @@ void qlHardwareWrite8(unsigned int addr, uint8_t val)
 			EMU_Q68_MMC2_READ = card_byte_out(0);
 			card_byte_in(0, EMU_Q68_MMC2_WRIT);
 		}
+		break;
+	case Q68_SOUND_RIGHT:
+		q68PlayByte(1, val);
+		break;
+	case Q68_SOUND_LEFT:
+		q68PlayByte(0, val);
 		break;
 	case Q68_DMODE:
 		q68_q68_dmode = val;
