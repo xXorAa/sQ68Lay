@@ -87,6 +87,11 @@
 #define Q68_MMC2_WRIT 0x1c354
 #define Q68_MMC2_XFER 0x1c358
 
+// Q40 compatible SSS
+#define Q68_SOUND_RIGHT 0x1c400 //right sound byte
+#define Q68_SOUND_LEFT 0x1c404 //left - writing here triggers sound
+#define Q68_SOUND_FULL 0x1c408 //set if DAC queue is full
+
 #define Q68_DMODE 0xff000018
 
 uint8_t qlHardwareRead8(unsigned int addr);

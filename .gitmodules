@@ -13,3 +13,6 @@
 [submodule "libayemu"]
 	path = libayemu
 	url = https://github.com/asashnov/libayemu
+[submodule "fatfs"]
+	path = fatfs
+	url = https://github.com/abbrev/fatfs
