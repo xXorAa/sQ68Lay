@@ -17,6 +17,7 @@
 #include "q68_hooks.h"
 #include "q68_keyboard.h"
 #include "q68_sd.h"
+#include "q68_sound.h"
 #include "spi_sdcard.h"
 #include "utarray.h"
 
@@ -49,6 +50,7 @@ void *emulatorInitEmulation(void)
 		trace = true;
 	}
 
+	q68InitSound();
 	q68InitKeyb();
 	card_initialise(emulatorOptionString("sd1"),
 			emulatorOptionString("sd2"));
