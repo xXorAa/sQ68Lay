@@ -76,6 +76,8 @@ void card_initialise(const char *sd1, const char *sd2)
 				     sd1, strerror(errno));
 			cards[0].m_harddisk = -1;
 		}
+	} else {
+		cards[0].m_harddisk = -1;
 	}
 
 	if (sd2 && strlen(sd2)) {
@@ -90,6 +92,8 @@ void card_initialise(const char *sd1, const char *sd2)
 				     sd2, strerror(errno));
 			cards[1].m_harddisk = -1;
 		}
+	} else {
+		cards[1].m_harddisk = -1;
 	}
 }
 
@@ -195,6 +199,10 @@ void latch_in(void)
 
 void card_byte_in(int cardno, uint8_t m_in_latch)
 {
+	if (cards[cardno].m_harddisk < 0) {
+		return;
+	}
+
 	//printf("SDCARD: %d got %02x\n", cardno, m_in_latch);
 	for (uint8_t i = 0; i < 5; i++) {
 		cards[cardno].m_cmd[i] = cards[cardno].m_cmd[i + 1];
