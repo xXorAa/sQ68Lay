@@ -168,7 +168,7 @@ void qlHardwareWrite8(unsigned int addr, uint8_t val)
 		sd2en = !!val;
 		SDL_LogDebug(Q68_LOG_HW, "Q68_MMC2_CS: %2.2x", val);
 		if (sd2en) {
-			EMU_Q68_MMC1_READ = card_byte_out(0);
+			EMU_Q68_MMC1_READ = card_byte_out(1);
 		}
 		break;
 	case Q68_MMC2_WRIT:
@@ -176,8 +176,8 @@ void qlHardwareWrite8(unsigned int addr, uint8_t val)
 		break;
 	case Q68_MMC2_XFER:
 		if (sd2en) {
-			EMU_Q68_MMC2_READ = card_byte_out(0);
-			card_byte_in(0, EMU_Q68_MMC2_WRIT);
+			EMU_Q68_MMC2_READ = card_byte_out(1);
+			card_byte_in(1, EMU_Q68_MMC2_WRIT);
 		}
 		break;
 	case Q68_SOUND_RIGHT:
