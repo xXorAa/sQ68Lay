@@ -64,6 +64,7 @@ card cards[2];
 
 void card_initialise(const char *sd1, const char *sd2)
 {
+	SDL_LogDebug(Q68_LOG_SD, "SD Card Initialising");
 	if (sd1 && strlen(sd1)) {
 		int res = open(sd1, O_RDWR | O_BINARY);
 		if (res >= 0) {
@@ -72,7 +73,7 @@ void card_initialise(const char *sd1, const char *sd2)
 			cards[0].m_harddisk = res;
 			cards[0].m_blksize = 512;
 		} else {
-			SDL_LogError(Q68_LOG_HW, "SD1: failed to open %s - %s",
+			SDL_LogError(Q68_LOG_SD, "SD1: failed to open %s - %s",
 				     sd1, strerror(errno));
 			cards[0].m_harddisk = -1;
 		}
@@ -203,7 +204,6 @@ void card_byte_in(int cardno, uint8_t m_in_latch)
 		return;
 	}
 
-	//printf("SDCARD: %d got %02x\n", cardno, m_in_latch);
 	for (uint8_t i = 0; i < 5; i++) {
 		cards[cardno].m_cmd[i] = cards[cardno].m_cmd[i + 1];
 	}
@@ -277,6 +277,10 @@ void card_byte_in(int cardno, uint8_t m_in_latch)
 
 uint8_t card_byte_out(int cardno)
 {
+	if (cards[cardno].m_harddisk < 0) {
+		return 0xff;
+	}
+
 	if (cards[cardno].m_out_ptr < SPI_DELAY_RESPONSE) {
 		cards[cardno].m_out_ptr++;
 	} else if (cards[cardno].m_out_count > 0) {
