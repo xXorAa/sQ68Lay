@@ -74,7 +74,7 @@ bool emulatorLoadFile(const char *name, uint8_t *addr, size_t wantSize)
 		return false;
 	}
 
-	fd = open(name, O_RDONLY);
+	fd = open(name, O_RDONLY | O_BINARY);
 	if (fd < 0) {
 		fprintf(stderr, "Error opening file %s %s\n", name,
 			strerror(errno));
