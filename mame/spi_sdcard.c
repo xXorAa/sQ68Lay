@@ -335,7 +335,7 @@ void do_command(int cardno)
 	    (cards[cardno].m_cmd[5] & 1)) {
 		SDL_LogDebug(Q68_LOG_SD,
 			     "SD%.1d: cmd %02d %02x %02x %02x %02x %02x",
-			     cardno + 1, cards[cardno].m_cmd[0] & 0x3f,
+			     cardno, cards[cardno].m_cmd[0] & 0x3f,
 			     cards[cardno].m_cmd[1], cards[cardno].m_cmd[2],
 			     cards[cardno].m_cmd[3], cards[cardno].m_cmd[4],
 			     cards[cardno].m_cmd[5]);
