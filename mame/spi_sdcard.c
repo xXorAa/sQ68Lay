@@ -105,7 +105,7 @@ static bool card_write(int cardno, uint32_t blknext, void *data)
 	res = lseek(cards[cardno].m_harddisk, cards[cardno].m_blksize * blknext,
 		    SEEK_SET);
 	if (res < 0) {
-		SDL_LogDebug(Q68_LOG_SD, "SDCARD: %d failed to seek %d", cardno,
+		SDL_LogDebug(Q68_LOG_SD, "SDCARD: %d failed to seek %u", cardno,
 			     cards[cardno].m_blksize * blknext);
 
 		return 0;
@@ -129,7 +129,7 @@ static bool card_read(int cardno, uint32_t blknext, void *data)
 	res = lseek(cards[cardno].m_harddisk, cards[cardno].m_blksize * blknext,
 		    SEEK_SET);
 	if (res < 0) {
-		SDL_LogError(Q68_LOG_SD, "SDCARD: %d failed to seek %d", cardno,
+		SDL_LogError(Q68_LOG_SD, "SDCARD: %d failed to seek %u", cardno,
 			     cards[cardno].m_blksize * blknext);
 		return false;
 	}
