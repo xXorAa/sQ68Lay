@@ -27,7 +27,17 @@ uint8_t EMU_Q68_MMC1_READ = 0;
 uint8_t EMU_Q68_MMC1_WRIT = 0;
 uint8_t EMU_Q68_MMC2_READ = 0;
 uint8_t EMU_Q68_MMC2_WRIT = 0;
+static Uint8 EMU_Q68_MMC1_DOUT = 0;
+static Uint8 EMU_Q68_MMC2_DOUT = 0;
 bool sd1en = false, sd2en = false;
+static bool mmc1Clk = false;
+static Uint8 mmc1Cnt = 0;
+static Uint8 mmc1Dout = 0;
+static Uint8 mmc1Din = 0;
+static bool mmc2Clk = false;
+static Uint8 mmc2Cnt = 0;
+static Uint8 mmc2Dout = 0;
+static Uint8 mmc2Din = 0;
 
 static uint32_t q68_update_time(void)
 {
@@ -81,6 +91,8 @@ uint8_t qlHardwareRead8(unsigned int addr)
 		return (q68_update_time() >> 8) & 0xFF;
 	case PC_CLOCK + 3:
 		return q68_update_time() & 0xFF;
+	case PC_IPCRD:
+		return 0;
 	case PC_INTR:
 		return EMU_PC_INTR;
 	case Q68_TIMER:
@@ -102,12 +114,24 @@ uint8_t qlHardwareRead8(unsigned int addr)
 	}
 	case KBD_STATUS:
 		return Q68_KBD_STATUS;
+	case Q68_MMC1_DIN:
+		if (mmc1Din & 0x80) {
+			return 0xFF;
+		} else {
+			return 0;
+		}
 	case Q68_MMC1_READ:
 	case Q68_MMC1_READ + 1: {
 		SDL_LogDebug(Q68_LOG_HW, "Q68_MMC1_READ: %2.2x",
 			     EMU_Q68_MMC1_READ);
 		return EMU_Q68_MMC1_READ;
 	}
+	case Q68_MMC2_DIN:
+		if (mmc2Din & 0x80) {
+			return 0xFF;
+		} else {
+			return 0;
+		}
 	case Q68_MMC2_READ:
 	case Q68_MMC2_READ + 1: {
 		SDL_LogDebug(Q68_LOG_HW, "Q68_MMC2_READ: %2.2x",
@@ -155,6 +179,29 @@ void qlHardwareWrite8(unsigned int addr, uint8_t val)
 			EMU_Q68_MMC1_READ = card_byte_out(0);
 		}
 		break;
+	case Q68_MMC1_CLK:
+		if (mmc1Clk && !val && sd1en) {
+			if (mmc1Cnt == 0) {
+				mmc1Din = card_byte_out(0);
+			} else {
+				mmc1Din <<= 1;
+			}
+
+			mmc1Dout <<= 1;
+			if (EMU_Q68_MMC1_DOUT) {
+				mmc1Dout |= 1;
+			}
+			mmc1Cnt++;
+			if (mmc1Cnt == 8) {
+				card_byte_in(0, mmc1Dout);
+				mmc1Cnt = 0;
+			}
+		}
+		mmc1Clk = !!val;
+		break;
+	case Q68_MMC1_DOUT:
+		EMU_Q68_MMC1_DOUT = val;
+		break;
 	case Q68_MMC1_WRIT:
 		EMU_Q68_MMC1_WRIT = val;
 		break;
@@ -168,11 +215,34 @@ void qlHardwareWrite8(unsigned int addr, uint8_t val)
 		sd2en = !!val;
 		SDL_LogDebug(Q68_LOG_HW, "Q68_MMC2_CS: %2.2x", val);
 		if (sd2en) {
-			EMU_Q68_MMC1_READ = card_byte_out(1);
+			EMU_Q68_MMC2_READ = card_byte_out(1);
 		}
 		break;
+	case Q68_MMC2_CLK:
+		if (mmc2Clk && !val && sd2en) {
+			if (mmc2Cnt == 0) {
+				mmc2Din = card_byte_out(1);
+			} else {
+				mmc2Din <<= 1;
+			}
+
+			mmc2Dout <<= 1;
+			if (EMU_Q68_MMC2_DOUT) {
+				mmc2Dout |= 1;
+			}
+			mmc2Cnt++;
+			if (mmc2Cnt == 8) {
+				card_byte_in(1, mmc2Dout);
+				mmc2Cnt = 0;
+			}
+		}
+		mmc2Clk = !!val;
+		break;
+	case Q68_MMC2_DOUT:
+		EMU_Q68_MMC2_DOUT = val;
+		break;
 	case Q68_MMC2_WRIT:
-		EMU_Q68_MMC1_WRIT = val;
+		EMU_Q68_MMC2_WRIT = val;
 		break;
 	case Q68_MMC2_XFER:
 		if (sd2en) {
@@ -191,7 +261,8 @@ void qlHardwareWrite8(unsigned int addr, uint8_t val)
 		emulatorScreenChangeMode(val & 7);
 		return;
 	default:
-		SDL_LogDebug(Q68_LOG_HW, "write unknown: %8.8x", addr);
+		SDL_LogDebug(Q68_LOG_HW, "write unknown: %8.8x %2.2x", addr,
+			     val);
 		break;
 	}
 }
