@@ -37,11 +37,37 @@ static uint32_t q68_update_time(void)
 	return tv.tv_sec + QDOS_TIME;
 }
 
-static uint32_t q68_update_hires(void)
-{
-	uint64_t freq = SDL_GetPerformanceFrequency();
+static bool highFreq = false;
+static Uint64 perfFreq;
+static double perfDiv;
 
-	return SDL_GetPerformanceCounter() / (freq / 40000000);
+bool q68InitHardware(void)
+{
+	SDL_LogDebug(Q68_LOG_HW, "q68InitHardware");
+
+	perfFreq = SDL_GetPerformanceFrequency();
+	if (perfFreq == 0) {
+		highFreq = false;
+		SDL_LogError(Q68_LOG_HW, "SDL_GetPerformanceFrequency failed");
+		return false;
+	}
+
+	highFreq = true;
+
+	perfDiv = (double)perfFreq / 40000000.0;
+
+	return true;
+}
+
+static Uint32 q68_update_hires(void)
+{
+	if (!highFreq) {
+		return 0;
+	}
+
+	double freq = (double)SDL_GetPerformanceCounter();
+
+	return (Uint32)(freq / perfDiv);
 }
 
 uint8_t qlHardwareRead8(unsigned int addr)
