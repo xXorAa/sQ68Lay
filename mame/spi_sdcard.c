@@ -200,6 +200,9 @@ void latch_in(void)
 
 void card_byte_in(int cardno, uint8_t m_in_latch)
 {
+	SDL_LogDebug(Q68_LOG_SD, "SD%.1d: m_in_latch %2.2x", cardno,
+		     m_in_latch);
+
 	if (cards[cardno].m_harddisk < 0) {
 		return;
 	}
