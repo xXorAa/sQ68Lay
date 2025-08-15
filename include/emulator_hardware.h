@@ -97,6 +97,9 @@
 uint8_t qlHardwareRead8(unsigned int addr);
 void qlHardwareWrite8(unsigned int addr, uint8_t val);
 
+/* q68 Initialise Hardware */
+bool q68InitHardware(void);
+
 /* qlay RTC initialise */
 void qlayInitialiseTime(void);
 

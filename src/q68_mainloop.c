@@ -50,6 +50,7 @@ void *emulatorInitEmulation(void)
 		trace = true;
 	}
 
+	q68InitHardware();
 	q68InitSound();
 	q68InitKeyb();
 	card_initialise(emulatorOptionString("sd1"),
