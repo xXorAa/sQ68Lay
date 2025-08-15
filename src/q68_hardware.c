@@ -117,7 +117,7 @@ uint8_t qlHardwareRead8(unsigned int addr)
 	case Q68_DMODE:
 		return q68_q68_dmode;
 	default:
-		SDL_LogDebug(Q68_LOG_HW, "unknown: %8.8x", addr);
+		SDL_LogDebug(Q68_LOG_HW, "read unknown: %8.8x", addr);
 		break;
 	}
 
@@ -191,6 +191,7 @@ void qlHardwareWrite8(unsigned int addr, uint8_t val)
 		emulatorScreenChangeMode(val & 7);
 		return;
 	default:
+		SDL_LogDebug(Q68_LOG_HW, "write unknown: %8.8x", addr);
 		break;
 	}
 }
