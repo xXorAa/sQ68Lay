@@ -59,6 +59,7 @@ add_executable(
   src/emulator_main.c
   src/emulator_options.c
   src/emulator_screen.c
+  src/emulator_trace.c
   src/q68_hardware.c
   src/q68_hooks.c
   src/q68_keyboard.c
@@ -114,6 +115,7 @@ add_executable(
   src/emulator_main.c
   src/emulator_options.c
   src/emulator_screen.c
+  src/emulator_trace.c
   src/qlay_disk.c
   src/qlay_memory.c
   src/qlay_hardware.c
@@ -122,7 +124,6 @@ add_executable(
   src/qlay_keyboard.c
   src/qlay_mainloop.c
   src/qlay_sound.c
-  src/qlay_trace.c
   args/src/args.c
   libayemu/src/ay8912.c
   inih/ini.c

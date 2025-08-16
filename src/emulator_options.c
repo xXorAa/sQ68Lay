@@ -153,13 +153,6 @@ struct emuOpts emuOptions[] = {
 	{ "ramsize", "m", "amount of ram in K (max 8192)", EMU_OPT_INT, 128,
 	  NULL, NULL },
 	{ "sysrom", "r", "system rom", EMU_OPT_CHAR, 0, "JS.rom", NULL },
-	{ "trace", "", "enable tracing", EMU_OPT_INT, 0, NULL, NULL },
-	{ "trace-high", "", "highest address to trace", EMU_OPT_INT, 0xFFFFFF,
-	  NULL, NULL },
-	{ "trace-low", "", "lowest address to trace", EMU_OPT_INT, 0, NULL,
-	  NULL },
-	{ "trace-map", "", "map file for trace addrs to symbols", EMU_OPT_CHAR,
-	  0, NULL, NULL },
 	{ "turboload", "", "run emulator at max speed while MDV motor on",
 	  EMU_OPT_INT, 0, NULL, NULL },
 #endif //QLAY_EMU
@@ -173,8 +166,14 @@ struct emuOpts emuOptions[] = {
 	  NULL, NULL },
 	{ "sysrom", "r", "system rom to load (at 0x0)", EMU_OPT_CHAR, 0, NULL,
 	  NULL },
-	{ "trace", "", "enable tracing", EMU_OPT_INT, 0, NULL, NULL },
 #endif
+	{ "trace", "", "enable tracing", EMU_OPT_INT, 0, NULL, NULL },
+	{ "trace-high", "", "highest address to trace", EMU_OPT_INT, 0xFFFFFF,
+	  NULL, NULL },
+	{ "trace-low", "", "lowest address to trace", EMU_OPT_INT, 0, NULL,
+	  NULL },
+	{ "trace-map", "", "map file for trace addrs to symbols", EMU_OPT_CHAR,
+	  0, NULL, NULL },
 
 	{ NULL, NULL, NULL, 0, 0, NULL, NULL },
 };

@@ -10,6 +10,7 @@
 #include "emulator_events.h"
 #include "emulator_hardware.h"
 #include "emulator_keyboard.h"
+#include "emulator_trace.h"
 #include "q68_hooks.h"
 #include "sdl-ps2.h"
 #include "utarray.h"
@@ -28,7 +29,7 @@ void emulatorProcessKey(int keysym, int scancode, bool pressed)
 	uint8_t queue[MAX_PS2_CODE_LEN];
 
 	if ((keysym == SDLK_F12) && pressed) {
-		trace ^= 1;
+		emulatorTraceToggle();
 		return;
 	}
 
