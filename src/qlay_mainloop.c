@@ -20,7 +20,6 @@
 #include "qlay_io.h"
 #include "qlay_keyboard.h"
 #include "qlay_sound.h"
-#include "qlay_trace.h"
 
 #define MDV_CYCLES 230
 #define FIFTYHZ_CYCLES 150000
@@ -59,7 +58,6 @@ void *emulatorInitEmulation(void)
 	qlayInitDisk();
 	qlayInitialiseTime();
 	qlayInitialiseQsound();
-	traceInit();
 
 	emulator_state_t *emu_state = calloc(1, sizeof(emulator_state_t));
 	return emu_state;

@@ -46,10 +46,6 @@ void *emulatorInitEmulation(void)
 		romProtect = true;
 	}
 
-	if (emulatorOptionInt("trace")) {
-		trace = true;
-	}
-
 	q68InitHardware();
 	q68InitSound();
 	q68InitKeyb();

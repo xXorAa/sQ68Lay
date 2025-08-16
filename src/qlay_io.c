@@ -799,7 +799,6 @@ void qlayInitIPC(void)
 	ser_rcv_init();
 	//start_speaker();
 	qlclkoff = 0;
-	cycleNextEvent = 0;
 }
 
 /* load a qlay formatted MDV

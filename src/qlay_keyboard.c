@@ -6,6 +6,7 @@
 
 #include <SDL3/SDL.h>
 
+#include "emulator_trace.h"
 #include "qlay_hooks.h"
 #include "qlay_keyboard.h"
 #include "qlkeys.h"
@@ -133,12 +134,10 @@ void emulatorProcessKey(int keysym, __attribute__((unused)) int scancode,
 	int i = 0;
 
 	if ((keysym == SDLK_F12) && pressed) {
-		if (!trace) {
-			trace = true;
-		} else {
-			trace = false;
-		}
+		emulatorTraceToggle();
+		return;
 	}
+
 	while (qlMapDefault[i].sdlKey != 0) {
 		if (qlMapDefault[i].sdlKey == keysym) {
 			break;

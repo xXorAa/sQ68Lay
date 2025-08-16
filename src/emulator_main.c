@@ -15,6 +15,7 @@
 #include "emulator_memory.h"
 #include "emulator_options.h"
 #include "emulator_screen.h"
+#include "emulator_trace.h"
 
 #if __EMSCRIPTEN__
 #include <emscripten/emscripten.h>
@@ -47,6 +48,8 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[])
 		return SDL_APP_FAILURE;
 	}
 	emulatorInitScreen(1);
+
+	emulatorTraceInit();
 
 	*appstate = emulatorInitEmulation();
 	if (!*appstate) {
