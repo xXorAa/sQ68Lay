@@ -98,23 +98,30 @@ void card_initialise(const char *sd1, const char *sd2)
 	}
 }
 
-static bool card_write(int cardno, uint32_t blknext, void *data)
+static bool card_seek(int cardno, uint32_t blknext)
 {
-	int res;
+	off_t seekPos = (off_t)cards[cardno].m_blksize * (off_t)blknext;
 
-	res = lseek(cards[cardno].m_harddisk, cards[cardno].m_blksize * blknext,
-		    SEEK_SET);
-	if (res < 0) {
-		SDL_LogDebug(Q68_LOG_SD, "SDCARD: %d failed to seek %u", cardno,
-			     cards[cardno].m_blksize * blknext);
+	off_t resSeek = lseek(cards[cardno].m_harddisk, seekPos, SEEK_SET);
+	if (resSeek < 0) {
+		SDL_LogDebug(Q68_LOG_SD, "SDCARD: %d failed to seek %" PRIdMAX,
+			     cardno, (intmax_t)seekPos);
 
-		return 0;
+		return false;
 	}
 
-	res = write(cards[cardno].m_harddisk, data, cards[cardno].m_blksize);
-	if (res != cards[cardno].m_blksize) {
+	return true;
+}
+
+static bool card_write(int cardno, uint32_t blknext, void *data)
+{
+	card_seek(cardno, blknext);
+
+	int resWrite =
+		write(cards[cardno].m_harddisk, data, cards[cardno].m_blksize);
+	if (resWrite != cards[cardno].m_blksize) {
 		SDL_LogError(Q68_LOG_SD, "SDCARD: %d failed to write %d",
-			     cardno, res);
+			     cardno, resWrite);
 
 		return 0;
 	}
@@ -124,20 +131,13 @@ static bool card_write(int cardno, uint32_t blknext, void *data)
 
 static bool card_read(int cardno, uint32_t blknext, void *data)
 {
-	int res;
+	card_seek(cardno, blknext);
 
-	res = lseek(cards[cardno].m_harddisk, cards[cardno].m_blksize * blknext,
-		    SEEK_SET);
-	if (res < 0) {
-		SDL_LogError(Q68_LOG_SD, "SDCARD: %d failed to seek %u", cardno,
-			     cards[cardno].m_blksize * blknext);
-		return false;
-	}
-
-	res = read(cards[cardno].m_harddisk, data, cards[cardno].m_blksize);
-	if (res != cards[cardno].m_blksize) {
+	int resRead =
+		read(cards[cardno].m_harddisk, data, cards[cardno].m_blksize);
+	if (resRead != cards[cardno].m_blksize) {
 		SDL_LogError(Q68_LOG_SD, "SDCARD: %d failed to read %d", cardno,
-			     res);
+			     resRead);
 		return false;
 	}
 
