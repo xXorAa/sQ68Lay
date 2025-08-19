@@ -14,6 +14,7 @@
 #include "emulator_options.h"
 #include "emulator_screen.h"
 #include "m68k.h"
+#include "q68_disk.h"
 #include "q68_hooks.h"
 #include "q68_keyboard.h"
 #include "q68_sd.h"
@@ -36,21 +37,30 @@ void *emulatorInitEmulation(void)
 
 	uint32_t initPc = 0;
 
+	q68InitHardware();
+	q68InitSound();
+	q68InitKeyb();
+	q68DiskInitialise();
+
 	if (strlen(smsqe) > 0) {
-		emulatorLoadFile(smsqe, &emulatorMemorySpace()[Q68_SMSQE_ADDR],
-				 0);
-		initPc = Q68_SMSQE_ADDR;
+		emulatorLoadFile(smsqe,
+				 &emulatorMemorySpace()[Q68_SMSQE_WIN_ADDR], 0);
+		initPc = Q68_SMSQE_WIN_ADDR;
 	} else if (strlen(sysrom) > 0) {
 		emulatorLoadFile(sysrom,
 				 &emulatorMemorySpace()[Q68_SYSROM_ADDR], 0);
 		romProtect = true;
+	} else {
+		initPc = q68DiskReadSMSQE();
+
+		if (initPc == Q68_INVALID) {
+			SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
+				     "Failed to load SMSQE or SYSROM");
+			return NULL;
+		}
 	}
 
-	q68InitHardware();
-	q68InitSound();
-	q68InitKeyb();
-	card_initialise(emulatorOptionString("sd1"),
-			emulatorOptionString("sd2"));
+	card_initialise(NULL, NULL);
 
 	m68k_set_cpu_type(M68K_CPU_TYPE_68000);
 	m68k_init();
