@@ -149,8 +149,8 @@ DRESULT disk_read(BYTE pdrv, /* [IN] Physical drive number */
 	(void)pdrv; // Unused parameter
 
 	SDL_LogDebug(Q68_LOG_DISK,
-		     "disk_read: pdrv=%d, sector=%" PRIu32 ", count=%u", pdrv,
-		     sector, count);
+		     "disk_read: pdrv=%d, sector=%" PRIu64 ", count=%" PRIu64,
+		     pdrv, (Uint64)sector, (Uint64)count);
 
 	Sint64 resSeek = SDL_SeekIO(sd1Stream, sector * 512, SDL_IO_SEEK_SET);
 	if (resSeek < 0) {
