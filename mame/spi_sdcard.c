@@ -104,7 +104,7 @@ static bool card_seek(int cardno, uint32_t blknext)
 
 	off_t resSeek = lseek(cards[cardno].m_harddisk, seekPos, SEEK_SET);
 	if (resSeek < 0) {
-		SDL_LogDebug(Q68_LOG_SD, "SDCARD: %d failed to seek %" PRIdMAX,
+		SDL_LogDebug(Q68_LOG_SD, "SD%.1d: failed to seek %" PRIdMAX,
 			     cardno, (intmax_t)seekPos);
 
 		return false;
@@ -117,11 +117,11 @@ static bool card_write(int cardno, uint32_t blknext, void *data)
 {
 	card_seek(cardno, blknext);
 
-	int resWrite =
+	ssize_t resWrite =
 		write(cards[cardno].m_harddisk, data, cards[cardno].m_blksize);
 	if (resWrite != cards[cardno].m_blksize) {
-		SDL_LogError(Q68_LOG_SD, "SDCARD: %d failed to write %d",
-			     cardno, resWrite);
+		SDL_LogError(Q68_LOG_SD, "SD%.1d: failed to write %" PRIdMAX,
+			     cardno, (intmax_t)resWrite);
 
 		return 0;
 	}
@@ -133,11 +133,13 @@ static bool card_read(int cardno, uint32_t blknext, void *data)
 {
 	card_seek(cardno, blknext);
 
-	int resRead =
+	ssize_t resRead =
 		read(cards[cardno].m_harddisk, data, cards[cardno].m_blksize);
 	if (resRead != cards[cardno].m_blksize) {
-		SDL_LogError(Q68_LOG_SD, "SDCARD: %d failed to read %d", cardno,
-			     resRead);
+		SDL_LogError(Q68_LOG_SD,
+			     "SD%.1d: failed to read =  %" PRIdMAX
+			     ", blk = %" PRIu32,
+			     cardno, (intmax_t)resRead, blknext);
 		return false;
 	}
 
@@ -567,7 +569,7 @@ void do_command(int cardno)
 
 		default:
 			SDL_LogError(Q68_LOG_SD, "SD%.1d: Unsupported %02x\n",
-				     cardno + 1, cards[cardno].m_cmd[0] & 0x3f);
+				     cardno, cards[cardno].m_cmd[0] & 0x3f);
 			clean_cmd = false;
 			break;
 		}
