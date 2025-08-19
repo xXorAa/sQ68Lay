@@ -51,7 +51,7 @@ typedef struct {
 	sd_type m_type;
 	sd_state m_state;
 	uint8_t m_data[520], m_cmd[6];
-	int m_harddisk;
+	SDL_IOStream *m_harddisk;
 
 	int m_ss, m_in_bit, m_clk_state, m_;
 	uint8_t m_in_latch, m_out_latch, m_cur_bit;
@@ -62,50 +62,26 @@ typedef struct {
 
 card cards[2];
 
-void card_initialise(const char *sd1, const char *sd2)
+void card_initialise(SDL_IOStream *sd1, SDL_IOStream *sd2)
 {
-	SDL_LogDebug(Q68_LOG_SD, "SD Card Initialising");
-	if (sd1 && strlen(sd1)) {
-		int res = open(sd1, O_RDWR | O_BINARY);
-		if (res >= 0) {
-			SDL_LogDebug(Q68_LOG_SD, "SD1: %s", sd1);
-			cards[0].m_type = SD_TYPE_HC;
-			cards[0].m_harddisk = res;
-			cards[0].m_blksize = 512;
-		} else {
-			SDL_LogError(Q68_LOG_SD, "SD1: failed to open %s - %s",
-				     sd1, strerror(errno));
-			cards[0].m_harddisk = -1;
-		}
-	} else {
-		cards[0].m_harddisk = -1;
-	}
+	cards[0].m_harddisk = sd1;
+	cards[0].m_type = SD_TYPE_HC;
+	cards[0].m_blksize = 512;
 
-	if (sd2 && strlen(sd2)) {
-		int res = open(sd2, O_RDWR | O_BINARY);
-		if (res >= 0) {
-			SDL_LogDebug(Q68_LOG_SD, "SD1: %s", sd1);
-			cards[1].m_type = SD_TYPE_HC;
-			cards[1].m_harddisk = res;
-			cards[1].m_blksize = 512;
-		} else {
-			SDL_LogError(Q68_LOG_SD, "SD2: failed to open %s - %s",
-				     sd2, strerror(errno));
-			cards[1].m_harddisk = -1;
-		}
-	} else {
-		cards[1].m_harddisk = -1;
-	}
+	cards[1].m_harddisk = sd2;
+	cards[1].m_type = SD_TYPE_HC;
+	cards[1].m_blksize = 512;
 }
 
 static bool card_seek(int cardno, uint32_t blknext)
 {
-	off_t seekPos = (off_t)cards[cardno].m_blksize * (off_t)blknext;
+	Sint64 seekPos = (Sint64)cards[cardno].m_blksize * (Sint64)blknext;
 
-	off_t resSeek = lseek(cards[cardno].m_harddisk, seekPos, SEEK_SET);
+	Sint64 resSeek =
+		SDL_SeekIO(cards[cardno].m_harddisk, seekPos, SDL_IO_SEEK_SET);
 	if (resSeek < 0) {
-		SDL_LogDebug(Q68_LOG_SD, "SD%.1d: failed to seek %" PRIdMAX,
-			     cardno, (intmax_t)seekPos);
+		SDL_LogDebug(Q68_LOG_SD, "SD%.1d: failed to seek %" PRId64,
+			     cardno, seekPos);
 
 		return false;
 	}
@@ -117,8 +93,9 @@ static bool card_write(int cardno, uint32_t blknext, void *data)
 {
 	card_seek(cardno, blknext);
 
-	ssize_t resWrite =
-		write(cards[cardno].m_harddisk, data, cards[cardno].m_blksize);
+	size_t resWrite =
+		SDL_WriteIO(cards[0].m_harddisk, data, cards[cardno].m_blksize);
+
 	if (resWrite != cards[cardno].m_blksize) {
 		SDL_LogError(Q68_LOG_SD, "SD%.1d: failed to write %" PRIdMAX,
 			     cardno, (intmax_t)resWrite);
@@ -134,7 +111,8 @@ static bool card_read(int cardno, uint32_t blknext, void *data)
 	card_seek(cardno, blknext);
 
 	ssize_t resRead =
-		read(cards[cardno].m_harddisk, data, cards[cardno].m_blksize);
+		SDL_ReadIO(cards[0].m_harddisk, data, cards[0].m_blksize);
+
 	if (resRead != cards[cardno].m_blksize) {
 		SDL_LogError(Q68_LOG_SD,
 			     "SD%.1d: failed to read =  %" PRIdMAX
@@ -205,7 +183,7 @@ void card_byte_in(int cardno, uint8_t m_in_latch)
 	SDL_LogDebug(Q68_LOG_SD, "SD%.1d: m_in_latch %2.2x", cardno,
 		     m_in_latch);
 
-	if (cards[cardno].m_harddisk < 0) {
+	if (cards[cardno].m_harddisk == NULL) {
 		return;
 	}
 
@@ -282,7 +260,7 @@ void card_byte_in(int cardno, uint8_t m_in_latch)
 
 uint8_t card_byte_out(int cardno)
 {
-	if (cards[cardno].m_harddisk < 0) {
+	if (cards[cardno].m_harddisk == NULL) {
 		return 0xff;
 	}
 
@@ -345,7 +323,7 @@ void do_command(int cardno)
 		cards[cardno].m_out_latch = 0xFF;
 		switch (cards[cardno].m_cmd[0] & 0x3f) {
 		case 0: // CMD0 - GO_IDLE_STATE
-			if (cards[cardno].m_harddisk >= 0) {
+			if (cards[cardno].m_harddisk != NULL) {
 				cards[cardno].m_data[0] = 0x01;
 				send_data(cardno, 1, SD_STATE_IDLE);
 			} else {
@@ -433,7 +411,7 @@ void do_command(int cardno)
 			cards[cardno].m_blksize =
 				((uint16_t)cards[cardno].m_cmd[3] << 8) |
 				(uint16_t)cards[cardno].m_cmd[4];
-			if (cards[cardno].m_harddisk >= 0) {
+			if (cards[cardno].m_harddisk != NULL) {
 				cards[cardno].m_data[0] = 0;
 			} else {
 				cards[cardno].m_data[0] =
@@ -449,7 +427,7 @@ void do_command(int cardno)
 			break;
 
 		case 17: // CMD17 - READ_SINGLE_BLOCK
-			if (cards[cardno].m_harddisk >= 0) {
+			if (cards[cardno].m_harddisk != NULL) {
 				cards[cardno].m_data[0] =
 					0x00; // initial R1 response
 				// data token occurs some time after the R1 response.  A2SD expects at least 1
@@ -490,7 +468,7 @@ void do_command(int cardno)
 			break;
 
 		case 18: // CMD18 - CMD_READ_MULTIPLE_BLOCK
-			if (cards[cardno].m_harddisk >= 0) {
+			if (cards[cardno].m_harddisk != NULL) {
 				cards[cardno].m_data[0] =
 					cards[cardno].m_out_latch =
 						0x00; // initial R1 response

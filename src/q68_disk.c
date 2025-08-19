@@ -11,6 +11,7 @@
 #include "emulator_options.h"
 #include "ff.h"
 #include "diskio.h"
+#include "spi_sdcard.h"
 
 SDL_IOStream *sd1Stream = NULL;
 SDL_IOStream *sd2Stream = NULL;
@@ -42,6 +43,8 @@ bool q68DiskInitialise(void)
 			return false;
 		}
 	}
+
+	card_initialise(sd1Stream, sd2Stream);
 
 	return true;
 }
