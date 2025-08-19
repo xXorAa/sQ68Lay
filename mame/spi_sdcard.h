@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include <SDL3/SDL.h>
 #include <stdint.h>
 
 typedef enum { SD_TYPE_V2 = 0, SD_TYPE_HC } sd_type;
@@ -28,7 +29,7 @@ typedef enum {
 	SD_STATE_WRITE_DATA
 } sd_state;
 
-void card_initialise(const char *sd1, const char *sd2);
+void card_initialise(SDL_IOStream *sd1, SDL_IOStream *sd2);
 void send_data(int cardno, uint16_t count, sd_state new_state);
 void do_command(int cardno);
 void change_state(int cardno, sd_state new_state);

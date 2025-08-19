@@ -60,8 +60,6 @@ void *emulatorInitEmulation(void)
 		}
 	}
 
-	card_initialise(NULL, NULL);
-
 	m68k_set_cpu_type(M68K_CPU_TYPE_68000);
 	m68k_init();
 	m68k_pulse_reset();
