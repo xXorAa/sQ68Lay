@@ -19,7 +19,8 @@ include_directories(
   mame/
   external/
   qlay/
-  uthash/src/)
+  uthash/src/
+  fatfs/)
 
 find_package(Git)
 add_custom_target(
@@ -60,6 +61,7 @@ add_executable(
   src/emulator_options.c
   src/emulator_screen.c
   src/emulator_trace.c
+  src/q68_disk.c
   src/q68_hardware.c
   src/q68_hooks.c
   src/q68_keyboard.c
@@ -67,6 +69,7 @@ add_executable(
   src/q68_memory.c
   src/q68_sound.c
   external/sdl-ps2.c
+  fatfs/ff.c
   args/src/args.c
   inih/ini.c
   mame/spi_sdcard.c
@@ -98,6 +101,13 @@ target_compile_options(
   -Werror
   -DMUSASHI_CNF=\"emu68kconf.h\"
   "$<$<CONFIG:Debug>:-ggdb;-Og>")
+
+set_source_files_properties(
+  fatfs/ff.c
+  PROPERTIES
+  COMPILE_FLAGS
+  "-Wno-overflow"
+)
 
 target_link_options(sq68ux PRIVATE ${EM_LINK} ${QLAY3_LINK}
   "$<$<CONFIG:Debug>:-ggdb;-Og>")
