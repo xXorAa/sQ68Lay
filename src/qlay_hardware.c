@@ -13,6 +13,7 @@
 #include "emulator_screen.h"
 #include "qlay_io.h"
 #include "qlay_sound.h"
+#include "spi_sdcard.h"
 
 // ghost irq registers
 Uint8 EMU_PC_INTR = 0;
@@ -53,6 +54,17 @@ void qlayInitialiseQsound(void)
 	}
 }
 
+static Uint8 EMU_QLSD_SPI_SELECT = 0x00;
+static Uint8 EMU_QLSD_MOSI = 0x00;
+static Uint8 EMU_QLSD_CLK = 0x00;
+static Uint8 EMU_QLSD_SPI_READ = 0x00;
+static Uint8 QLSDCount = 0;
+static Uint8 QLSDInCount = 0;
+static Uint8 QLSDByteOut = 0x00;
+static Uint8 QLSDByteIn = 0x00;
+static bool QLSDEnabled = false;
+static bool QLSDBG = false;
+
 Uint8 qlHardwareRead8(unsigned int addr)
 {
 	switch (addr) {
@@ -75,6 +87,132 @@ Uint8 qlHardwareRead8(unsigned int addr)
 		return EMU_MC_STAT;
 	default:
 		break;
+	}
+
+	// QL-SD
+	if (addr >= 0xFee0 && addr < 0x10000) {
+		// enable the interface and return immediately
+		if (addr == (QLSD_IF_BASE + QLSD_IF_ENABLE)) {
+			QLSDEnabled = true;
+			SDL_LogDebug(QLAY_LOG_HW, "QL-SD: enabled");
+			return 0;
+		}
+
+		// Handle background transfers
+		if (QLSDBG && ((addr >= QLSD_SPI_XFER) && (addr < 0x10000))) {
+			card_byte_in(EMU_QLSD_SPI_SELECT - 1, addr & 0xFF);
+			EMU_QLSD_SPI_READ =
+				card_byte_out(EMU_QLSD_SPI_SELECT - 1);
+			return 0;
+		}
+
+		if (QLSDEnabled) {
+			switch (addr - QLSD_IF_BASE) {
+			case QLSD_IF_DISABLE:
+				QLSDEnabled = false;
+				SDL_LogDebug(QLAY_LOG_HW, "QL-SD: disabled");
+				break;
+			case QLSD_IF_RESET:
+				EMU_QLSD_SPI_SELECT = 0x00;
+				EMU_QLSD_MOSI = 0x00;
+				EMU_QLSD_CLK = 0x00;
+				QLSDCount = 0;
+				QLSDInCount = 0;
+				QLSDByteIn = 0x00;
+				QLSDByteOut = 0x00;
+				QLSDBG = false;
+				SDL_LogDebug(QLAY_LOG_HW, "QL-SD: reset");
+				break;
+			case QLSD_IF_VERSION:
+				SDL_LogDebug(QLAY_LOG_HW, "QL-SD: version");
+				break;
+			case QLSD_SPI_READ:
+				SDL_LogDebug(Q68_LOG_HW, "QL-SD: read");
+				if (QLSDBG) {
+					return EMU_QLSD_SPI_READ;
+				} else {
+					return (QLSDByteIn & 0x80) ? 0xFF :
+								     0x00;
+				}
+			case QLSD_SPI_XFER_FAST:
+				SDL_LogDebug(Q68_LOG_HW, "QL-SD: bg xfer fast");
+				QLSDBG = true;
+				break;
+			case QLSD_SPI_XFER_SLOW:
+				SDL_LogDebug(Q68_LOG_HW, "QL-SD: bg xfer slow");
+				QLSDBG = true;
+				break;
+			case QLSD_SPI_XFER_OFF:
+				SDL_LogDebug(Q68_LOG_HW, "QL-SD: bg xfer off");
+				QLSDBG = false;
+				break;
+			case QLSD_SPI_SELECT0:
+				SDL_LogDebug(Q68_LOG_HW, "QL-SD: deselect");
+				EMU_QLSD_SPI_SELECT = 0;
+				break;
+			case QLSD_SPI_SELECT1:
+				EMU_QLSD_SPI_SELECT = 1;
+				SDL_LogDebug(Q68_LOG_HW, "QL-SD: select1");
+				break;
+			case QLSD_SPI_SELECT2:
+				EMU_QLSD_SPI_SELECT = 2;
+				SDL_LogDebug(Q68_LOG_HW, "QL-SD: select2");
+				break;
+			case QLSD_SPI_SELECT3:
+				//we dont support card 3 yet
+				//EMU_QLSD_SPI_SELECT = 3;
+				EMU_QLSD_SPI_SELECT = 0;
+				SDL_LogDebug(Q68_LOG_HW, "QL-SD: select3");
+				break;
+			case QLSD_SPI_CLR_MOSI:
+				EMU_QLSD_MOSI = 0;
+				break;
+			case QLSD_SPI_SET_MOSI:
+				EMU_QLSD_MOSI = 1;
+				break;
+			case QLSD_SPI_CLR_SCLK:
+				SDL_LogDebug(Q68_LOG_HW, "QL-SD: clk 0");
+				if (EMU_QLSD_CLK && EMU_QLSD_SPI_SELECT) {
+					if (QLSDInCount == 0) {
+						QLSDByteIn = card_byte_out(
+							EMU_QLSD_SPI_SELECT -
+							1);
+					} else {
+						QLSDByteIn <<= 1;
+					}
+					QLSDInCount++;
+					QLSDInCount %= 8;
+				}
+				EMU_QLSD_CLK = 0;
+				break;
+			case QLSD_SPI_SET_SCLK:
+				SDL_LogDebug(Q68_LOG_HW, "QL-SD: clk 1");
+
+				if (!EMU_QLSD_CLK && EMU_QLSD_SPI_SELECT) {
+					QLSDByteOut <<= 1;
+					if (EMU_QLSD_MOSI) {
+						QLSDByteOut |= 1;
+					}
+					QLSDCount++;
+					if (QLSDCount == 8) {
+						card_byte_in(
+							EMU_QLSD_SPI_SELECT - 1,
+							QLSDByteOut);
+						SDL_LogDebug(
+							Q68_LOG_HW,
+							"QL-SD: byte out %2.2X",
+							QLSDByteOut);
+						QLSDCount = 0;
+					}
+				}
+				EMU_QLSD_CLK = 1;
+				break;
+			default:
+				SDL_LogDebug(Q68_LOG_HW, "QL-SD: unknown %4.4x",
+					     addr);
+				break;
+			}
+		}
 	}
 
 	return 0;

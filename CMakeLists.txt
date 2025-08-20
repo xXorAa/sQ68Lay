@@ -133,9 +133,12 @@ add_executable(
   src/qlay_io.c
   src/qlay_keyboard.c
   src/qlay_mainloop.c
+  src/qlay_qlsd.c
   src/qlay_sound.c
   args/src/args.c
   libayemu/src/ay8912.c
+  mame/spi_sdcard.c
+  mame/crc16spi_fujitsu.c
   inih/ini.c
   Musashi/m68kcpu.c
   Musashi/m68kops.c

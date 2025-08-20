@@ -148,6 +148,7 @@ struct emuOpts emuOptions[] = {
 	  NULL, NULL },
 	{ "mdvvol", "", "volume of MDV sound effect in range 0-10", EMU_OPT_INT,
 	  3, NULL, NULL },
+	{ "qlsd", "", "turn on qlsd emulation", EMU_OPT_INT, 0, NULL, NULL },
 	{ "qsound", "", "address in hex of qsound registers", EMU_OPT_CHAR, 0,
 	  NULL, NULL },
 	{ "ramsize", "m", "amount of ram in K (max 8192)", EMU_OPT_INT, 128,
@@ -160,13 +161,13 @@ struct emuOpts emuOptions[] = {
 #ifdef Q68_EMU
 	{ "smsqe", "", "smsqe image to load (at 0x32000)", EMU_OPT_CHAR, 0,
 	  NULL, NULL },
-	{ "sd1", "", "SDHC Image for SD1 slot", EMU_OPT_CHAR, 0, NULL, NULL },
-	{ "sd2", "", "SDHC Image for SD1 slot", EMU_OPT_CHAR, 0, NULL, NULL },
 	{ "sssvol", "", "volume of SSS sound in range 0-10", EMU_OPT_INT, 3,
 	  NULL, NULL },
 	{ "sysrom", "r", "system rom to load (at 0x0)", EMU_OPT_CHAR, 0, NULL,
 	  NULL },
 #endif
+	{ "sd1", "", "SDHC Image for SD1 slot", EMU_OPT_CHAR, 0, NULL, NULL },
+	{ "sd2", "", "SDHC Image for SD1 slot", EMU_OPT_CHAR, 0, NULL, NULL },
 	{ "trace", "", "enable tracing", EMU_OPT_INT, 0, NULL, NULL },
 	{ "trace-high", "", "highest address to trace", EMU_OPT_INT, 0xFFFFFF,
 	  NULL, NULL },

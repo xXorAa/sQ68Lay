@@ -94,6 +94,27 @@
 
 #define Q68_DMODE 0xff000018
 
+// QL-SD
+#define QLSD_IF_BASE 0xfee0
+#define QLSD_SPI_XFER 0xff00
+
+#define QLSD_IF_ENABLE 0x00
+#define QLSD_IF_DISABLE 0x01
+#define QLSD_IF_RESET 0x02
+#define QLSD_IF_VERSION 0x03
+#define QLSD_SPI_READ 0x04
+#define QLSD_SPI_XFER_FAST 0x06
+#define QLSD_SPI_XFER_SLOW 0x08
+#define QLSD_SPI_XFER_OFF 0x0a
+#define QLSD_SPI_SELECT0 0x10
+#define QLSD_SPI_SELECT1 0x11
+#define QLSD_SPI_SELECT2 0x12
+#define QLSD_SPI_SELECT3 0x13
+#define QLSD_SPI_CLR_MOSI 0x14
+#define QLSD_SPI_SET_MOSI 0x15
+#define QLSD_SPI_CLR_SCLK 0x16
+#define QLSD_SPI_SET_SCLK 0x17
+
 uint8_t qlHardwareRead8(unsigned int addr);
 void qlHardwareWrite8(unsigned int addr, uint8_t val);
 

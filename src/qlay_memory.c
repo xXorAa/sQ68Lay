@@ -13,6 +13,7 @@
 #include "emulator_options.h"
 #include "m68k.h"
 #include "qlay_disk.h"
+#include "qlay_qlsd.h"
 #include "utarray.h"
 
 static Uint8 *qlayMemSpace = NULL;
@@ -172,6 +173,11 @@ unsigned int m68k_read_memory_8(unsigned int address)
 {
 	if ((address >= QL_INTERNAL_IO) &&
 	    address < (QL_INTERNAL_IO + QL_INTERNAL_IO_SIZE)) {
+		return qlHardwareRead8(address);
+	}
+
+	// QL-SD
+	if (QLSDEnabled && ((address >= 0xfee0) && (address < 0x10000))) {
 		return qlHardwareRead8(address);
 	}
 
