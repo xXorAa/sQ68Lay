@@ -16,6 +16,7 @@ enum {
 	QLAY_LOG_MDV,
 	QLAY_LOG_IO,
 	QLAY_LOG_HW,
+	QLAY_LOG_DISK,
 };
 
 enum {

@@ -10,6 +10,7 @@
 #include "emulator_events.h"
 #include "emulator_files.h"
 #include "qlay_hooks.h"
+#include "qlay_qlsd.h"
 #include "emulator_hardware.h"
 #include "emulator_memory.h"
 #include "emulator_options.h"
@@ -58,6 +59,7 @@ void *emulatorInitEmulation(void)
 	qlayInitDisk();
 	qlayInitialiseTime();
 	qlayInitialiseQsound();
+	qlayQLSDInitialise();
 
 	emulator_state_t *emu_state = calloc(1, sizeof(emulator_state_t));
 	return emu_state;
