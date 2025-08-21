@@ -187,10 +187,13 @@ void card_byte_in(int cardno, uint8_t m_in_latch)
 		return;
 	}
 
-	for (uint8_t i = 0; i < 5; i++) {
-		cards[cardno].m_cmd[i] = cards[cardno].m_cmd[i + 1];
+	if ((cards[cardno].m_state != SD_STATE_WRITE_WAITFE) &&
+	    (cards[cardno].m_state != SD_STATE_WRITE_DATA)) {
+		for (uint8_t i = 0; i < 5; i++) {
+			cards[cardno].m_cmd[i] = cards[cardno].m_cmd[i + 1];
+		}
+		cards[cardno].m_cmd[5] = m_in_latch;
 	}
-	cards[cardno].m_cmd[5] = m_in_latch;
 
 	switch (cards[cardno].m_state) {
 	case SD_STATE_IDLE:
