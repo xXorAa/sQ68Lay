@@ -206,7 +206,16 @@ void card_byte_in(int cardno, uint8_t m_in_latch)
 		break;
 
 	case SD_STATE_WRITE_DATA:
-		cards[cardno].m_data[cards[cardno].m_write_ptr++] = m_in_latch;
+		// protect against a an overflow
+		if (cards[cardno].m_write_ptr < sizeof(cards[cardno].m_data)) {
+			cards[cardno].m_data[cards[cardno].m_write_ptr] =
+				m_in_latch;
+		} else {
+			SDL_LogError(Q68_LOG_SD, "m_write_ptr overflow %d",
+				     (int)cards[0].m_write_ptr);
+		}
+		cards[cardno].m_write_ptr++;
+
 		if (cards[cardno].m_write_ptr ==
 		    (cards[cardno].m_blksize + 2)) {
 			SDL_LogDebug(Q68_LOG_SD,
