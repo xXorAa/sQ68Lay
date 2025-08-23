@@ -664,6 +664,8 @@ static void exec_IPCcmd(int cmd)
 	switch (cmd) {
 	case 0: /* init */
 		SDL_LogDebug(QLAY_LOG_IPC, "IPC%02x", cmd);
+		IPCcnt = 0;
+		IPCwfc = 1;
 		break;
 	case 1: /* get interrupt status */
 		SDL_LogDebug(QLAY_LOG_IPC, "Interrupt Status");
