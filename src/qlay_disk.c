@@ -94,8 +94,6 @@ void qlayInitDisk(void)
 
 		SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "WIN%d is %s",
 			    drvNum + 1, drvName);
-
-		i++;
 	}
 
 	if (i == 0) {
