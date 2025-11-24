@@ -3,11 +3,11 @@
 #ifndef EMULATOR_MEMORY_H
 #define EMULATOR_MEMORY_H
 
-#include <stddef.h>
 #include <stdbool.h>
+#include <stddef.h>
 
-uint8_t *emulatorMemorySpace(void);
-uint8_t *emulatorScreenSpace(void);
+uint8_t* emulatorMemorySpace(void);
+uint8_t* emulatorScreenSpace(void);
 int emulatorInitMemory(void);
 extern bool romProtect;
 

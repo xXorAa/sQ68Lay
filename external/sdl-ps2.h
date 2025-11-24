@@ -18,4 +18,4 @@ int ps2_encode(int sdl_scancode, bool make, uint8_t out[MAX_PS2_CODE_LEN]);
 }
 #endif
 
-#endif  // SDL_PS2_H
+#endif // SDL_PS2_H

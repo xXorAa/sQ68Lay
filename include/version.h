@@ -1,4 +1,3 @@
 #pragma once
 
-extern char *release;
-
+extern char* release;

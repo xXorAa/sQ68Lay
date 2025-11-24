@@ -48,541 +48,499 @@ static const int SPI_DELAY_RESPONSE = 1;
 #endif
 
 typedef struct {
-	sd_type m_type;
-	sd_state m_state;
-	uint8_t m_data[520], m_cmd[6];
-	SDL_IOStream *m_harddisk;
+  sd_type m_type;
+  sd_state m_state;
+  uint8_t m_data[520], m_cmd[6];
+  SDL_IOStream* m_harddisk;
 
-	int m_ss, m_in_bit, m_clk_state, m_;
-	uint8_t m_in_latch, m_out_latch, m_cur_bit;
-	uint16_t m_out_count, m_out_ptr, m_write_ptr, m_blksize;
-	uint32_t m_blknext;
-	bool m_bACMD;
+  int m_ss, m_in_bit, m_clk_state, m_;
+  uint8_t m_in_latch, m_out_latch, m_cur_bit;
+  uint16_t m_out_count, m_out_ptr, m_write_ptr, m_blksize;
+  uint32_t m_blknext;
+  bool m_bACMD;
 } card;
 
 card cards[2];
 
-void card_initialise(SDL_IOStream *sd1, SDL_IOStream *sd2)
+void card_initialise(SDL_IOStream* sd1, SDL_IOStream* sd2)
 {
-	cards[0].m_harddisk = sd1;
-	cards[0].m_type = SD_TYPE_HC;
-	cards[0].m_blksize = 512;
+  cards[0].m_harddisk = sd1;
+  cards[0].m_type = SD_TYPE_HC;
+  cards[0].m_blksize = 512;
 
-	cards[1].m_harddisk = sd2;
-	cards[1].m_type = SD_TYPE_HC;
-	cards[1].m_blksize = 512;
+  cards[1].m_harddisk = sd2;
+  cards[1].m_type = SD_TYPE_HC;
+  cards[1].m_blksize = 512;
 }
 
 static bool card_seek(int cardno, uint32_t blknext)
 {
-	Sint64 seekPos = (Sint64)cards[cardno].m_blksize * (Sint64)blknext;
+  Sint64 seekPos = (Sint64)cards[cardno].m_blksize * (Sint64)blknext;
 
-	Sint64 resSeek =
-		SDL_SeekIO(cards[cardno].m_harddisk, seekPos, SDL_IO_SEEK_SET);
-	if (resSeek < 0) {
-		SDL_LogDebug(Q68_LOG_SD, "SD%.1d: failed to seek %" PRId64,
-			     cardno, seekPos);
+  Sint64 resSeek = SDL_SeekIO(cards[cardno].m_harddisk, seekPos, SDL_IO_SEEK_SET);
+  if (resSeek < 0) {
+    SDL_LogDebug(Q68_LOG_SD, "SD%.1d: failed to seek %" PRId64,
+        cardno, seekPos);
 
-		return false;
-	}
+    return false;
+  }
 
-	return true;
+  return true;
 }
 
-static bool card_write(int cardno, uint32_t blknext, void *data)
+static bool card_write(int cardno, uint32_t blknext, void* data)
 {
-	card_seek(cardno, blknext);
+  card_seek(cardno, blknext);
 
-	size_t resWrite =
-		SDL_WriteIO(cards[0].m_harddisk, data, cards[cardno].m_blksize);
+  size_t resWrite = SDL_WriteIO(cards[0].m_harddisk, data, cards[cardno].m_blksize);
 
-	if (resWrite != cards[cardno].m_blksize) {
-		SDL_LogError(Q68_LOG_SD, "SD%.1d: failed to write %" PRIdMAX,
-			     cardno, (intmax_t)resWrite);
+  if (resWrite != cards[cardno].m_blksize) {
+    SDL_LogError(Q68_LOG_SD, "SD%.1d: failed to write %" PRIdMAX,
+        cardno, (intmax_t)resWrite);
 
-		return 0;
-	}
+    return 0;
+  }
 
-	return 1;
+  return 1;
 }
 
-static bool card_read(int cardno, uint32_t blknext, void *data)
+static bool card_read(int cardno, uint32_t blknext, void* data)
 {
-	card_seek(cardno, blknext);
+  card_seek(cardno, blknext);
 
-	ssize_t resRead =
-		SDL_ReadIO(cards[0].m_harddisk, data, cards[0].m_blksize);
+  ssize_t resRead = SDL_ReadIO(cards[0].m_harddisk, data, cards[0].m_blksize);
 
-	if (resRead != cards[cardno].m_blksize) {
-		SDL_LogError(Q68_LOG_SD,
-			     "SD%.1d: failed to read =  %" PRIdMAX
-			     ", blk = %" PRIu32,
-			     cardno, (intmax_t)resRead, blknext);
-		return false;
-	}
+  if (resRead != cards[cardno].m_blksize) {
+    SDL_LogError(Q68_LOG_SD,
+        "SD%.1d: failed to read =  %" PRIdMAX
+        ", blk = %" PRIu32,
+        cardno, (intmax_t)resRead, blknext);
+    return false;
+  }
 
-	return true;
+  return true;
 }
 
 /*
 void spi_ss_w(int state)
 {
-	m_ss = state;
+        m_ss = state;
 }
 
 void spi_mosi_w(int state)
 {
-	m_in_bit = state;
+        m_in_bit = state;
 }
 
 bool get_card_present(void) {
-	return !(m_harddisk == NULL);
+        return !(m_harddisk == NULL);
 }
 */
 void send_data(int cardno, uint16_t count, sd_state new_state)
 {
-	cards[cardno].m_out_ptr = 0;
-	cards[cardno].m_out_count = count;
-	change_state(cardno, new_state);
+  cards[cardno].m_out_ptr = 0;
+  cards[cardno].m_out_count = count;
+  change_state(cardno, new_state);
 }
 
 /*
 void spi_clock_w(int state)
 {
-	// only respond if selected, and a clock edge
-	if (m_ss && state != m_clk_state)
-	{
-		// We implement SPI Mode 3 signalling, in which we latch the data on
-		// rising clock edges, and shift the data on falling clock edges.
-		// See http://www.dejazzer.com/ee379/lecture_notes/lec12_sd_card.pdf for details
-		// on the 4 SPI signalling modes. SD Cards can work in either Mode 0 or Mode 3,
-		// both of which shift on the falling edge and latch on the rising edge but
-		// have opposite CLK polarity.
-		if (state)
-			latch_in();
-		else
-			shift_out();
-	}
-	m_clk_state = state;
+        // only respond if selected, and a clock edge
+        if (m_ss && state != m_clk_state)
+        {
+                // We implement SPI Mode 3 signalling, in which we latch the data on
+                // rising clock edges, and shift the data on falling clock edges.
+                // See http://www.dejazzer.com/ee379/lecture_notes/lec12_sd_card.pdf for details
+                // on the 4 SPI signalling modes. SD Cards can work in either Mode 0 or Mode 3,
+                // both of which shift on the falling edge and latch on the rising edge but
+                // have opposite CLK polarity.
+                if (state)
+                        latch_in();
+                else
+                        shift_out();
+        }
+        m_clk_state = state;
 }
 
 void latch_in(void)
 {
-	m_in_latch &= ~0x01;
-	m_in_latch |= m_in_bit;
-	printf("\tsdcard: L %02x (%d) (out %02x)\n", m_in_latch, m_cur_bit, m_out_latch);
-	m_cur_bit++;
-	if (m_cur_bit == 8)
-	{
-	}
+        m_in_latch &= ~0x01;
+        m_in_latch |= m_in_bit;
+        printf("\tsdcard: L %02x (%d) (out %02x)\n", m_in_latch, m_cur_bit, m_out_latch);
+        m_cur_bit++;
+        if (m_cur_bit == 8)
+        {
+        }
 }
 */
 
 void card_byte_in(int cardno, uint8_t m_in_latch)
 {
-	SDL_LogDebug(Q68_LOG_SD, "SD%.1d: m_in_latch %2.2x", cardno,
-		     m_in_latch);
+  SDL_LogDebug(Q68_LOG_SD, "SD%.1d: m_in_latch %2.2x", cardno,
+      m_in_latch);
 
-	if (cards[cardno].m_harddisk == NULL) {
-		return;
-	}
+  if (cards[cardno].m_harddisk == NULL) {
+    return;
+  }
 
-	if ((cards[cardno].m_state != SD_STATE_WRITE_WAITFE) &&
-	    (cards[cardno].m_state != SD_STATE_WRITE_DATA)) {
-		for (uint8_t i = 0; i < 5; i++) {
-			cards[cardno].m_cmd[i] = cards[cardno].m_cmd[i + 1];
-		}
-		cards[cardno].m_cmd[5] = m_in_latch;
-	}
+  if ((cards[cardno].m_state != SD_STATE_WRITE_WAITFE) && (cards[cardno].m_state != SD_STATE_WRITE_DATA)) {
+    for (uint8_t i = 0; i < 5; i++) {
+      cards[cardno].m_cmd[i] = cards[cardno].m_cmd[i + 1];
+    }
+    cards[cardno].m_cmd[5] = m_in_latch;
+  }
 
-	switch (cards[cardno].m_state) {
-	case SD_STATE_IDLE:
-		do_command(cardno);
-		break;
+  switch (cards[cardno].m_state) {
+  case SD_STATE_IDLE:
+    do_command(cardno);
+    break;
 
-	case SD_STATE_WRITE_WAITFE:
-		if (m_in_latch == 0xfe) {
-			cards[cardno].m_state = SD_STATE_WRITE_DATA;
-			cards[cardno].m_out_latch = 0xff;
-			cards[cardno].m_write_ptr = 0;
-		}
-		break;
+  case SD_STATE_WRITE_WAITFE:
+    if (m_in_latch == 0xfe) {
+      cards[cardno].m_state = SD_STATE_WRITE_DATA;
+      cards[cardno].m_out_latch = 0xff;
+      cards[cardno].m_write_ptr = 0;
+    }
+    break;
 
-	case SD_STATE_WRITE_DATA:
-		// protect against a an overflow
-		if (cards[cardno].m_write_ptr < sizeof(cards[cardno].m_data)) {
-			cards[cardno].m_data[cards[cardno].m_write_ptr] =
-				m_in_latch;
-		} else {
-			SDL_LogError(Q68_LOG_SD, "m_write_ptr overflow %d",
-				     (int)cards[0].m_write_ptr);
-		}
-		cards[cardno].m_write_ptr++;
+  case SD_STATE_WRITE_DATA:
+    // protect against a an overflow
+    if (cards[cardno].m_write_ptr < sizeof(cards[cardno].m_data)) {
+      cards[cardno].m_data[cards[cardno].m_write_ptr] = m_in_latch;
+    } else {
+      SDL_LogError(Q68_LOG_SD, "m_write_ptr overflow %d",
+          (int)cards[0].m_write_ptr);
+    }
+    cards[cardno].m_write_ptr++;
 
-		if (cards[cardno].m_write_ptr ==
-		    (cards[cardno].m_blksize + 2)) {
-			SDL_LogDebug(Q68_LOG_SD,
-				     "writing LBA %x, data %02x %02x %02x %02x",
-				     cards[cardno].m_blknext,
-				     cards[cardno].m_data[0],
-				     cards[cardno].m_data[1],
-				     cards[cardno].m_data[2],
-				     cards[cardno].m_data[3]);
-			if (card_write(cardno, cards[cardno].m_blknext,
-				       &cards[cardno].m_data[0])) {
-				cards[cardno].m_data[0] = DATA_RESPONSE_OK;
-			} else {
-				cards[cardno].m_data[0] =
-					DATA_RESPONSE_IO_ERROR;
-			}
-			cards[cardno].m_data[1] = 0x01;
+    if (cards[cardno].m_write_ptr == (cards[cardno].m_blksize + 2)) {
+      SDL_LogDebug(Q68_LOG_SD,
+          "writing LBA %x, data %02x %02x %02x %02x",
+          cards[cardno].m_blknext,
+          cards[cardno].m_data[0],
+          cards[cardno].m_data[1],
+          cards[cardno].m_data[2],
+          cards[cardno].m_data[3]);
+      if (card_write(cardno, cards[cardno].m_blknext,
+              &cards[cardno].m_data[0])) {
+        cards[cardno].m_data[0] = DATA_RESPONSE_OK;
+      } else {
+        cards[cardno].m_data[0] = DATA_RESPONSE_IO_ERROR;
+      }
+      cards[cardno].m_data[1] = 0x01;
 
-			send_data(cardno, 2, SD_STATE_IDLE);
-		}
-		break;
+      send_data(cardno, 2, SD_STATE_IDLE);
+    }
+    break;
 
-	case SD_STATE_DATA_MULTI:
-		do_command(cardno);
-		if (cards[cardno].m_state == SD_STATE_DATA_MULTI &&
-		    cards[cardno].m_out_count == 0) {
-			cards[cardno].m_data[0] = 0xfe; // data token
-			card_read(cardno, cards[cardno].m_blknext++,
-				  &cards[cardno].m_data[1]);
-			uint16_t crc16 = crc16spi_fujitsu_byte(
-				0, &cards[cardno].m_data[1],
-				cards[cardno].m_blksize);
-			cards[cardno].m_data[cards[cardno].m_blksize + 1] =
-				(crc16 >> 8) & 0xff;
-			cards[cardno].m_data[cards[cardno].m_blksize + 2] =
-				(crc16 & 0xff);
-			send_data(cardno, 1 + cards[cardno].m_blksize + 2,
-				  SD_STATE_DATA_MULTI);
-		}
-		break;
+  case SD_STATE_DATA_MULTI:
+    do_command(cardno);
+    if (cards[cardno].m_state == SD_STATE_DATA_MULTI && cards[cardno].m_out_count == 0) {
+      cards[cardno].m_data[0] = 0xfe; // data token
+      card_read(cardno, cards[cardno].m_blknext++,
+          &cards[cardno].m_data[1]);
+      uint16_t crc16 = crc16spi_fujitsu_byte(
+          0, &cards[cardno].m_data[1],
+          cards[cardno].m_blksize);
+      cards[cardno].m_data[cards[cardno].m_blksize + 1] = (crc16 >> 8) & 0xff;
+      cards[cardno].m_data[cards[cardno].m_blksize + 2] = (crc16 & 0xff);
+      send_data(cardno, 1 + cards[cardno].m_blksize + 2,
+          SD_STATE_DATA_MULTI);
+    }
+    break;
 
-	default:
-		if (((cards[cardno].m_cmd[0] & 0x70) == 0x40) ||
-		    (cards[cardno].m_out_count == 0)) // CMD0 - GO_IDLE_STATE
-		{
-			do_command(cardno);
-		}
-		break;
-	}
+  default:
+    if (((cards[cardno].m_cmd[0] & 0x70) == 0x40) || (cards[cardno].m_out_count == 0)) // CMD0 - GO_IDLE_STATE
+    {
+      do_command(cardno);
+    }
+    break;
+  }
 }
 
 uint8_t card_byte_out(int cardno)
 {
-	if (cards[cardno].m_harddisk == NULL) {
-		return 0xff;
-	}
+  if (cards[cardno].m_harddisk == NULL) {
+    return 0xff;
+  }
 
-	if (cards[cardno].m_out_ptr < SPI_DELAY_RESPONSE) {
-		cards[cardno].m_out_ptr++;
-	} else if (cards[cardno].m_out_count > 0) {
-		cards[cardno].m_out_latch =
-			cards[cardno].m_data[cards[cardno].m_out_ptr -
-					     SPI_DELAY_RESPONSE];
-		cards[cardno].m_out_ptr++;
-		cards[cardno].m_out_count--;
-	} else {
-		cards[cardno].m_out_latch = 0xFF;
-	}
+  if (cards[cardno].m_out_ptr < SPI_DELAY_RESPONSE) {
+    cards[cardno].m_out_ptr++;
+  } else if (cards[cardno].m_out_count > 0) {
+    cards[cardno].m_out_latch = cards[cardno].m_data[cards[cardno].m_out_ptr - SPI_DELAY_RESPONSE];
+    cards[cardno].m_out_ptr++;
+    cards[cardno].m_out_count--;
+  } else {
+    cards[cardno].m_out_latch = 0xFF;
+  }
 
-	SDL_LogDebug(Q68_LOG_SD, "SD%.1d: m_out_latch %2.2x", cardno,
-		     cards[cardno].m_out_latch);
+  SDL_LogDebug(Q68_LOG_SD, "SD%.1d: m_out_latch %2.2x", cardno,
+      cards[cardno].m_out_latch);
 
-	return cards[cardno].m_out_latch;
+  return cards[cardno].m_out_latch;
 }
 
 /*
 void shift_out(void)
 {
-	m_in_latch <<= 1;
-	m_out_latch <<= 1;
-	m_out_latch |= 1;
-	printf("\tsdcard: S %02x %02x (%d)\n", m_in_latch, m_out_latch, m_cur_bit);
+        m_in_latch <<= 1;
+        m_out_latch <<= 1;
+        m_out_latch |= 1;
+        printf("\tsdcard: S %02x %02x (%d)\n", m_in_latch, m_out_latch, m_cur_bit);
 
-	m_cur_bit &= 0x07;
-	if (m_cur_bit == 0)
-	{
-		if (m_out_ptr < SPI_DELAY_RESPONSE)
-		{
-			m_out_ptr++;
-		}
-		else if (m_out_count > 0)
-		{
-			m_out_latch = m_data[m_out_ptr - SPI_DELAY_RESPONSE];
-			m_out_ptr++;
-			printf("SDCARD: latching %02x (start of shift)\n", m_out_latch);
-			m_out_count--;
-		}
-	}
-	//write_miso(BIT(m_out_latch, 7));
+        m_cur_bit &= 0x07;
+        if (m_cur_bit == 0)
+        {
+                if (m_out_ptr < SPI_DELAY_RESPONSE)
+                {
+                        m_out_ptr++;
+                }
+                else if (m_out_count > 0)
+                {
+                        m_out_latch = m_data[m_out_ptr - SPI_DELAY_RESPONSE];
+                        m_out_ptr++;
+                        printf("SDCARD: latching %02x (start of shift)\n", m_out_latch);
+                        m_out_count--;
+                }
+        }
+        //write_miso(BIT(m_out_latch, 7));
 }
 */
 
 void do_command(int cardno)
 {
-	if (((cards[cardno].m_cmd[0] & 0xc0) == 0x40) &&
-	    (cards[cardno].m_cmd[5] & 1)) {
-		SDL_LogDebug(Q68_LOG_SD,
-			     "SD%.1d: cmd %02d %02x %02x %02x %02x %02x",
-			     cardno, cards[cardno].m_cmd[0] & 0x3f,
-			     cards[cardno].m_cmd[1], cards[cardno].m_cmd[2],
-			     cards[cardno].m_cmd[3], cards[cardno].m_cmd[4],
-			     cards[cardno].m_cmd[5]);
-		bool clean_cmd = true;
-		cards[cardno].m_out_latch = 0xFF;
-		switch (cards[cardno].m_cmd[0] & 0x3f) {
-		case 0: // CMD0 - GO_IDLE_STATE
-			if (cards[cardno].m_harddisk != NULL) {
-				cards[cardno].m_data[0] = 0x01;
-				send_data(cardno, 1, SD_STATE_IDLE);
-			} else {
-				cards[cardno].m_data[0] = 0x00;
-				send_data(cardno, 1, SD_STATE_INA);
-			}
-			break;
+  if (((cards[cardno].m_cmd[0] & 0xc0) == 0x40) && (cards[cardno].m_cmd[5] & 1)) {
+    SDL_LogDebug(Q68_LOG_SD,
+        "SD%.1d: cmd %02d %02x %02x %02x %02x %02x",
+        cardno, cards[cardno].m_cmd[0] & 0x3f,
+        cards[cardno].m_cmd[1], cards[cardno].m_cmd[2],
+        cards[cardno].m_cmd[3], cards[cardno].m_cmd[4],
+        cards[cardno].m_cmd[5]);
+    bool clean_cmd = true;
+    cards[cardno].m_out_latch = 0xFF;
+    switch (cards[cardno].m_cmd[0] & 0x3f) {
+    case 0: // CMD0 - GO_IDLE_STATE
+      if (cards[cardno].m_harddisk != NULL) {
+        cards[cardno].m_data[0] = 0x01;
+        send_data(cardno, 1, SD_STATE_IDLE);
+      } else {
+        cards[cardno].m_data[0] = 0x00;
+        send_data(cardno, 1, SD_STATE_INA);
+      }
+      break;
 
-		case 1: // CMD1 - SEND_OP_COND
-			cards[cardno].m_data[0] = 0x00;
-			send_data(cardno, 1, SD_STATE_READY);
-			break;
+    case 1: // CMD1 - SEND_OP_COND
+      cards[cardno].m_data[0] = 0x00;
+      send_data(cardno, 1, SD_STATE_READY);
+      break;
 
-		case 8: // CMD8 - SEND_IF_COND (SD v2 only)
-			cards[cardno].m_data[0] = 0x01;
-			cards[cardno].m_data[1] = 0;
-			cards[cardno].m_data[2] = 0;
-			cards[cardno].m_data[3] = 0x01;
-			cards[cardno].m_data[4] = 0xaa;
-			send_data(cardno, 5, SD_STATE_IDLE);
-			break;
+    case 8: // CMD8 - SEND_IF_COND (SD v2 only)
+      cards[cardno].m_data[0] = 0x01;
+      cards[cardno].m_data[1] = 0;
+      cards[cardno].m_data[2] = 0;
+      cards[cardno].m_data[3] = 0x01;
+      cards[cardno].m_data[4] = 0xaa;
+      send_data(cardno, 5, SD_STATE_IDLE);
+      break;
 
-		case 9: // CMD9 - SEND_CSD
-			cards[cardno].m_data[0] = 0x00; // TODO
-			send_data(cardno, 1, SD_STATE_STBY);
-			break;
+    case 9: // CMD9 - SEND_CSD
+      cards[cardno].m_data[0] = 0x00; // TODO
+      send_data(cardno, 1, SD_STATE_STBY);
+      break;
 
-		case 10: // CMD10 - SEND_CID
-			cards[cardno].m_data[0] = 0x00; // initial R1 response
-			cards[cardno].m_data[1] =
-				0xff; // throwaway byte before data transfer
-			cards[cardno].m_data[2] = 0xfe; // data token
-			cards[cardno].m_data[3] =
-				'M'; // Manufacturer ID - we'll use M for MAME
-			cards[cardno].m_data[4] =
-				'M'; // OEM ID - MD for MAMEdev
-			cards[cardno].m_data[5] = 'D';
-			cards[cardno].m_data[6] = 'M'; // Product Name - "MCARD"
-			cards[cardno].m_data[7] = 'C';
-			cards[cardno].m_data[8] = 'A';
-			cards[cardno].m_data[9] = 'R';
-			cards[cardno].m_data[10] = 'D';
-			cards[cardno].m_data[11] =
-				0x10; // Product Revision in BCD (1.0)
-			{
-				uint32_t uSerial = 0x12345678;
-				cards[cardno].m_data[12] =
-					(uSerial >> 24) &
-					0xff; // PSN - Product Serial Number
-				cards[cardno].m_data[13] = (uSerial >> 16) &
-							   0xff;
-				cards[cardno].m_data[14] = (uSerial >> 8) &
-							   0xff;
-				cards[cardno].m_data[15] = (uSerial & 0xff);
-			}
-			cards[cardno].m_data[16] =
-				0x01; // MDT - Manufacturing Date
-			cards[cardno].m_data[17] =
-				0x59; // 0x15 9 = 2021, September
-			cards[cardno].m_data[18] =
-				0x00; // CRC7, bit 0 is always 0
-			{
-				uint16_t crc16 = crc16spi_fujitsu_byte(
-					0, &cards[cardno].m_data[3], 16);
-				cards[cardno].m_data[19] = (crc16 >> 8) & 0xff;
-				cards[cardno].m_data[20] = (crc16 & 0xff);
-			}
-			send_data(cardno, 3 + 16 + 2, SD_STATE_STBY);
-			break;
+    case 10: // CMD10 - SEND_CID
+      cards[cardno].m_data[0] = 0x00; // initial R1 response
+      cards[cardno].m_data[1] = 0xff; // throwaway byte before data transfer
+      cards[cardno].m_data[2] = 0xfe; // data token
+      cards[cardno].m_data[3] = 'M'; // Manufacturer ID - we'll use M for MAME
+      cards[cardno].m_data[4] = 'M'; // OEM ID - MD for MAMEdev
+      cards[cardno].m_data[5] = 'D';
+      cards[cardno].m_data[6] = 'M'; // Product Name - "MCARD"
+      cards[cardno].m_data[7] = 'C';
+      cards[cardno].m_data[8] = 'A';
+      cards[cardno].m_data[9] = 'R';
+      cards[cardno].m_data[10] = 'D';
+      cards[cardno].m_data[11] = 0x10; // Product Revision in BCD (1.0)
+      {
+        uint32_t uSerial = 0x12345678;
+        cards[cardno].m_data[12] = (uSerial >> 24) & 0xff; // PSN - Product Serial Number
+        cards[cardno].m_data[13] = (uSerial >> 16) & 0xff;
+        cards[cardno].m_data[14] = (uSerial >> 8) & 0xff;
+        cards[cardno].m_data[15] = (uSerial & 0xff);
+      }
+      cards[cardno].m_data[16] = 0x01; // MDT - Manufacturing Date
+      cards[cardno].m_data[17] = 0x59; // 0x15 9 = 2021, September
+      cards[cardno].m_data[18] = 0x00; // CRC7, bit 0 is always 0
+      {
+        uint16_t crc16 = crc16spi_fujitsu_byte(
+            0, &cards[cardno].m_data[3], 16);
+        cards[cardno].m_data[19] = (crc16 >> 8) & 0xff;
+        cards[cardno].m_data[20] = (crc16 & 0xff);
+      }
+      send_data(cardno, 3 + 16 + 2, SD_STATE_STBY);
+      break;
 
-		case 12: // CMD12 - STOP_TRANSMISSION
-			cards[cardno].m_data[0] = 0;
-			send_data(cardno, 1,
-				  cards[cardno].m_state == SD_STATE_RCV ?
-					  SD_STATE_PRG :
-					  SD_STATE_TRAN);
-			break;
+    case 12: // CMD12 - STOP_TRANSMISSION
+      cards[cardno].m_data[0] = 0;
+      send_data(cardno, 1,
+          cards[cardno].m_state == SD_STATE_RCV ? SD_STATE_PRG : SD_STATE_TRAN);
+      break;
 
-		case 13: // CMD13 - SEND_STATUS
-			cards[cardno].m_data[0] = 0; // TODO
-			send_data(cardno, 1, SD_STATE_STBY);
-			break;
+    case 13: // CMD13 - SEND_STATUS
+      cards[cardno].m_data[0] = 0; // TODO
+      send_data(cardno, 1, SD_STATE_STBY);
+      break;
 
-		case 16: // CMD16 - SET_BLOCKLEN
-			cards[cardno].m_blksize =
-				((uint16_t)cards[cardno].m_cmd[3] << 8) |
-				(uint16_t)cards[cardno].m_cmd[4];
-			if (cards[cardno].m_harddisk != NULL) {
-				cards[cardno].m_data[0] = 0;
-			} else {
-				cards[cardno].m_data[0] =
-					0xff; // indicate an error
-				// if false was returned, it means the hard disk is a CHD file, and we can't resize the
-				// blocks on CHD files.
-				SDL_LogError(
-					Q68_LOG_SD,
-					"spi_sdcard: Couldn't change block size to %d, wrong CHD file?",
-					cards[cardno].m_blksize);
-			}
-			send_data(cardno, 1, SD_STATE_TRAN);
-			break;
+    case 16: // CMD16 - SET_BLOCKLEN
+      cards[cardno].m_blksize = ((uint16_t)cards[cardno].m_cmd[3] << 8) | (uint16_t)cards[cardno].m_cmd[4];
+      if (cards[cardno].m_harddisk != NULL) {
+        cards[cardno].m_data[0] = 0;
+      } else {
+        cards[cardno].m_data[0] = 0xff; // indicate an error
+        // if false was returned, it means the hard disk is a CHD file, and we can't resize the
+        // blocks on CHD files.
+        SDL_LogError(
+            Q68_LOG_SD,
+            "spi_sdcard: Couldn't change block size to %d, wrong CHD file?",
+            cards[cardno].m_blksize);
+      }
+      send_data(cardno, 1, SD_STATE_TRAN);
+      break;
 
-		case 17: // CMD17 - READ_SINGLE_BLOCK
-			if (cards[cardno].m_harddisk != NULL) {
-				cards[cardno].m_data[0] =
-					0x00; // initial R1 response
-				// data token occurs some time after the R1 response.  A2SD expects at least 1
-				// byte of space between R1 and the data packet.
-				cards[cardno].m_data[1] = 0xff;
-				cards[cardno].m_data[2] = 0xfe; // data token
-				uint32_t blk = ((uint32_t)cards[cardno].m_cmd[1]
-						<< 24) |
-					       ((uint32_t)cards[cardno].m_cmd[2]
-						<< 16) |
-					       ((uint32_t)cards[cardno].m_cmd[3]
-						<< 8) |
-					       (uint32_t)cards[cardno].m_cmd[4];
-				if (cards[cardno].m_type == SD_TYPE_V2) {
-					blk /= cards[cardno].m_blksize;
-				}
-				card_read(cardno, blk,
-					  &cards[cardno].m_data[3]);
-				{
-					uint16_t crc16 = crc16spi_fujitsu_byte(
-						0, &cards[cardno].m_data[3],
-						cards[cardno].m_blksize);
-					cards[cardno]
-						.m_data[cards[cardno].m_blksize +
-							3] = (crc16 >> 8) &
-							     0xff;
-					cards[cardno]
-						.m_data[cards[cardno].m_blksize +
-							4] = (crc16 & 0xff);
-				}
-				send_data(cardno,
-					  3 + cards[cardno].m_blksize + 2,
-					  SD_STATE_DATA);
-			} else {
-				cards[cardno].m_data[0] = 0xff; // show an error
-				send_data(cardno, 1, SD_STATE_DATA);
-			}
-			break;
+    case 17: // CMD17 - READ_SINGLE_BLOCK
+      if (cards[cardno].m_harddisk != NULL) {
+        cards[cardno].m_data[0] = 0x00; // initial R1 response
+        // data token occurs some time after the R1 response.  A2SD expects at least 1
+        // byte of space between R1 and the data packet.
+        cards[cardno].m_data[1] = 0xff;
+        cards[cardno].m_data[2] = 0xfe; // data token
+        uint32_t blk = ((uint32_t)cards[cardno].m_cmd[1]
+                           << 24)
+            | ((uint32_t)cards[cardno].m_cmd[2]
+                << 16)
+            | ((uint32_t)cards[cardno].m_cmd[3]
+                << 8)
+            | (uint32_t)cards[cardno].m_cmd[4];
+        if (cards[cardno].m_type == SD_TYPE_V2) {
+          blk /= cards[cardno].m_blksize;
+        }
+        card_read(cardno, blk,
+            &cards[cardno].m_data[3]);
+        {
+          uint16_t crc16 = crc16spi_fujitsu_byte(
+              0, &cards[cardno].m_data[3],
+              cards[cardno].m_blksize);
+          cards[cardno]
+              .m_data[cards[cardno].m_blksize + 3]
+              = (crc16 >> 8) & 0xff;
+          cards[cardno]
+              .m_data[cards[cardno].m_blksize + 4]
+              = (crc16 & 0xff);
+        }
+        send_data(cardno,
+            3 + cards[cardno].m_blksize + 2,
+            SD_STATE_DATA);
+      } else {
+        cards[cardno].m_data[0] = 0xff; // show an error
+        send_data(cardno, 1, SD_STATE_DATA);
+      }
+      break;
 
-		case 18: // CMD18 - CMD_READ_MULTIPLE_BLOCK
-			if (cards[cardno].m_harddisk != NULL) {
-				cards[cardno].m_data[0] =
-					cards[cardno].m_out_latch =
-						0x00; // initial R1 response
-				// data token occurs some time after the R1 response.  A2SD
-				// expects at least 1 byte of space between R1 and the data
-				// packet.
-				cards[cardno].m_blknext =
-					((uint32_t)cards[cardno].m_cmd[1]
-					 << 24) |
-					((uint32_t)cards[cardno].m_cmd[2]
-					 << 16) |
-					((uint32_t)cards[cardno].m_cmd[3]
-					 << 8) |
-					(uint32_t)cards[cardno].m_cmd[4];
-				if (cards[cardno].m_type == SD_TYPE_V2) {
-					cards[cardno].m_blknext /=
-						cards[cardno].m_blksize;
-				}
-			} else {
-				cards[cardno].m_data[0] = 0xff; // show an error
-			}
-			send_data(cardno, 1, SD_STATE_DATA_MULTI);
-			break;
+    case 18: // CMD18 - CMD_READ_MULTIPLE_BLOCK
+      if (cards[cardno].m_harddisk != NULL) {
+        cards[cardno].m_data[0] = cards[cardno].m_out_latch = 0x00; // initial R1 response
+        // data token occurs some time after the R1 response.  A2SD
+        // expects at least 1 byte of space between R1 and the data
+        // packet.
+        cards[cardno].m_blknext = ((uint32_t)cards[cardno].m_cmd[1]
+                                      << 24)
+            | ((uint32_t)cards[cardno].m_cmd[2]
+                << 16)
+            | ((uint32_t)cards[cardno].m_cmd[3]
+                << 8)
+            | (uint32_t)cards[cardno].m_cmd[4];
+        if (cards[cardno].m_type == SD_TYPE_V2) {
+          cards[cardno].m_blknext /= cards[cardno].m_blksize;
+        }
+      } else {
+        cards[cardno].m_data[0] = 0xff; // show an error
+      }
+      send_data(cardno, 1, SD_STATE_DATA_MULTI);
+      break;
 
-		case 24: // CMD24 - WRITE_BLOCK
-			cards[cardno].m_data[0] = 0;
-			cards[cardno].m_blknext =
-				((uint32_t)cards[cardno].m_cmd[1] << 24) |
-				((uint32_t)cards[cardno].m_cmd[2] << 16) |
-				((uint32_t)cards[cardno].m_cmd[3] << 8) |
-				(uint32_t)cards[cardno].m_cmd[4];
-			if (cards[cardno].m_type == SD_TYPE_V2) {
-				cards[cardno].m_blknext /=
-					cards[cardno].m_blksize;
-			}
-			send_data(cardno, 1, SD_STATE_WRITE_WAITFE);
-			break;
+    case 24: // CMD24 - WRITE_BLOCK
+      cards[cardno].m_data[0] = 0;
+      cards[cardno].m_blknext = ((uint32_t)cards[cardno].m_cmd[1] << 24) | ((uint32_t)cards[cardno].m_cmd[2] << 16) | ((uint32_t)cards[cardno].m_cmd[3] << 8) | (uint32_t)cards[cardno].m_cmd[4];
+      if (cards[cardno].m_type == SD_TYPE_V2) {
+        cards[cardno].m_blknext /= cards[cardno].m_blksize;
+      }
+      send_data(cardno, 1, SD_STATE_WRITE_WAITFE);
+      break;
 
-		case 41:
-			if (cards[cardno].m_bACMD) // ACMD41 - SD_SEND_OP_COND
-			{
-				cards[cardno].m_data[0] = 0;
-				send_data(cardno, 1,
-					  SD_STATE_READY); // + SD_STATE_IDLE
-			} else // CMD41 - illegal
-			{
-				cards[cardno].m_data[0] = 0xff;
-				send_data(cardno, 1, SD_STATE_INA);
-			}
-			break;
+    case 41:
+      if (cards[cardno].m_bACMD) // ACMD41 - SD_SEND_OP_COND
+      {
+        cards[cardno].m_data[0] = 0;
+        send_data(cardno, 1,
+            SD_STATE_READY); // + SD_STATE_IDLE
+      } else // CMD41 - illegal
+      {
+        cards[cardno].m_data[0] = 0xff;
+        send_data(cardno, 1, SD_STATE_INA);
+      }
+      break;
 
-		case 55: // CMD55 - APP_CMD
-			cards[cardno].m_data[0] = 0x01;
-			send_data(cardno, 1, SD_STATE_IDLE);
-			break;
+    case 55: // CMD55 - APP_CMD
+      cards[cardno].m_data[0] = 0x01;
+      send_data(cardno, 1, SD_STATE_IDLE);
+      break;
 
-		case 58: // CMD58 - READ_OCR
-			cards[cardno].m_data[0] = 0;
-			if (cards[cardno].m_type == SD_TYPE_HC) {
-				cards[cardno].m_data[1] =
-					0x40; // indicate SDHC support
-			} else {
-				cards[cardno].m_data[1] = 0;
-			}
-			cards[cardno].m_data[2] = 0;
-			cards[cardno].m_data[3] = 0;
-			cards[cardno].m_data[4] = 0;
-			send_data(cardno, 5, SD_STATE_DATA);
-			break;
+    case 58: // CMD58 - READ_OCR
+      cards[cardno].m_data[0] = 0;
+      if (cards[cardno].m_type == SD_TYPE_HC) {
+        cards[cardno].m_data[1] = 0x40; // indicate SDHC support
+      } else {
+        cards[cardno].m_data[1] = 0;
+      }
+      cards[cardno].m_data[2] = 0;
+      cards[cardno].m_data[3] = 0;
+      cards[cardno].m_data[4] = 0;
+      send_data(cardno, 5, SD_STATE_DATA);
+      break;
 
-		case 59: // CMD59 - CRC_ON_OFF
-			cards[cardno].m_data[0] = 0;
-			// TODO CRC 1-on, 0-off
-			send_data(cardno, 1, SD_STATE_STBY);
-			break;
+    case 59: // CMD59 - CRC_ON_OFF
+      cards[cardno].m_data[0] = 0;
+      // TODO CRC 1-on, 0-off
+      send_data(cardno, 1, SD_STATE_STBY);
+      break;
 
-		default:
-			SDL_LogError(Q68_LOG_SD, "SD%.1d: Unsupported %02x\n",
-				     cardno, cards[cardno].m_cmd[0] & 0x3f);
-			clean_cmd = false;
-			break;
-		}
+    default:
+      SDL_LogError(Q68_LOG_SD, "SD%.1d: Unsupported %02x\n",
+          cardno, cards[cardno].m_cmd[0] & 0x3f);
+      clean_cmd = false;
+      break;
+    }
 
-		// if this is command 55, that's a prefix indicating the next command is an "app command" or "ACMD"
-		if ((cards[cardno].m_cmd[0] & 0x3f) == 55) {
-			cards[cardno].m_bACMD = true;
-		} else {
-			cards[cardno].m_bACMD = false;
-		}
+    // if this is command 55, that's a prefix indicating the next command is an "app command" or "ACMD"
+    if ((cards[cardno].m_cmd[0] & 0x3f) == 55) {
+      cards[cardno].m_bACMD = true;
+    } else {
+      cards[cardno].m_bACMD = false;
+    }
 
-		if (clean_cmd) {
-			for (uint8_t i = 0; i < 6; i++) {
-				cards[cardno].m_cmd[i] = 0xff;
-			}
-		}
-	}
+    if (clean_cmd) {
+      for (uint8_t i = 0; i < 6; i++) {
+        cards[cardno].m_cmd[i] = 0xff;
+      }
+    }
+  }
 }
 
 void change_state(int cardno, sd_state new_state)
 {
-	// TODO validate if transition is valid using refs below.
-	// REF Figure 4-13:SD Memory Card State Diagram (Transition Mode)
-	// REF Table 4-35:Card State Transition Table
-	cards[cardno].m_state = new_state;
+  // TODO validate if transition is valid using refs below.
+  // REF Figure 4-13:SD Memory Card State Diagram (Transition Mode)
+  // REF Table 4-35:Card State Transition Table
+  cards[cardno].m_state = new_state;
 }

@@ -28,7 +28,7 @@
 #define PC__DTR1 BIT(4) // DTR on port 1 (set if ser1 transmit held up)
 #define PC__GAP BIT(3) // gap : set normally, or gap is present on running mdv
 #define PC__RXRD BIT(2) // microdrive read buffer ready
-#define PC__TXFL BIT(1) //xmit buffer full(mdv or ser)
+#define PC__TXFL BIT(1) // xmit buffer full(mdv or ser)
 // write
 #define PC__ERASE BIT(3) // microdrive erase
 #define PC__WRITE BIT(2) // microdrive write
@@ -88,9 +88,9 @@
 #define Q68_MMC2_XFER 0x1c358
 
 // Q40 compatible SSS
-#define Q68_SOUND_RIGHT 0x1c400 //right sound byte
-#define Q68_SOUND_LEFT 0x1c404 //left - writing here triggers sound
-#define Q68_SOUND_FULL 0x1c408 //set if DAC queue is full
+#define Q68_SOUND_RIGHT 0x1c400 // right sound byte
+#define Q68_SOUND_LEFT 0x1c404 // left - writing here triggers sound
+#define Q68_SOUND_FULL 0x1c408 // set if DAC queue is full
 
 #define Q68_DMODE 0xff000018
 

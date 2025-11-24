@@ -8,4 +8,4 @@
 bool q68InitSound(void);
 void q68PlayByte(int channel, Uint8 byte);
 
-#endif //Q68_SOUND_H
+#endif // Q68_SOUND_H

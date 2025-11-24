@@ -9,5 +9,4 @@ void emulatorTraceInit(void);
 void emulatorTraceToggle(void);
 void emulatorTrace(void);
 
-
-#endif //EMULATOR_TRACE_H
+#endif // EMULATOR_TRACE_H

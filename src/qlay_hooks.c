@@ -8,6 +8,6 @@
 
 void emu_hook_pc(unsigned int pc)
 {
-	(void)pc; // Suppress unused parameter warning
-	emulatorTrace();
+  (void)pc; // Suppress unused parameter warning
+  emulatorTrace();
 }
