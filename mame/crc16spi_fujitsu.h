@@ -12,16 +12,16 @@
 #include <stdint.h>
 
 // Compute the CRC a bit at a time.
-uint16_t crc16spi_fujitsu_bit(uint16_t crc, void const *mem, size_t len);
+uint16_t crc16spi_fujitsu_bit(uint16_t crc, void const* mem, size_t len);
 
 // Compute the CRC of the high bits bits in the low byte of val.
 uint16_t crc16spi_fujitsu_rem(uint16_t crc, unsigned val, unsigned bits);
 
 // Compute the CRC a byte at a time.
-uint16_t crc16spi_fujitsu_byte(uint16_t crc, void const *mem, size_t len);
+uint16_t crc16spi_fujitsu_byte(uint16_t crc, void const* mem, size_t len);
 
 // Compute the CRC a word at a time.
-uint16_t crc16spi_fujitsu_word(uint16_t crc, void const *mem, size_t len);
+uint16_t crc16spi_fujitsu_word(uint16_t crc, void const* mem, size_t len);
 
 // Compute the combination of two CRCs.
 uint16_t crc16spi_fujitsu_comb(uint16_t crc1, uint16_t crc2, uintmax_t len2);

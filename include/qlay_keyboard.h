@@ -14,7 +14,7 @@
 #include <utarray.h>
 
 extern int qlayKeysPressed;
-extern UT_array *qlayKeyBuffer;
+extern UT_array* qlayKeyBuffer;
 
 void qlayInitKbd(void);
 uint8_t qlayGetKeyrow(uint8_t row);

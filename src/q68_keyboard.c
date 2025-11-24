@@ -16,27 +16,27 @@
 #include "utarray.h"
 
 // keyboard lock and queue
-UT_array *q68_kbd_queue;
+UT_array* q68_kbd_queue;
 
 void q68InitKeyb(void)
 {
-	utarray_new(q68_kbd_queue, &ut_int_icd);
+  utarray_new(q68_kbd_queue, &ut_int_icd);
 }
 
 void emulatorProcessKey(int keysym, int scancode, bool pressed)
 {
-	int qlen = 0;
-	uint8_t queue[MAX_PS2_CODE_LEN];
+  int qlen = 0;
+  uint8_t queue[MAX_PS2_CODE_LEN];
 
-	if ((keysym == SDLK_F12) && pressed) {
-		emulatorTraceToggle();
-		return;
-	}
+  if ((keysym == SDLK_F12) && pressed) {
+    emulatorTraceToggle();
+    return;
+  }
 
-	qlen = ps2_encode(scancode, pressed, queue);
+  qlen = ps2_encode(scancode, pressed, queue);
 
-	for (int i = 0; i < qlen; i++) {
-		int key = queue[i];
-		utarray_push_back(q68_kbd_queue, &key);
-	}
+  for (int i = 0; i < qlen; i++) {
+    int key = queue[i];
+    utarray_push_back(q68_kbd_queue, &key);
+  }
 }

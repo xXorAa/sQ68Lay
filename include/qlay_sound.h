@@ -18,7 +18,7 @@ bool qlayInitIPCSound(void);
 bool qlayInitAYSound(void);
 void qlaySetAYRegister(Uint8 regNum, Uint8 regVal);
 
-void qlayIPCBeepSound(Uint8 *buffer);
+void qlayIPCBeepSound(Uint8* buffer);
 void qlayIPCKillSound(void);
 
 #endif /* QLAY_SOUND_H */

@@ -7,8 +7,8 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <stdbool.h>
-#include <stdio.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -17,76 +17,76 @@
 #define O_BINARY 0
 #endif
 
-bool emulatorFileExists(const char *name)
+bool emulatorFileExists(const char* name)
 {
-	struct stat statBuf;
-	int ret;
+  struct stat statBuf;
+  int ret;
 
-	ret = stat(name, &statBuf);
-	if (ret < 0) {
-		return false;
-	}
-	return true;
+  ret = stat(name, &statBuf);
+  if (ret < 0) {
+    return false;
+  }
+  return true;
 }
 
-bool emulatorIsDirectory(const char *name)
+bool emulatorIsDirectory(const char* name)
 {
-	struct stat statBuf;
-	int ret;
+  struct stat statBuf;
+  int ret;
 
-	ret = stat(name, &statBuf);
-	if (ret < 0) {
-		return false;
-	}
-	return S_ISDIR(statBuf.st_mode);
+  ret = stat(name, &statBuf);
+  if (ret < 0) {
+    return false;
+  }
+  return S_ISDIR(statBuf.st_mode);
 }
 
-size_t emulatorFileSize(const char *name)
+size_t emulatorFileSize(const char* name)
 {
-	struct stat statBuf;
-	int ret;
+  struct stat statBuf;
+  int ret;
 
-	ret = stat(name, &statBuf);
-	if (ret < 0) {
-		perror("What Happened");
-		printf("GOT HERE\n");
-		return 0;
-	}
+  ret = stat(name, &statBuf);
+  if (ret < 0) {
+    perror("What Happened");
+    printf("GOT HERE\n");
+    return 0;
+  }
 
-	return statBuf.st_size;
+  return statBuf.st_size;
 }
 
-bool emulatorLoadFile(const char *name, uint8_t *addr, size_t wantSize)
+bool emulatorLoadFile(const char* name, uint8_t* addr, size_t wantSize)
 {
-	size_t fileSize;
-	int fd;
-	size_t res;
+  size_t fileSize;
+  int fd;
+  size_t res;
 
-	if (!emulatorFileExists(name)) {
-		fprintf(stderr, "File Not Found %s\n", name);
-		return false;
-	}
+  if (!emulatorFileExists(name)) {
+    fprintf(stderr, "File Not Found %s\n", name);
+    return false;
+  }
 
-	fileSize = emulatorFileSize(name);
-	if (wantSize && (fileSize != wantSize)) {
-		fprintf(stderr, "File Size Mismatch %s %zu != %zu\n", name,
-			wantSize, fileSize);
-		return false;
-	}
+  fileSize = emulatorFileSize(name);
+  if (wantSize && (fileSize != wantSize)) {
+    fprintf(stderr, "File Size Mismatch %s %zu != %zu\n", name,
+        wantSize, fileSize);
+    return false;
+  }
 
-	fd = open(name, O_RDONLY | O_BINARY);
-	if (fd < 0) {
-		fprintf(stderr, "Error opening file %s %s\n", name,
-			strerror(errno));
-		return false;
-	}
+  fd = open(name, O_RDONLY | O_BINARY);
+  if (fd < 0) {
+    fprintf(stderr, "Error opening file %s %s\n", name,
+        strerror(errno));
+    return false;
+  }
 
-	res = read(fd, addr, fileSize);
-	if (res < fileSize) {
-		fprintf(stderr, "Error: Short Read %s %zu\n", name, res);
-	}
+  res = read(fd, addr, fileSize);
+  if (res < fileSize) {
+    fprintf(stderr, "Error: Short Read %s %zu\n", name, res);
+  }
 
-	close(fd);
+  close(fd);
 
-	return true;
+  return true;
 }

@@ -1,7 +1,7 @@
 /*
-	QLAY - Sinclair QL emulator
-	Copyright Jan Venema 1998
-	QL input and output
+        QLAY - Sinclair QL emulator
+        Copyright Jan Venema 1998
+        QL input and output
 */
 
 #include "emulator_logging.h"
@@ -16,16 +16,15 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
-#include <unistd.h>
 
 #define DEBUG 0
 
 #include "emulator_debug.h"
 #include "emulator_files.h"
-#include "emulator_options.h"
 #include "emulator_hardware.h"
 #include "emulator_mainloop.h"
 #include "emulator_memory.h"
+#include "emulator_options.h"
 #include "m68k.h"
 #include "qlay_hooks.h"
 #include "qlay_keyboard.h"
@@ -70,9 +69,9 @@ bool qlayIPCBeeping = false; /* BEEP is sounding */
 Uint8 BEEPpars[16]; /* IPC beep parameters */
 
 #define SERBUFLEN 23
-//uint8_t	IPCserbuf[2][SERBUFLEN];/* serial receive buffers from 8049 */
+// uint8_t	IPCserbuf[2][SERBUFLEN];/* serial receive buffers from 8049 */
 static int IPCsercnt = 0; /* number of bytes left */
-//static	int	IPCsersptr=0;		/* send to CPU pointer */
+// static	int	IPCsersptr=0;		/* send to CPU pointer */
 static int IPCchan = 0; /* 0: SER1, 1: SER2 */
 #define SER_RCV_LEN 2048
 static uint8_t ser_rcv_buf[2][SER_RCV_LEN];
@@ -100,9 +99,8 @@ static uint32_t qlclkoff; /* QL hardware clock offset */
 #define MDV_DATA_HDR_SIZE (4)
 #define MDV_DATA_CONTENT_SIZE (514)
 #define MDV_DATA_SPARE_SIZE (120)
-#define MDV_DATA_SIZE                                                     \
-	(MDV_PREAMBLE_SIZE + MDV_DATA_HDR_SIZE + MDV_DATA_PREAMBLE_SIZE + \
-	 MDV_DATA_CONTENT_SIZE + MDV_DATA_SPARE_SIZE)
+#define MDV_DATA_SIZE \
+  (MDV_PREAMBLE_SIZE + MDV_DATA_HDR_SIZE + MDV_DATA_PREAMBLE_SIZE + MDV_DATA_CONTENT_SIZE + MDV_DATA_SPARE_SIZE)
 #define MDV_SECTLEN (MDV_HDR_SIZE + MDV_DATA_SIZE)
 
 #define QLAY_MDV_SIZE 174930
@@ -114,10 +112,8 @@ static uint32_t qlclkoff; /* QL hardware clock offset */
 #define QLAY_MDV_DATA_HDR_SIZE (4)
 #define QLAY_MDV_DATA_CONTENT_SIZE (514)
 #define QLAY_MDV_DATA_SPARE_SIZE (120)
-#define QLAY_MDV_DATA_SIZE                                          \
-	(QLAY_MDV_PREAMBLE_SIZE + QLAY_MDV_DATA_HDR_SIZE +          \
-	 QLAY_MDV_DATA_PREAMBLE_SIZE + QLAY_MDV_DATA_CONTENT_SIZE + \
-	 QLAY_MDV_DATA_SPARE_SIZE)
+#define QLAY_MDV_DATA_SIZE \
+  (QLAY_MDV_PREAMBLE_SIZE + QLAY_MDV_DATA_HDR_SIZE + QLAY_MDV_DATA_PREAMBLE_SIZE + QLAY_MDV_DATA_CONTENT_SIZE + QLAY_MDV_DATA_SPARE_SIZE)
 #define QLAY_MDV_SECTLEN (QLAY_MDV_HDR_SIZE + QLAY_MDV_DATA_SIZE)
 
 #define MDI_MDV_SIZE 136170
@@ -125,55 +121,54 @@ static uint32_t qlclkoff; /* QL hardware clock offset */
 #define MDI_MDV_HDR_CONTENT_SIZE 16
 #define MDI_MDV_DATA_HDR_SIZE 4
 #define MDI_MDV_DATA_CONTENT_SIZE 514
-#define MDI_MDV_SECTLEN                                     \
-	(MDI_MDV_HDR_CONTENT_SIZE + MDI_MDV_DATA_HDR_SIZE + \
-	 MDI_MDV_DATA_CONTENT_SIZE)
+#define MDI_MDV_SECTLEN \
+  (MDI_MDV_HDR_CONTENT_SIZE + MDI_MDV_DATA_HDR_SIZE + MDI_MDV_DATA_CONTENT_SIZE)
 
 typedef enum QLAY_ {
-	MDV_GAP1,
-	MDV_PREAMBLE1,
-	MDV_HDR,
-	MDV_GAP2,
-	MDV_PREAMBLE2,
-	MDV_DATA_HDR,
-	MDV_DATA_PREAMBLE,
-	MDV_DATA,
-	MDV_INTERSECTOR
+  MDV_GAP1,
+  MDV_PREAMBLE1,
+  MDV_HDR,
+  MDV_GAP2,
+  MDV_PREAMBLE2,
+  MDV_DATA_HDR,
+  MDV_DATA_PREAMBLE,
+  MDV_DATA,
+  MDV_INTERSECTOR
 } mdvstate;
 
 typedef enum {
-	MDV_FORMAT_QLAY,
-	MDV_FORMAT_MDUMP1,
-	MDV_FORMAT_MDUMP2,
-	MDV_FORMAT_MDI
+  MDV_FORMAT_QLAY,
+  MDV_FORMAT_MDUMP1,
+  MDV_FORMAT_MDUMP2,
+  MDV_FORMAT_MDI
 } mdvtype;
 
 struct mdvsector {
-	uint8_t header[16];
-	uint8_t blockheader[4];
-	uint8_t block[514];
+  uint8_t header[16];
+  uint8_t blockheader[4];
+  uint8_t block[514];
 };
 
 struct mdvt {
-	const char *name; /* file name */
-	mdvtype type; /* file type */
-	bool present; /* is it in? */
-	bool wrprot; /* write protected */
-	bool mdvwritten; /* has been written to */
-	int no_sectors; /* number of sectors in file */
-	int sector; /* current sector */
-	int idx; /* current index into file */
-	mdvstate mdvstate; /* which phase are we in */
-	int mdvgapcnt; /* where are we in gap */
-	struct mdvsector *data; /* pointer to data */
+  const char* name; /* file name */
+  mdvtype type; /* file type */
+  bool present; /* is it in? */
+  bool wrprot; /* write protected */
+  bool mdvwritten; /* has been written to */
+  int no_sectors; /* number of sectors in file */
+  int sector; /* current sector */
+  int idx; /* current index into file */
+  mdvstate mdvstate; /* which phase are we in */
+  int mdvgapcnt; /* where are we in gap */
+  struct mdvsector* data; /* pointer to data */
 };
 
 struct mdvt mdrive[MDV_NUMOFDRIVES];
 
 const uint8_t preamble[12] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-			       0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF };
+  0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF };
 const uint8_t data_preamble[8] = { 0x00, 0x00, 0x00, 0x00,
-				   0x00, 0x00, 0xFF, 0xFF };
+  0x00, 0x00, 0xFF, 0xFF };
 
 int mdvnum; /* current mdv */
 static bool mdvwrite = false; /* mdv r/w */
@@ -191,94 +186,94 @@ static bool mdverase = false;
 static uint8_t PC_TRAK = 0;
 static uint8_t PC_TDATA = 0;
 
-int fpr(const char *fmt, ...)
+int fpr(const char* fmt, ...)
 {
-	int res;
-	va_list l;
+  int res;
+  va_list l;
 
-	va_start(l, fmt);
-	res = vfprintf(stderr, fmt, l);
-	va_end(l);
-	return res;
+  va_start(l, fmt);
+  res = vfprintf(stderr, fmt, l);
+  va_end(l);
+  return res;
 }
 
 uint8_t readQLHw(uint32_t addr)
 {
-	//printf("addr: %08x\n", addr);
+  // printf("addr: %08x\n", addr);
 
-	if (addr == 0x18020) {
-		if (IPC020 != 0) {
-			int t = IPC020;
-			IPC020 >>= 8;
-			if (IPC020 == 0xa5) {
-				IPC020 = 0; /* clear end marker */
-			}
+  if (addr == 0x18020) {
+    if (IPC020 != 0) {
+      int t = IPC020;
+      IPC020 >>= 8;
+      if (IPC020 == 0xa5) {
+        IPC020 = 0; /* clear end marker */
+      }
 
-			return (uint8_t)t & 0xff;
-		}
+      return (uint8_t)t & 0xff;
+    }
 
-		if ((ZXmode & 0x10) == 0) { /* TXSER mode */
-			return REG18020tx;
-		}
+    if ((ZXmode & 0x10) == 0) { /* TXSER mode */
+      return REG18020tx;
+    }
 
-		if (!mdvmotor) { /* no motor running, return NOP */
-			return 0x0;
-		} else { /* return MDV responses */
-			//if (!mdvpresent) {
-			//	printf("No PRESENT\n");
-			//	return 0x08;
-			//}
+    if (!mdvmotor) { /* no motor running, return NOP */
+      return 0x0;
+    } else { /* return MDV responses */
+      // if (!mdvpresent) {
+      //	printf("No PRESENT\n");
+      //	return 0x08;
+      // }
 
-			if (!mdvwrite) {
-				if (mdvgap) {
-					//printf("G\n");
-					return PC__GAP;
-				}
+      if (!mdvwrite) {
+        if (mdvgap) {
+          // printf("G\n");
+          return PC__GAP;
+        }
 
-				if (mdvrd) {
-					//printf("R\n");
-					return PC__RXRD;
-				}
+        if (mdvrd) {
+          // printf("R\n");
+          return PC__RXRD;
+        }
 
-				return 0x00;
-			} else if (mdvtxfl) {
-				return PC__TXFL;
-			}
-		}
-	}
+        return 0x00;
+      } else if (mdvtxfl) {
+        return PC__TXFL;
+      }
+    }
+  }
 
-	if ((addr == PC_TRAK1) || (addr == PC_TRAK2)) {
-		mdvrd = 0;
-		return PC_TRAK;
-	}
+  if ((addr == PC_TRAK1) || (addr == PC_TRAK2)) {
+    mdvrd = 0;
+    return PC_TRAK;
+  }
 
-	return 0;
+  return 0;
 }
 
 void writeMdvSer(uint8_t data)
 {
-	if ((ZXmode & 0x18) == 0x10) {
-		wrmdvdata(data);
-	} else {
-		wrserdata(data);
-	}
+  if ((ZXmode & 0x18) == 0x10) {
+    wrmdvdata(data);
+  } else {
+    wrserdata(data);
+  }
 }
 
 static void wrmdvdata(uint8_t x)
 {
-	mdvtxfl = true;
-	mdrive[mdvnum].mdvwritten = true;
+  mdvtxfl = true;
+  mdrive[mdvnum].mdvwritten = true;
 
-	PC_TDATA = x;
+  PC_TDATA = x;
 
-	// Unfortunately JS and Minerva use different timing
-	// constants so a hack here to move state if we get
-	// a write during gap2
-	if (mdrive[mdvnum].mdvstate == MDV_GAP2) {
-		mdrive[mdvnum].mdvstate = MDV_PREAMBLE2;
-		mdrive[mdvnum].mdvgapcnt = MDV_PREAMBLE_COUNT;
-		mdrive[mdvnum].idx = MDV_PREAMBLE_SIZE + MDV_HDR_SIZE;
-	}
+  // Unfortunately JS and Minerva use different timing
+  // constants so a hack here to move state if we get
+  // a write during gap2
+  if (mdrive[mdvnum].mdvstate == MDV_GAP2) {
+    mdrive[mdvnum].mdvstate = MDV_PREAMBLE2;
+    mdrive[mdvnum].mdvgapcnt = MDV_PREAMBLE_COUNT;
+    mdrive[mdvnum].idx = MDV_PREAMBLE_SIZE + MDV_HDR_SIZE;
+  }
 }
 
 static uint8_t mdvselect = 0;
@@ -286,64 +281,64 @@ static bool mdvselbit = false;
 
 void wrmdvcntl(uint8_t x)
 {
-	if (x & PC__WRITE) {
-		SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION, "MDV Write On");
-		mdvwrite = true;
+  if (x & PC__WRITE) {
+    SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION, "MDV Write On");
+    mdvwrite = true;
 
-		// Unfortunately JS and Minerva use different timing
-		// constants so a hack here to move state if we get
-		// a write during gap2
-		if (mdvmotor && (mdrive[mdvnum].mdvstate == MDV_GAP2)) {
-			//mdrive[mdvnum].mdvstate = MDV_PREAMBLE2;
-			//mdrive[mdvnum].mdvgapcnt = MDV_PREAMBLE_COUNT;
-			//mdrive[mdvnum].idx = MDV_PREAMBLE_SIZE + MDV_HDR_SIZE;
-			mdrive[mdvnum].mdvgapcnt = 1;
-		}
-	} else {
-		SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION, "MDV Write Off");
-		mdvwrite = false;
-	}
+    // Unfortunately JS and Minerva use different timing
+    // constants so a hack here to move state if we get
+    // a write during gap2
+    if (mdvmotor && (mdrive[mdvnum].mdvstate == MDV_GAP2)) {
+      // mdrive[mdvnum].mdvstate = MDV_PREAMBLE2;
+      // mdrive[mdvnum].mdvgapcnt = MDV_PREAMBLE_COUNT;
+      // mdrive[mdvnum].idx = MDV_PREAMBLE_SIZE + MDV_HDR_SIZE;
+      mdrive[mdvnum].mdvgapcnt = 1;
+    }
+  } else {
+    SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION, "MDV Write Off");
+    mdvwrite = false;
+  }
 
-	if ((x & PC__ERASE) && !mdverase) {
-		SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION, "MDV Erase On");
-		mdverase = true;
-	}
+  if ((x & PC__ERASE) && !mdverase) {
+    SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION, "MDV Erase On");
+    mdverase = true;
+  }
 
-	if (!(x & PC__ERASE) && mdverase) {
-		SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION, "MDV Erase Off");
-		mdverase = false;
-	}
+  if (!(x & PC__ERASE) && mdverase) {
+    SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION, "MDV Erase Off");
+    mdverase = false;
+  }
 
-	// clock bit on 1->0 transition
-	if (mdvselbit && !(x & PC__SCLK)) {
-		mdvselect <<= 1;
+  // clock bit on 1->0 transition
+  if (mdvselbit && !(x & PC__SCLK)) {
+    mdvselect <<= 1;
 
-		if (x & PC__SEL) {
-			mdvselect |= BIT(0);
-		} else {
-			mdvselect &= ~BIT(0);
-		}
+    if (x & PC__SEL) {
+      mdvselect |= BIT(0);
+    } else {
+      mdvselect &= ~BIT(0);
+    }
 
-		if (!mdvselect) {
-			mdv_select(0);
-		} else {
-			int mdv;
+    if (!mdvselect) {
+      mdv_select(0);
+    } else {
+      int mdv;
 
-			for (mdv = 0; mdv < 8; mdv++) {
-				if (BIT(mdv) & mdvselect) {
-					break;
-				}
-			}
-			mdv_select(mdv + 1);
-		}
-	}
+      for (mdv = 0; mdv < 8; mdv++) {
+        if (BIT(mdv) & mdvselect) {
+          break;
+        }
+      }
+      mdv_select(mdv + 1);
+    }
+  }
 
-	// store clock bit for next cycle
-	if (x & PC__SCLK) {
-		mdvselbit = true;
-	} else {
-		mdvselbit = false;
-	}
+  // store clock bit for next cycle
+  if (x & PC__SCLK) {
+    mdvselbit = true;
+  } else {
+    mdvselbit = false;
+  }
 }
 
 static void set_gap_irq(void);
@@ -353,99 +348,97 @@ static bool qlay_turbo_load = false;
 /* in: drive; 0: no drive, 1..8: select MDVdrive */
 static void mdv_select(int drive)
 {
-	mdvwrite = false;
-	mdvghstate = 0;
-	mdvdoub2 = 0;
-	mdvwra = 0;
+  mdvwrite = false;
+  mdvghstate = 0;
+  mdvdoub2 = 0;
+  mdvwra = 0;
 
-	if (drive == 0) {
-		SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION, "MDV MOTOR OFF");
-		for (int i = 0; i < 8; i++) {
-			if (mdrive[i].mdvwritten) {
-				// write MDV back to disk
-				save_mdv_file(i);
-				mdrive[i].mdvwritten = false;
-			}
-		}
-		mdvnum = -1;
-		mdvmotor = false;
-		mdvtxfl = false;
+  if (drive == 0) {
+    SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION, "MDV MOTOR OFF");
+    for (int i = 0; i < 8; i++) {
+      if (mdrive[i].mdvwritten) {
+        // write MDV back to disk
+        save_mdv_file(i);
+        mdrive[i].mdvwritten = false;
+      }
+    }
+    mdvnum = -1;
+    mdvmotor = false;
+    mdvtxfl = false;
 
-		if (qlay_turbo_load) {
-			SDL_SetHint(SDL_HINT_MAIN_CALLBACK_RATE, "50");
-		}
-		qlayStopMdvSound();
-	} else {
-		SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION, "MDV MOTOR ON %d",
-			     drive);
-		mdvnum = drive - 1;
-		mdvtxfl = false;
-		mdvmotor = true;
-		mdrive[mdvnum].mdvstate = MDV_GAP1;
-		mdrive[mdvnum].mdvgapcnt = MDV_GAP_COUNT;
-		set_gap_irq();
+    if (qlay_turbo_load) {
+      SDL_SetHint(SDL_HINT_MAIN_CALLBACK_RATE, "50");
+    }
+    qlayStopMdvSound();
+  } else {
+    SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION, "MDV MOTOR ON %d",
+        drive);
+    mdvnum = drive - 1;
+    mdvtxfl = false;
+    mdvmotor = true;
+    mdrive[mdvnum].mdvstate = MDV_GAP1;
+    mdrive[mdvnum].mdvgapcnt = MDV_GAP_COUNT;
+    set_gap_irq();
 
-		if (qlay_turbo_load) {
-			SDL_SetHint(SDL_HINT_MAIN_CALLBACK_RATE, "0");
-		}
-		qlayStartMdvSound();
-	}
+    if (qlay_turbo_load) {
+      SDL_SetHint(SDL_HINT_MAIN_CALLBACK_RATE, "0");
+    }
+    qlayStartMdvSound();
+  }
 }
 
 /*18002*/
 void wrZX8302(uint8_t d)
 {
-	if (0)
-		fpr("WZX2:%02x:%x ", d, m68k_get_reg(NULL, M68K_REG_PC));
+  if (0)
+    fpr("WZX2:%02x:%x ", d, m68k_get_reg(NULL, M68K_REG_PC));
 
-	ZXmode = d & 0x18;
-	switch (d & 7) {
-	case 7:
-		ZXbaud = 75;
-		break;
-	case 6:
-		ZXbaud = 300;
-		break;
-	case 5:
-		ZXbaud = 600;
-		break;
-	case 4:
-		ZXbaud = 1200;
-		break;
-	case 3:
-		ZXbaud = 2400;
-		break;
-	case 2:
-		ZXbaud = 4800;
-		break;
-	case 1:
-		ZXbaud = 9600;
-		break;
-	case 0:
-		ZXbaud = 19200;
-		break;
-	}
+  ZXmode = d & 0x18;
+  switch (d & 7) {
+  case 7:
+    ZXbaud = 75;
+    break;
+  case 6:
+    ZXbaud = 300;
+    break;
+  case 5:
+    ZXbaud = 600;
+    break;
+  case 4:
+    ZXbaud = 1200;
+    break;
+  case 3:
+    ZXbaud = 2400;
+    break;
+  case 2:
+    ZXbaud = 4800;
+    break;
+  case 1:
+    ZXbaud = 9600;
+    break;
+  case 0:
+    ZXbaud = 19200;
+    break;
+  }
 }
 
 static void wrserdata(uint8_t d)
 {
-	__attribute__((unused)) int ch;
-	int p = 0;
+  __attribute__((unused)) int ch;
+  int p = 0;
 
-	ch = 0;
-	if (ZXmode == 0x8)
-		ch = 1;
-	//send_serial_char(ch, d);
-	if (p)
-		fpr("ST%02x(%c) ", d, d);
-	if (p)
-		fpr("ST%ld ", cycles());
-	REG18020tx |= 0x02; /* set busy */
-	etx = cycles() +
-	      10000 * qlay1msec /
-		      ZXbaud; /* clear busy after 10 bits transmitted */
-	if (p)
-		fpr("ETX%ld ", etx);
+  ch = 0;
+  if (ZXmode == 0x8)
+    ch = 1;
+  // send_serial_char(ch, d);
+  if (p)
+    fpr("ST%02x(%c) ", d, d);
+  if (p)
+    fpr("ST%ld ", cycles());
+  REG18020tx |= 0x02; /* set busy */
+  etx = cycles() + 10000 * qlay1msec / ZXbaud; /* clear busy after 10 bits transmitted */
+  if (p)
+    fpr("ETX%ld ", etx);
 }
 
 /*
@@ -481,796 +474,783 @@ repeat for any number of bits to be received (MSB first)
 
 void wr8049(Uint8 data)
 {
-	static int IPCrcvd = 1; /* bit marker */
-	int IPCcmd;
+  static int IPCrcvd = 1; /* bit marker */
+  int IPCcmd;
 
-	if (IPCwfc) {
-		if ((data & 0x0c) == 0x0c) {
-			IPCrcvd <<= 1;
-			IPCrcvd |= (data == 0x0c) ? 0 : 1;
-			if ((IPCrcvd & 0x10) == 0x10) {
-				IPCcmd = IPCrcvd & 0x0f;
-				IPCrcvd = 1;
-				IPCwfc = 0;
-				/*printf("C%x ",IPCcmd);*/
-				exec_IPCcmd(IPCcmd);
-			}
-		}
-	} else {
-		/* expect 0x0e */
-		if (data != 0x0e) {
-			SDL_LogDebug(QLAY_LOG_IPC, "ERRORIPC?:%x %x",
-				     m68k_get_reg(NULL, M68K_REG_PC), data);
-		}
-		IPC020 = 0;
-		IPCcnt--;
-		if (IPCreturn & (1 << IPCcnt))
-			IPC020 |= 0x80;
-		IPC020 <<=
-			8; /* will be read as byte twice, sender will shift back */
-		/* lower 16 bit have real value now, put in an end indicator */
-		IPC020 |= 0xa50000;
+  if (IPCwfc) {
+    if ((data & 0x0c) == 0x0c) {
+      IPCrcvd <<= 1;
+      IPCrcvd |= (data == 0x0c) ? 0 : 1;
+      if ((IPCrcvd & 0x10) == 0x10) {
+        IPCcmd = IPCrcvd & 0x0f;
+        IPCrcvd = 1;
+        IPCwfc = 0;
+        /*printf("C%x ",IPCcmd);*/
+        exec_IPCcmd(IPCcmd);
+      }
+    }
+  } else {
+    /* expect 0x0e */
+    if (data != 0x0e) {
+      SDL_LogDebug(QLAY_LOG_IPC, "ERRORIPC?:%x %x",
+          m68k_get_reg(NULL, M68K_REG_PC), data);
+    }
+    IPC020 = 0;
+    IPCcnt--;
+    if (IPCreturn & (1 << IPCcnt))
+      IPC020 |= 0x80;
+    IPC020 <<= 8; /* will be read as byte twice, sender will shift back */
+    /* lower 16 bit have real value now, put in an end indicator */
+    IPC020 |= 0xa50000;
 
-		if (IPCcnt == 0) { /* this command session done */
-			if (IPCsercnt) {
-				/* serial receive buffer transfer in progress */
-				/* prepare next byte */
-				IPCreturn = ser_rcv_dequeue(IPCchan);
-				//				fpr("R: %03x\n",IPCreturn);
-				IPCsercnt--;
-				IPCcnt = 8;
-			} else {
-				IPCwfc = 1; /* wait for next command */
-			}
-		}
-	}
+    if (IPCcnt == 0) { /* this command session done */
+      if (IPCsercnt) {
+        /* serial receive buffer transfer in progress */
+        /* prepare next byte */
+        IPCreturn = ser_rcv_dequeue(IPCchan);
+        //				fpr("R: %03x\n",IPCreturn);
+        IPCsercnt--;
+        IPCcnt = 8;
+      } else {
+        IPCwfc = 1; /* wait for next command */
+      }
+    }
+  }
 }
 
 static void ser_rcv_init(void)
 {
-	int i;
-	for (i = 0; i < 2; i++) {
-		ser_rcv_1st[i] = 0;
-		ser_rcv_fill[i] = 0;
-	}
+  int i;
+  for (i = 0; i < 2; i++) {
+    ser_rcv_1st[i] = 0;
+    ser_rcv_fill[i] = 0;
+  }
 }
 
 static int ser_rcv_dequeue(int ch)
 {
-	int next;
-	//fpr("deq-0 f %d, 1 %d\n",ser_rcv_fill[ch],ser_rcv_1st[ch]);
+  int next;
+  // fpr("deq-0 f %d, 1 %d\n",ser_rcv_fill[ch],ser_rcv_1st[ch]);
 
-	if (ser_rcv_fill[ch] == 0) {
-		fpr("RCV buffer empty\n");
-		return '.';
-	}
-	next = ser_rcv_1st[ch] - ser_rcv_fill[ch];
-	if (next < 0)
-		next = next + SER_RCV_LEN;
-	ser_rcv_fill[ch]--;
-	//fpr("deq-1 f %d, 1 %d\n",ser_rcv_fill[ch],ser_rcv_1st[ch]);
-	return ser_rcv_buf[ch][next];
+  if (ser_rcv_fill[ch] == 0) {
+    fpr("RCV buffer empty\n");
+    return '.';
+  }
+  next = ser_rcv_1st[ch] - ser_rcv_fill[ch];
+  if (next < 0)
+    next = next + SER_RCV_LEN;
+  ser_rcv_fill[ch]--;
+  // fpr("deq-1 f %d, 1 %d\n",ser_rcv_fill[ch],ser_rcv_1st[ch]);
+  return ser_rcv_buf[ch][next];
 }
 
 static int ser_rcv_size(int ch)
 {
-	return ser_rcv_fill[ch];
+  return ser_rcv_fill[ch];
 }
 
-const char *KEYS =
-	"xv/n,826qe0tu9wi	r-yol3m1apdj[[ksf-g;]z.cb#m`\n00e0\\ 000500047";
+const char* KEYS = "xv/n,826qe0tu9wi	r-yol3m1apdj[[ksf-g;]z.cb#m`\n00e0\\ 000500047";
 static int decode_key(int key)
 {
-	int rk;
-	/*  char *sp;
-    fpr("%04x ",key);*/
-	/*	sp=strchr(KEYS,key);
-	if(sp!=NULL) rk=(int)sp-(int)&KEYS+3; else rk=key;
+  int rk;
+  /*  char *sp;
+fpr("%04x ",key);*/
+  /*	sp=strchr(KEYS,key);
+  if(sp!=NULL) rk=(int)sp-(int)&KEYS+3; else rk=key;
 */
-	rk = key;
-	rk |= 0x1000; /* 1 key */
-	return rk;
+  rk = key;
+  rk |= 0x1000; /* 1 key */
+  return rk;
 }
 
 static void exec_IPCcmd(int cmd)
 {
-	static int IPCpcmd = 0x10; /* previous */
-	static int IPCbaud = 0;
+  static int IPCpcmd = 0x10; /* previous */
+  static int IPCbaud = 0;
 
-	if (IPCpcmd == 0x0d) { /*baudr*/
-		SDL_LogDebug(QLAY_LOG_IPC, "BRC: %d", cmd);
-		switch (cmd) {
-		case 7:
-			IPCbaud = 75;
-			break;
-		case 6:
-			IPCbaud = 300;
-			break;
-		case 5:
-			IPCbaud = 600;
-			break;
-		case 4:
-			IPCbaud = 1200;
-			break;
-		case 3:
-			IPCbaud = 2400;
-			break;
-		case 2:
-			IPCbaud = 4800;
-			break;
-		case 1:
-			IPCbaud = 9600;
-			break;
-		case 0:
-			IPCbaud = 19200;
-			break;
-		}
-		SDL_LogDebug(QLAY_LOG_IPC, "BR: %d", IPCbaud);
-		IPCwfc = 1;
-		cmd = 0x10;
-	}
+  if (IPCpcmd == 0x0d) { /*baudr*/
+    SDL_LogDebug(QLAY_LOG_IPC, "BRC: %d", cmd);
+    switch (cmd) {
+    case 7:
+      IPCbaud = 75;
+      break;
+    case 6:
+      IPCbaud = 300;
+      break;
+    case 5:
+      IPCbaud = 600;
+      break;
+    case 4:
+      IPCbaud = 1200;
+      break;
+    case 3:
+      IPCbaud = 2400;
+      break;
+    case 2:
+      IPCbaud = 4800;
+      break;
+    case 1:
+      IPCbaud = 9600;
+      break;
+    case 0:
+      IPCbaud = 19200;
+      break;
+    }
+    SDL_LogDebug(QLAY_LOG_IPC, "BR: %d", IPCbaud);
+    IPCwfc = 1;
+    cmd = 0x10;
+  }
 
-	if (IPCpcmd == 0x09) { /*keyrow*/
-		int row;
-		row = cmd;
-		IPCreturn = qlayGetKeyrow(row);
-		IPCcnt = 8;
-		cmd = 0x10;
-	}
+  if (IPCpcmd == 0x09) { /*keyrow*/
+    int row;
+    row = cmd;
+    IPCreturn = qlayGetKeyrow(row);
+    IPCcnt = 8;
+    cmd = 0x10;
+  }
 
-	if (IPCpcmd == 0x0a) { /*sound*/
-		static int params = 0;
-		BEEPpars[params] = cmd;
-		SDL_LogDebug(QLAY_LOG_IPC, "B %d:%x", params, cmd);
-		params++;
-		if (params > 15) {
-			IPCpcmd = 0x10;
-			params = 0;
-			qlayIPCBeepSound(BEEPpars);
-		}
-		IPCwfc = 1;
-		return;
-	}
+  if (IPCpcmd == 0x0a) { /*sound*/
+    static int params = 0;
+    BEEPpars[params] = cmd;
+    SDL_LogDebug(QLAY_LOG_IPC, "B %d:%x", params, cmd);
+    params++;
+    if (params > 15) {
+      IPCpcmd = 0x10;
+      params = 0;
+      qlayIPCBeepSound(BEEPpars);
+    }
+    IPCwfc = 1;
+    return;
+  }
 
-	/*082d ipc cmd C has 1 nibble parameter, no reply */
-	if (IPCpcmd == 0x0c) {
-		SDL_LogDebug(QLAY_LOG_IPC, "IPCc'C'par%d", cmd);
-		IPCwfc = 1;
-		IPCpcmd = 0x10;
-		return;
-	}
+  /*082d ipc cmd C has 1 nibble parameter, no reply */
+  if (IPCpcmd == 0x0c) {
+    SDL_LogDebug(QLAY_LOG_IPC, "IPCc'C'par%d", cmd);
+    IPCwfc = 1;
+    IPCpcmd = 0x10;
+    return;
+  }
 
-	if (IPCpcmd == 0x0f) { /*test*/
-		static int params = 0;
-		static int testval = 0;
-		params++;
-		SDL_LogDebug(QLAY_LOG_IPC, "TP%d:%x", params, cmd);
-		testval = 16 * testval + cmd;
-		if (params > 1) {
-			SDL_LogDebug(QLAY_LOG_IPC, "RTV%02x", testval);
-			IPCpcmd = 0x10;
-			params = 0;
-			IPCreturn = testval;
-			testval = 0; /* for next time 'round */
-			IPCcnt = 8;
-			cmd = 0x10;
-			IPCwfc = 1;
-		} else {
-			IPCwfc = 1;
-			return;
-		}
-	}
+  if (IPCpcmd == 0x0f) { /*test*/
+    static int params = 0;
+    static int testval = 0;
+    params++;
+    SDL_LogDebug(QLAY_LOG_IPC, "TP%d:%x", params, cmd);
+    testval = 16 * testval + cmd;
+    if (params > 1) {
+      SDL_LogDebug(QLAY_LOG_IPC, "RTV%02x", testval);
+      IPCpcmd = 0x10;
+      params = 0;
+      IPCreturn = testval;
+      testval = 0; /* for next time 'round */
+      IPCcnt = 8;
+      cmd = 0x10;
+      IPCwfc = 1;
+    } else {
+      IPCwfc = 1;
+      return;
+    }
+  }
 
-	switch (cmd) {
-	case 0: /* init */
-		SDL_LogDebug(QLAY_LOG_IPC, "IPC%02x", cmd);
-		IPCcnt = 0;
-		IPCwfc = 1;
-		break;
-	case 1: /* get interrupt status */
-		SDL_LogDebug(QLAY_LOG_IPC, "Interrupt Status");
-		IPCreturn = 0;
-		if (utarray_len(qlayKeyBuffer) || qlayKeysPressed) {
-			IPCreturn |= 0x01;
-		}
-		if (qlayIPCBeeping)
-			IPCreturn |= 0x02;
-		if (ser12oc & 0x01) { /* SER1 */
-			if (ser_rcv_size(0) > 0) {
-				IPCreturn |= 0x10;
-			}
-		}
-		if (ser12oc & 0x02) { /* SER2 */
-			if (ser_rcv_size(1) > 0) {
-				IPCreturn |= 0x20;
-			}
-		}
-		IPCcnt = 8;
-		break;
-	case 2: /* SER1 open */
-	case 3: /* SER2 open */
-	case 4: /* SER1 close */
-	case 5: /* SER2 close */
-		if (cmd == 2) {
-			ser12oc |= 1;
-			SDL_LogDebug(QLAY_LOG_IPC, "Open Ser 1, ZXb: %d",
-				     ZXbaud);
-			//open_serial(0, ZXbaud, 0);
-		}
-		if (cmd == 3) {
-			ser12oc |= 2;
-			SDL_LogDebug(QLAY_LOG_IPC, "Open Ser 2, ZXb: %d",
-				     ZXbaud);
-			//open_serial(1, ZXbaud, 0);
-		}
-		if (cmd == 4) {
-			ser12oc &= 0xfe;
-			SDL_LogDebug(QLAY_LOG_IPC, "Close Ser 1");
-			//close_serial(0);
-		}
-		if (cmd == 5) {
-			ser12oc &= 0xfd;
-			SDL_LogDebug(QLAY_LOG_IPC, "Close Ser 2");
-			//close_serial(1);
-		}
-		SDL_LogDebug(QLAY_LOG_IPC, "IPC %02x, SER12OC %02x", cmd,
-			     ser12oc);
-		IPCwfc = 1;
-		break;
-	case 6: /* SER1 rcv */
-	case 7: /* SER2 rcv */
-		/* only called when 8049 sent a SER RCV interrupt */
-		SDL_LogDebug(QLAY_LOG_IPC, "IPCrcv%02x", cmd);
-		IPCchan = cmd & 0x01;
-		//			IPCsersptr=0;
-		IPCsercnt = ser_rcv_size(IPCchan);
-		if (IPCsercnt > 20)
-			IPCsercnt = 20;
-		IPCreturn = IPCsercnt;
-		IPCcnt = 8;
-		break;
-	case 8: /* read keyboard */
-	{
-		SDL_LogDebug(QLAY_LOG_IPC, "C8");
-		IPCreturn = 0;
-		IPCcnt = 4;
-		if (utarray_len(qlayKeyBuffer)) { /* just double check */
-			int *key;
-			key = (int *)utarray_front(qlayKeyBuffer);
-			utarray_erase(qlayKeyBuffer, 0, 1);
-			IPCreturn = decode_key(*key);
-			IPCcnt = 16;
-		} else {
-			if (qlayKeysPressed) { /* still pressed: autorepeat */
-				IPCreturn = 0x8; /* just the repeat bit */
-				IPCcnt = 4;
-			}
-		}
-		break;
-	}
-	case 0x9: /* keyrow */
-		SDL_LogDebug(QLAY_LOG_IPC, "KEYR");
-		IPCwfc = 1;
-		break;
-	case 0xa: /* set sound */
-		SDL_LogDebug(QLAY_LOG_IPC, "BEEP");
-		IPCwfc = 1;
-		break;
-	case 0xb: /* kill sound */
-		SDL_LogDebug(QLAY_LOG_IPC, "KILLBEEP");
-		qlayIPCKillSound();
-		IPCwfc = 1;
-		break;
-	case 0xc: /* test interrupt 2?? */
-		SDL_LogDebug(QLAY_LOG_IPC, "IPCcINT");
-		IPCwfc = 1;
-		break;
-	case 0xd: /* set baud rate */
-		SDL_LogDebug(QLAY_LOG_IPC, "BRATE");
-		IPCwfc = 1;
-		break;
-	case 0xe: /* get random, return 16 bits */
-		IPCreturn = SDL_rand(65535);
-		IPCcnt = 16;
-		SDL_LogDebug(QLAY_LOG_IPC, "IPCrnd %04x", IPCreturn);
-		IPCwfc = 1;
-		break;
-	case 0xf: /* test, return received byte */
-		SDL_LogDebug(QLAY_LOG_IPC, "IPCtest");
-		IPCwfc = 1;
-		break;
-	case 0x10: /* fake: no more parameters */
-		break;
-	default:
-		SDL_LogDebug(QLAY_LOG_IPC, "ERRORunexpIPCcmd:%x", cmd);
-		IPCreturn = 0;
-		IPCcnt = 4;
-		break;
-	}
-	IPCpcmd = cmd;
+  switch (cmd) {
+  case 0: /* init */
+    SDL_LogDebug(QLAY_LOG_IPC, "IPC%02x", cmd);
+    IPCcnt = 0;
+    IPCwfc = 1;
+    break;
+  case 1: /* get interrupt status */
+    SDL_LogDebug(QLAY_LOG_IPC, "Interrupt Status");
+    IPCreturn = 0;
+    if (utarray_len(qlayKeyBuffer) || qlayKeysPressed) {
+      IPCreturn |= 0x01;
+    }
+    if (qlayIPCBeeping)
+      IPCreturn |= 0x02;
+    if (ser12oc & 0x01) { /* SER1 */
+      if (ser_rcv_size(0) > 0) {
+        IPCreturn |= 0x10;
+      }
+    }
+    if (ser12oc & 0x02) { /* SER2 */
+      if (ser_rcv_size(1) > 0) {
+        IPCreturn |= 0x20;
+      }
+    }
+    IPCcnt = 8;
+    break;
+  case 2: /* SER1 open */
+  case 3: /* SER2 open */
+  case 4: /* SER1 close */
+  case 5: /* SER2 close */
+    if (cmd == 2) {
+      ser12oc |= 1;
+      SDL_LogDebug(QLAY_LOG_IPC, "Open Ser 1, ZXb: %d",
+          ZXbaud);
+      // open_serial(0, ZXbaud, 0);
+    }
+    if (cmd == 3) {
+      ser12oc |= 2;
+      SDL_LogDebug(QLAY_LOG_IPC, "Open Ser 2, ZXb: %d",
+          ZXbaud);
+      // open_serial(1, ZXbaud, 0);
+    }
+    if (cmd == 4) {
+      ser12oc &= 0xfe;
+      SDL_LogDebug(QLAY_LOG_IPC, "Close Ser 1");
+      // close_serial(0);
+    }
+    if (cmd == 5) {
+      ser12oc &= 0xfd;
+      SDL_LogDebug(QLAY_LOG_IPC, "Close Ser 2");
+      // close_serial(1);
+    }
+    SDL_LogDebug(QLAY_LOG_IPC, "IPC %02x, SER12OC %02x", cmd,
+        ser12oc);
+    IPCwfc = 1;
+    break;
+  case 6: /* SER1 rcv */
+  case 7: /* SER2 rcv */
+    /* only called when 8049 sent a SER RCV interrupt */
+    SDL_LogDebug(QLAY_LOG_IPC, "IPCrcv%02x", cmd);
+    IPCchan = cmd & 0x01;
+    //			IPCsersptr=0;
+    IPCsercnt = ser_rcv_size(IPCchan);
+    if (IPCsercnt > 20)
+      IPCsercnt = 20;
+    IPCreturn = IPCsercnt;
+    IPCcnt = 8;
+    break;
+  case 8: /* read keyboard */
+  {
+    SDL_LogDebug(QLAY_LOG_IPC, "C8");
+    IPCreturn = 0;
+    IPCcnt = 4;
+    if (utarray_len(qlayKeyBuffer)) { /* just double check */
+      int* key;
+      key = (int*)utarray_front(qlayKeyBuffer);
+      utarray_erase(qlayKeyBuffer, 0, 1);
+      IPCreturn = decode_key(*key);
+      IPCcnt = 16;
+    } else {
+      if (qlayKeysPressed) { /* still pressed: autorepeat */
+        IPCreturn = 0x8; /* just the repeat bit */
+        IPCcnt = 4;
+      }
+    }
+    break;
+  }
+  case 0x9: /* keyrow */
+    SDL_LogDebug(QLAY_LOG_IPC, "KEYR");
+    IPCwfc = 1;
+    break;
+  case 0xa: /* set sound */
+    SDL_LogDebug(QLAY_LOG_IPC, "BEEP");
+    IPCwfc = 1;
+    break;
+  case 0xb: /* kill sound */
+    SDL_LogDebug(QLAY_LOG_IPC, "KILLBEEP");
+    qlayIPCKillSound();
+    IPCwfc = 1;
+    break;
+  case 0xc: /* test interrupt 2?? */
+    SDL_LogDebug(QLAY_LOG_IPC, "IPCcINT");
+    IPCwfc = 1;
+    break;
+  case 0xd: /* set baud rate */
+    SDL_LogDebug(QLAY_LOG_IPC, "BRATE");
+    IPCwfc = 1;
+    break;
+  case 0xe: /* get random, return 16 bits */
+    IPCreturn = SDL_rand(65535);
+    IPCcnt = 16;
+    SDL_LogDebug(QLAY_LOG_IPC, "IPCrnd %04x", IPCreturn);
+    IPCwfc = 1;
+    break;
+  case 0xf: /* test, return received byte */
+    SDL_LogDebug(QLAY_LOG_IPC, "IPCtest");
+    IPCwfc = 1;
+    break;
+  case 0x10: /* fake: no more parameters */
+    break;
+  default:
+    SDL_LogDebug(QLAY_LOG_IPC, "ERRORunexpIPCcmd:%x", cmd);
+    IPCreturn = 0;
+    IPCcnt = 4;
+    break;
+  }
+  IPCpcmd = cmd;
 }
 
 void qlayInitIPC(void)
 {
-	init_mdvs();
-	mdv_select(0);
-	init_events();
-	ZXmode = 0;
-	ZXbaud = 9600;
-	REG18020tx = 0;
-	ser_rcv_init();
-	//start_speaker();
-	qlclkoff = 0;
+  init_mdvs();
+  mdv_select(0);
+  init_events();
+  ZXmode = 0;
+  ZXbaud = 9600;
+  REG18020tx = 0;
+  ser_rcv_init();
+  // start_speaker();
+  qlclkoff = 0;
 }
 
 /* load a qlay formatted MDV
  */
 static bool load_qlay_mdv_file(int fd, int mdvnum)
 {
-	mdrive[mdvnum].no_sectors = QLAY_MDV_NOSECTS;
-	mdrive[mdvnum].data =
-		malloc(sizeof(struct mdvsector) * QLAY_MDV_NOSECTS);
-	mdrive[mdvnum].type = MDV_FORMAT_QLAY;
+  mdrive[mdvnum].no_sectors = QLAY_MDV_NOSECTS;
+  mdrive[mdvnum].data = malloc(sizeof(struct mdvsector) * QLAY_MDV_NOSECTS);
+  mdrive[mdvnum].type = MDV_FORMAT_QLAY;
 
-	/* malloc failed for some reason */
-	if (mdrive[mdvnum].data == NULL) {
-		SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
-			     "malloc failed %s %d", __FILE__, __LINE__);
-		return false;
-	}
+  /* malloc failed for some reason */
+  if (mdrive[mdvnum].data == NULL) {
+    SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
+        "malloc failed %s %d", __FILE__, __LINE__);
+    return false;
+  }
 
-	struct mdvsector *cursect = mdrive[mdvnum].data;
+  struct mdvsector* cursect = mdrive[mdvnum].data;
 
-	for (int i = 0; i < QLAY_MDV_NOSECTS; i++) {
-		lseek(fd, i * QLAY_MDV_SECTLEN, SEEK_SET);
+  for (int i = 0; i < QLAY_MDV_NOSECTS; i++) {
+    lseek(fd, i * QLAY_MDV_SECTLEN, SEEK_SET);
 
-		/* skip pre-amble */
-		lseek(fd, QLAY_MDV_PREAMBLE_SIZE, SEEK_CUR);
-		read(fd, cursect->header, QLAY_MDV_HDR_CONTENT_SIZE);
+    /* skip pre-amble */
+    lseek(fd, QLAY_MDV_PREAMBLE_SIZE, SEEK_CUR);
+    read(fd, cursect->header, QLAY_MDV_HDR_CONTENT_SIZE);
 
-		/* skip the next pre-amble */
-		lseek(fd, QLAY_MDV_PREAMBLE_SIZE, SEEK_CUR);
-		read(fd, cursect->blockheader, QLAY_MDV_DATA_HDR_SIZE);
+    /* skip the next pre-amble */
+    lseek(fd, QLAY_MDV_PREAMBLE_SIZE, SEEK_CUR);
+    read(fd, cursect->blockheader, QLAY_MDV_DATA_HDR_SIZE);
 
-		/* skip the next pre-amble */
-		lseek(fd, QLAY_MDV_DATA_PREAMBLE_SIZE, SEEK_CUR);
-		read(fd, cursect->block, QLAY_MDV_DATA_CONTENT_SIZE);
+    /* skip the next pre-amble */
+    lseek(fd, QLAY_MDV_DATA_PREAMBLE_SIZE, SEEK_CUR);
+    read(fd, cursect->block, QLAY_MDV_DATA_CONTENT_SIZE);
 
-		cursect++;
-	}
+    cursect++;
+  }
 
-	return true;
+  return true;
 }
 
 /* load a MDI formatted MDV
  */
 static bool load_mdi_mdv_file(int fd, int mdvnum)
 {
-	mdrive[mdvnum].no_sectors = MDI_MDV_NOSECTS;
-	mdrive[mdvnum].data =
-		malloc(sizeof(struct mdvsector) * MDI_MDV_NOSECTS);
-	mdrive[mdvnum].type = MDV_FORMAT_MDI;
+  mdrive[mdvnum].no_sectors = MDI_MDV_NOSECTS;
+  mdrive[mdvnum].data = malloc(sizeof(struct mdvsector) * MDI_MDV_NOSECTS);
+  mdrive[mdvnum].type = MDV_FORMAT_MDI;
 
-	/* malloc failed for some reason */
-	if (mdrive[mdvnum].data == NULL) {
-		SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION,
-			     "malloc failed %s %d", __FILE__, __LINE__);
-		return false;
-	}
+  /* malloc failed for some reason */
+  if (mdrive[mdvnum].data == NULL) {
+    SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION,
+        "malloc failed %s %d", __FILE__, __LINE__);
+    return false;
+  }
 
-	struct mdvsector *cursect = mdrive[mdvnum].data;
+  struct mdvsector* cursect = mdrive[mdvnum].data;
 
-	for (int i = 0; i < MDI_MDV_NOSECTS; i++) {
-		lseek(fd, i * MDI_MDV_SECTLEN, SEEK_SET);
+  for (int i = 0; i < MDI_MDV_NOSECTS; i++) {
+    lseek(fd, i * MDI_MDV_SECTLEN, SEEK_SET);
 
-		read(fd, cursect->header, MDI_MDV_HDR_CONTENT_SIZE);
+    read(fd, cursect->header, MDI_MDV_HDR_CONTENT_SIZE);
 
-		read(fd, cursect->blockheader, MDI_MDV_DATA_HDR_SIZE);
+    read(fd, cursect->blockheader, MDI_MDV_DATA_HDR_SIZE);
 
-		read(fd, cursect->block, MDI_MDV_DATA_CONTENT_SIZE);
+    read(fd, cursect->block, MDI_MDV_DATA_CONTENT_SIZE);
 
-		cursect++;
-	}
+    cursect++;
+  }
 
-	return true;
+  return true;
 }
 
-static bool load_mdv_file(const char *filename, int mdvnum)
+static bool load_mdv_file(const char* filename, int mdvnum)
 {
-	struct stat stat;
-	int fd;
-	bool res = false;
+  struct stat stat;
+  int fd;
+  bool res = false;
 
-	fd = open(filename, O_RDONLY | O_BINARY);
+  fd = open(filename, O_RDONLY | O_BINARY);
 
-	fstat(fd, &stat);
+  fstat(fd, &stat);
 
-	if (stat.st_size == QLAY_MDV_SIZE) {
-		SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "%s is a QLAY file",
-			    filename);
-		res = load_qlay_mdv_file(fd, mdvnum);
-	} else if (stat.st_size == MDI_MDV_SIZE) {
-		SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "%s is a MDI file",
-			    filename);
-		res = load_mdi_mdv_file(fd, mdvnum);
-	}
+  if (stat.st_size == QLAY_MDV_SIZE) {
+    SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "%s is a QLAY file",
+        filename);
+    res = load_qlay_mdv_file(fd, mdvnum);
+  } else if (stat.st_size == MDI_MDV_SIZE) {
+    SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "%s is a MDI file",
+        filename);
+    res = load_mdi_mdv_file(fd, mdvnum);
+  }
 
-	close(fd);
+  close(fd);
 
-	if (res == false) {
-		SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
-			     "Failed to load file %s", filename);
-		return false;
-	}
+  if (res == false) {
+    SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
+        "Failed to load file %s", filename);
+    return false;
+  }
 
-	return true;
+  return true;
 }
 
 static bool save_qlay_mdv_file(int fd, int mdvnum)
 {
-	struct mdvsector *cursect = mdrive[mdvnum].data;
+  struct mdvsector* cursect = mdrive[mdvnum].data;
 
-	for (int i = 0; i < QLAY_MDV_NOSECTS; i++) {
-		lseek(fd, i * QLAY_MDV_SECTLEN, SEEK_SET);
+  for (int i = 0; i < QLAY_MDV_NOSECTS; i++) {
+    lseek(fd, i * QLAY_MDV_SECTLEN, SEEK_SET);
 
-		/* skip pre-amble */
-		lseek(fd, QLAY_MDV_PREAMBLE_SIZE, SEEK_CUR);
-		write(fd, cursect->header, QLAY_MDV_HDR_CONTENT_SIZE);
+    /* skip pre-amble */
+    lseek(fd, QLAY_MDV_PREAMBLE_SIZE, SEEK_CUR);
+    write(fd, cursect->header, QLAY_MDV_HDR_CONTENT_SIZE);
 
-		/* skip the next pre-amble */
-		lseek(fd, QLAY_MDV_PREAMBLE_SIZE, SEEK_CUR);
-		write(fd, cursect->blockheader, QLAY_MDV_DATA_HDR_SIZE);
+    /* skip the next pre-amble */
+    lseek(fd, QLAY_MDV_PREAMBLE_SIZE, SEEK_CUR);
+    write(fd, cursect->blockheader, QLAY_MDV_DATA_HDR_SIZE);
 
-		/* skip the next pre-amble */
-		lseek(fd, QLAY_MDV_DATA_PREAMBLE_SIZE, SEEK_CUR);
-		write(fd, cursect->block, QLAY_MDV_DATA_CONTENT_SIZE);
+    /* skip the next pre-amble */
+    lseek(fd, QLAY_MDV_DATA_PREAMBLE_SIZE, SEEK_CUR);
+    write(fd, cursect->block, QLAY_MDV_DATA_CONTENT_SIZE);
 
-		cursect++;
-	}
+    cursect++;
+  }
 
-	return true;
+  return true;
 }
 
 static bool save_mdi_mdv_file(int fd, int mdvnum)
 {
-	struct mdvsector *cursect = mdrive[mdvnum].data;
+  struct mdvsector* cursect = mdrive[mdvnum].data;
 
-	for (int i = 0; i < MDI_MDV_NOSECTS; i++) {
-		lseek(fd, i * MDI_MDV_SECTLEN, SEEK_SET);
+  for (int i = 0; i < MDI_MDV_NOSECTS; i++) {
+    lseek(fd, i * MDI_MDV_SECTLEN, SEEK_SET);
 
-		write(fd, cursect->header, MDI_MDV_HDR_CONTENT_SIZE);
+    write(fd, cursect->header, MDI_MDV_HDR_CONTENT_SIZE);
 
-		write(fd, cursect->blockheader, MDI_MDV_DATA_HDR_SIZE);
+    write(fd, cursect->blockheader, MDI_MDV_DATA_HDR_SIZE);
 
-		write(fd, cursect->block, MDI_MDV_DATA_CONTENT_SIZE);
+    write(fd, cursect->block, MDI_MDV_DATA_CONTENT_SIZE);
 
-		cursect++;
-	}
+    cursect++;
+  }
 
-	return true;
+  return true;
 }
 
 static void save_mdv_file(int mdvnum)
 {
-	int fd;
-	bool res = false;
+  int fd;
+  bool res = false;
 
-	SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Saving: %s",
-		    mdrive[mdvnum].name);
+  SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Saving: %s",
+      mdrive[mdvnum].name);
 
-	if (mdrive[mdvnum].name == NULL) {
-		SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "MDV%d name (NULL)",
-			     mdvnum + 1);
-		return;
-	}
+  if (mdrive[mdvnum].name == NULL) {
+    SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "MDV%d name (NULL)",
+        mdvnum + 1);
+    return;
+  }
 
-	if (mdrive[mdvnum].wrprot) {
-		SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION,
-			    "MDV%d write protected NOT saving", mdvnum + 1);
-		return;
-	}
+  if (mdrive[mdvnum].wrprot) {
+    SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION,
+        "MDV%d write protected NOT saving", mdvnum + 1);
+    return;
+  }
 
-	SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION, "MDV Saving %s %d",
-		     mdrive[mdvnum].name, mdvnum);
+  SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION, "MDV Saving %s %d",
+      mdrive[mdvnum].name, mdvnum);
 
-	fd = open(mdrive[mdvnum].name, O_WRONLY | O_CREAT | O_BINARY);
-	if (fd < 0) {
-		SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
-			     "opening MDV for write %s", strerror(errno));
-		return;
-	}
+  fd = open(mdrive[mdvnum].name, O_WRONLY | O_CREAT | O_BINARY);
+  if (fd < 0) {
+    SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
+        "opening MDV for write %s", strerror(errno));
+    return;
+  }
 
-	switch (mdrive[mdvnum].type) {
-	case MDV_FORMAT_QLAY:
-		res = save_qlay_mdv_file(fd, mdvnum);
-		break;
-	case MDV_FORMAT_MDI:
-		res = save_mdi_mdv_file(fd, mdvnum);
-		break;
-	default:
-		SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
-			     "Unknown mdv format MDV%d\n", mdvnum + 1);
-	}
+  switch (mdrive[mdvnum].type) {
+  case MDV_FORMAT_QLAY:
+    res = save_qlay_mdv_file(fd, mdvnum);
+    break;
+  case MDV_FORMAT_MDI:
+    res = save_mdi_mdv_file(fd, mdvnum);
+    break;
+  default:
+    SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
+        "Unknown mdv format MDV%d\n", mdvnum + 1);
+  }
 
-	close(fd);
+  close(fd);
 
-	if (res == false) {
-		SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
-			     "Failed to save file %s", mdrive[mdvnum].name);
-	}
+  if (res == false) {
+    SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
+        "Failed to save file %s", mdrive[mdvnum].name);
+  }
 }
 
 void init_mdvs(void)
 {
-	int i = 0;
-	int noDrives = emulatorOptionDevCount("drive");
-	bool res;
+  int i = 0;
+  int noDrives = emulatorOptionDevCount("drive");
+  bool res;
 
-	qlayInitMdvSound();
+  qlayInitMdvSound();
 
-	if (emulatorOptionInt("turboload")) {
-		qlay_turbo_load = true;
-	}
+  if (emulatorOptionInt("turboload")) {
+    qlay_turbo_load = true;
+  }
 
-	memset(mdrive, 0, sizeof(mdrive));
+  memset(mdrive, 0, sizeof(mdrive));
 
-	for (i = 0; i < noDrives; i++) {
-		const char *drive = emulatorOptionDev("drive", i);
-		const char *mdvName;
-		bool wrprot = false;
+  for (i = 0; i < noDrives; i++) {
+    const char* drive = emulatorOptionDev("drive", i);
+    const char* mdvName;
+    bool wrprot = false;
 
-		int mdvNum;
-		if (strncmp(drive, "R:", 2) == 0) {
-			wrprot = true;
-			drive += 2;
-		}
+    int mdvNum;
+    if (strncmp(drive, "R:", 2) == 0) {
+      wrprot = true;
+      drive += 2;
+    }
 
-		if (!(strncmp(drive, "mdv", 3) == 0) || !isdigit(drive[3]) ||
-		    (drive[4] != '@')) {
-			continue;
-		}
+    if (!(strncmp(drive, "mdv", 3) == 0) || !isdigit(drive[3]) || (drive[4] != '@')) {
+      continue;
+    }
 
-		mdvNum = drive[3] - '1';
-		mdvName = drive + 5;
+    mdvNum = drive[3] - '1';
+    mdvName = drive + 5;
 
-		if (mdvNum >= MDV_NUMOFDRIVES) {
-			fprintf(stderr, "Invalid MDV num %d\n", mdvNum);
-			continue;
-		}
+    if (mdvNum >= MDV_NUMOFDRIVES) {
+      fprintf(stderr, "Invalid MDV num %d\n", mdvNum);
+      continue;
+    }
 
-		mdrive[mdvNum].present = 0;
-		mdrive[mdvNum].sector = 0;
-		mdrive[mdvNum].wrprot = wrprot;
-		mdrive[mdvNum].idx = 0;
-		mdrive[mdvNum].mdvstate = MDV_GAP1;
-		mdrive[mdvNum].mdvgapcnt = MDV_GAP_COUNT;
+    mdrive[mdvNum].present = 0;
+    mdrive[mdvNum].sector = 0;
+    mdrive[mdvNum].wrprot = wrprot;
+    mdrive[mdvNum].idx = 0;
+    mdrive[mdvNum].mdvstate = MDV_GAP1;
+    mdrive[mdvNum].mdvgapcnt = MDV_GAP_COUNT;
 
-		res = load_mdv_file(mdvName, mdvNum);
-		if (res) {
-			mdrive[mdvNum].name = mdvName;
-			mdrive[mdvNum].present = 1;
-			mdrive[mdvNum].sector = 0;
-			SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION,
-				    "MDV%01d is %s", mdvNum + 1, mdvName);
-		} else {
-			SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION,
-				    "MDV%01d is ejected", mdvNum + 1);
-		}
-	}
+    res = load_mdv_file(mdvName, mdvNum);
+    if (res) {
+      mdrive[mdvNum].name = mdvName;
+      mdrive[mdvNum].present = 1;
+      mdrive[mdvNum].sector = 0;
+      SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION,
+          "MDV%01d is %s", mdvNum + 1, mdvName);
+    } else {
+      SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION,
+          "MDV%01d is ejected", mdvNum + 1);
+    }
+  }
 }
 
 void init_events(void)
 {
-	e50 = emdv = emouse = esound = etx = 0;
+  e50 = emdv = emouse = esound = etx = 0;
 }
 
 static void set_gap_irq(void)
 {
-	EMU_PC_INTR |= PC_INTRG;
+  EMU_PC_INTR |= PC_INTRG;
 
-	/* dont actually trigger irq if masked */
-	if (!(EMU_PC_INTR_MASK & PC_MASKG)) {
-		return;
-	}
+  /* dont actually trigger irq if masked */
+  if (!(EMU_PC_INTR_MASK & PC_MASKG)) {
+    return;
+  }
 
-	m68k_set_irq(2); /* set MDV interrupt */
+  m68k_set_irq(2); /* set MDV interrupt */
 }
 
 void do_mdv_tick(void)
 {
-	int sector, idx;
-	bool wrprot;
+  int sector, idx;
+  bool wrprot;
 
-	if (mdvmotor) {
-		if (mdrive[mdvnum].present == 0) {
-			set_gap_irq();
-			mdvgap = 1;
-			return;
-		}
+  if (mdvmotor) {
+    if (mdrive[mdvnum].present == 0) {
+      set_gap_irq();
+      mdvgap = 1;
+      return;
+    }
 
-		// A number of states need this so do here
-		if (mdvwrite) {
-			mdvtxfl = false;
-		}
+    // A number of states need this so do here
+    if (mdvwrite) {
+      mdvtxfl = false;
+    }
 
-		sector = mdrive[mdvnum].sector;
-		idx = mdrive[mdvnum].idx;
-		wrprot = mdrive[mdvnum].wrprot;
+    sector = mdrive[mdvnum].sector;
+    idx = mdrive[mdvnum].idx;
+    wrprot = mdrive[mdvnum].wrprot;
 
-		switch (mdrive[mdvnum].mdvstate) {
-		case MDV_GAP1:
-			if (mdrive[mdvnum].mdvgapcnt == MDV_GAP_COUNT) {
-				SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION,
-					     "GAP1");
-			}
-			mdvgap = 1;
-			mdvrd = 0;
-			set_gap_irq();
-			mdrive[mdvnum].mdvgapcnt--;
+    switch (mdrive[mdvnum].mdvstate) {
+    case MDV_GAP1:
+      if (mdrive[mdvnum].mdvgapcnt == MDV_GAP_COUNT) {
+        SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION,
+            "GAP1");
+      }
+      mdvgap = 1;
+      mdvrd = 0;
+      set_gap_irq();
+      mdrive[mdvnum].mdvgapcnt--;
 
-			if (mdrive[mdvnum].mdvgapcnt == 0) {
-				mdrive[mdvnum].mdvstate = MDV_PREAMBLE1;
-				mdrive[mdvnum].mdvgapcnt = MDV_PREAMBLE_COUNT;
-			}
-			break;
-		case MDV_PREAMBLE1:
-			if (mdrive[mdvnum].mdvgapcnt == MDV_PREAMBLE_COUNT) {
-				SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION,
-					     "PREAMBLE1");
-			}
-			mdvgap = 0;
-			mdvrd = 0;
-			mdrive[mdvnum].mdvgapcnt--;
+      if (mdrive[mdvnum].mdvgapcnt == 0) {
+        mdrive[mdvnum].mdvstate = MDV_PREAMBLE1;
+        mdrive[mdvnum].mdvgapcnt = MDV_PREAMBLE_COUNT;
+      }
+      break;
+    case MDV_PREAMBLE1:
+      if (mdrive[mdvnum].mdvgapcnt == MDV_PREAMBLE_COUNT) {
+        SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION,
+            "PREAMBLE1");
+      }
+      mdvgap = 0;
+      mdvrd = 0;
+      mdrive[mdvnum].mdvgapcnt--;
 
-			if (mdrive[mdvnum].mdvgapcnt == 0) {
-				mdrive[mdvnum].mdvstate = MDV_HDR;
-				mdrive[mdvnum].idx = 0;
-			}
-			break;
-		case MDV_HDR:
-			if (mdrive[mdvnum].idx == 0) {
-				SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION,
-					     "HDR");
-			}
-			mdvgap = 0;
-			mdvrd = 1;
+      if (mdrive[mdvnum].mdvgapcnt == 0) {
+        mdrive[mdvnum].mdvstate = MDV_HDR;
+        mdrive[mdvnum].idx = 0;
+      }
+      break;
+    case MDV_HDR:
+      if (mdrive[mdvnum].idx == 0) {
+        SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION,
+            "HDR");
+      }
+      mdvgap = 0;
+      mdvrd = 1;
 
-			PC_TRAK = mdrive[mdvnum].data[sector].header[idx];
+      PC_TRAK = mdrive[mdvnum].data[sector].header[idx];
 
-			mdrive[mdvnum].idx++;
+      mdrive[mdvnum].idx++;
 
-			if (mdrive[mdvnum].idx == MDV_HDR_CONTENT_SIZE) {
-				mdrive[mdvnum].mdvstate = MDV_GAP2;
-				mdrive[mdvnum].mdvgapcnt = MDV_GAP_COUNT;
-			}
-			break;
-		case MDV_GAP2:
-			if (mdrive[mdvnum].mdvgapcnt == MDV_GAP_COUNT) {
-				SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION,
-					     "GAP2");
-			}
-			mdvgap = 1;
-			mdvrd = 0;
+      if (mdrive[mdvnum].idx == MDV_HDR_CONTENT_SIZE) {
+        mdrive[mdvnum].mdvstate = MDV_GAP2;
+        mdrive[mdvnum].mdvgapcnt = MDV_GAP_COUNT;
+      }
+      break;
+    case MDV_GAP2:
+      if (mdrive[mdvnum].mdvgapcnt == MDV_GAP_COUNT) {
+        SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION,
+            "GAP2");
+      }
+      mdvgap = 1;
+      mdvrd = 0;
 
-			// If erase is on, then GAP2 lasts until
-			// write is also on
-			if (!mdverase) {
-				mdrive[mdvnum].mdvgapcnt--;
-			}
+      // If erase is on, then GAP2 lasts until
+      // write is also on
+      if (!mdverase) {
+        mdrive[mdvnum].mdvgapcnt--;
+      }
 
-			if (mdrive[mdvnum].mdvgapcnt == 0) {
-				mdrive[mdvnum].mdvstate = MDV_PREAMBLE2;
-				mdrive[mdvnum].mdvgapcnt = MDV_PREAMBLE_COUNT;
-				mdrive[mdvnum].idx =
-					MDV_PREAMBLE_SIZE + MDV_HDR_SIZE;
-			}
-			break;
-		case MDV_PREAMBLE2:
-			if (mdrive[mdvnum].mdvgapcnt == MDV_PREAMBLE_COUNT) {
-				SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION,
-					     "PREAMBLE2");
-			}
-			mdvgap = 0;
-			mdvrd = 0;
-			mdrive[mdvnum].mdvgapcnt--;
+      if (mdrive[mdvnum].mdvgapcnt == 0) {
+        mdrive[mdvnum].mdvstate = MDV_PREAMBLE2;
+        mdrive[mdvnum].mdvgapcnt = MDV_PREAMBLE_COUNT;
+        mdrive[mdvnum].idx = MDV_PREAMBLE_SIZE + MDV_HDR_SIZE;
+      }
+      break;
+    case MDV_PREAMBLE2:
+      if (mdrive[mdvnum].mdvgapcnt == MDV_PREAMBLE_COUNT) {
+        SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION,
+            "PREAMBLE2");
+      }
+      mdvgap = 0;
+      mdvrd = 0;
+      mdrive[mdvnum].mdvgapcnt--;
 
-			if (mdrive[mdvnum].mdvgapcnt == 0) {
-				mdrive[mdvnum].mdvstate = MDV_DATA_HDR;
-				mdrive[mdvnum].idx = 0;
-			}
-			break;
-		case MDV_DATA_HDR:
-			if (mdrive[mdvnum].idx == 0) {
-				SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION,
-					     "DATA_HDR");
-			}
-			mdvgap = 0;
+      if (mdrive[mdvnum].mdvgapcnt == 0) {
+        mdrive[mdvnum].mdvstate = MDV_DATA_HDR;
+        mdrive[mdvnum].idx = 0;
+      }
+      break;
+    case MDV_DATA_HDR:
+      if (mdrive[mdvnum].idx == 0) {
+        SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION,
+            "DATA_HDR");
+      }
+      mdvgap = 0;
 
-			if (mdvwrite && !wrprot) {
-				mdrive[mdvnum].data[sector].blockheader[idx] =
-					PC_TDATA;
-			} else {
-				mdvrd = 1;
-				PC_TRAK = mdrive[mdvnum]
-						  .data[sector]
-						  .blockheader[idx];
-			}
+      if (mdvwrite && !wrprot) {
+        mdrive[mdvnum].data[sector].blockheader[idx] = PC_TDATA;
+      } else {
+        mdvrd = 1;
+        PC_TRAK = mdrive[mdvnum]
+                      .data[sector]
+                      .blockheader[idx];
+      }
 
-			mdrive[mdvnum].idx++;
+      mdrive[mdvnum].idx++;
 
-			if (mdrive[mdvnum].idx == MDV_DATA_HDR_SIZE) {
-				mdrive[mdvnum].mdvstate = MDV_DATA_PREAMBLE;
-				mdrive[mdvnum].mdvgapcnt =
-					MDV_DATA_PREAMBLE_COUNT;
-			}
-			break;
-		case MDV_DATA_PREAMBLE:
-			if (mdrive[mdvnum].mdvgapcnt ==
-			    MDV_DATA_PREAMBLE_COUNT) {
-				SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION,
-					     "DATA_PREAMBLE");
-			}
-			mdvgap = 0;
-			mdvrd = 0;
-			mdrive[mdvnum].mdvgapcnt--;
+      if (mdrive[mdvnum].idx == MDV_DATA_HDR_SIZE) {
+        mdrive[mdvnum].mdvstate = MDV_DATA_PREAMBLE;
+        mdrive[mdvnum].mdvgapcnt = MDV_DATA_PREAMBLE_COUNT;
+      }
+      break;
+    case MDV_DATA_PREAMBLE:
+      if (mdrive[mdvnum].mdvgapcnt == MDV_DATA_PREAMBLE_COUNT) {
+        SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION,
+            "DATA_PREAMBLE");
+      }
+      mdvgap = 0;
+      mdvrd = 0;
+      mdrive[mdvnum].mdvgapcnt--;
 
-			if (mdrive[mdvnum].mdvgapcnt == 0) {
-				mdrive[mdvnum].mdvstate = MDV_DATA;
-				mdrive[mdvnum].idx = 0;
-			}
-			break;
-		case MDV_DATA:
-			if (mdrive[mdvnum].idx == 0) {
-				SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION,
-					     "DATA");
-			}
-			mdvgap = 0;
+      if (mdrive[mdvnum].mdvgapcnt == 0) {
+        mdrive[mdvnum].mdvstate = MDV_DATA;
+        mdrive[mdvnum].idx = 0;
+      }
+      break;
+    case MDV_DATA:
+      if (mdrive[mdvnum].idx == 0) {
+        SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION,
+            "DATA");
+      }
+      mdvgap = 0;
 
-			if (mdvwrite && !wrprot) {
-				mdrive[mdvnum].data[sector].block[idx] =
-					PC_TDATA;
-			} else {
-				mdvrd = 1;
-				PC_TRAK =
-					mdrive[mdvnum].data[sector].block[idx];
-			}
+      if (mdvwrite && !wrprot) {
+        mdrive[mdvnum].data[sector].block[idx] = PC_TDATA;
+      } else {
+        mdvrd = 1;
+        PC_TRAK = mdrive[mdvnum].data[sector].block[idx];
+      }
 
-			mdrive[mdvnum].idx++;
+      mdrive[mdvnum].idx++;
 
-			if (mdrive[mdvnum].idx == MDV_DATA_CONTENT_SIZE) {
-				mdrive[mdvnum].mdvstate = MDV_INTERSECTOR;
-				mdrive[mdvnum].mdvgapcnt =
-					MDV_INTERSECTOR_COUNT;
-			}
-			break;
-		case MDV_INTERSECTOR:
-			if (mdrive[mdvnum].idx == 0) {
-				SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION,
-					     "INTERSECTOR");
-			}
+      if (mdrive[mdvnum].idx == MDV_DATA_CONTENT_SIZE) {
+        mdrive[mdvnum].mdvstate = MDV_INTERSECTOR;
+        mdrive[mdvnum].mdvgapcnt = MDV_INTERSECTOR_COUNT;
+      }
+      break;
+    case MDV_INTERSECTOR:
+      if (mdrive[mdvnum].idx == 0) {
+        SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION,
+            "INTERSECTOR");
+      }
 
-			if (!mdvwrite) {
-				mdvrd = 1;
-				PC_TRAK = 0x5A;
-			}
+      if (!mdvwrite) {
+        mdvrd = 1;
+        PC_TRAK = 0x5A;
+      }
 
-			mdrive[mdvnum].mdvgapcnt--;
+      mdrive[mdvnum].mdvgapcnt--;
 
-			if (mdrive[mdvnum].mdvgapcnt == 0) {
-				mdrive[mdvnum].mdvstate = MDV_GAP1;
-				mdrive[mdvnum].mdvgapcnt = MDV_GAP_COUNT;
-				mdrive[mdvnum].idx = 0;
-				mdrive[mdvnum].sector++;
-				mdrive[mdvnum].sector %=
-					mdrive[mdvnum].no_sectors;
-			}
-			break;
-		default:
-			SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
-				     "MDV in unknown state");
-			break;
-		}
-	} else {
-		mdvgap = 0;
-	}
+      if (mdrive[mdvnum].mdvgapcnt == 0) {
+        mdrive[mdvnum].mdvstate = MDV_GAP1;
+        mdrive[mdvnum].mdvgapcnt = MDV_GAP_COUNT;
+        mdrive[mdvnum].idx = 0;
+        mdrive[mdvnum].sector++;
+        mdrive[mdvnum].sector %= mdrive[mdvnum].no_sectors;
+      }
+      break;
+    default:
+      SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
+          "MDV in unknown state");
+      break;
+    }
+  } else {
+    mdvgap = 0;
+  }
 }

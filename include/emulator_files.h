@@ -13,8 +13,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
-bool emulatorFileExists(const char *name);
-size_t emulatorFileSize(const char *name);
-bool emulatorLoadFile(const char *name, void *addr, size_t size);
+bool emulatorFileExists(const char* name);
+size_t emulatorFileSize(const char* name);
+bool emulatorLoadFile(const char* name, void* addr, size_t size);
 
 #endif /* EMULATOR_FILES_H */
