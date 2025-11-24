@@ -9,8 +9,11 @@
 #include "emulator_logging.h"
 #include "emulator_memory.h"
 #include "emulator_options.h"
+// prevent these two headers re-ordering
+// clang-format off
 #include "ff.h"
 #include "diskio.h"
+// clang-format on
 #include "spi_sdcard.h"
 
 SDL_IOStream* sd1Stream = NULL;

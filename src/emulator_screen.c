@@ -12,6 +12,7 @@
 #include "emulator_hardware.h"
 #include "emulator_memory.h"
 #include "emulator_options.h"
+#include "emulator_screen.h"
 
 struct qlColor {
   int r;
@@ -43,12 +44,14 @@ Uint32 emulatorWindowId;
 SDL_Renderer* emulatorRenderer;
 Uint32 sdlColors[16];
 SDL_Rect emulatorDestRect;
-int emulatorFullscreen = 0;
 bool emulatorRenderScreenFlag = false;
 int emulatorCurrentMode;
 bool emulatorSecondScreen = false;
 
+static bool emulatorScreenFast = false;
+static bool emulatorScreenFull = false;
 static const char* emulatorName = EMU_STR;
+static char fastfps[] = "0000";
 
 struct qlMode {
   uint32_t base;
@@ -140,6 +143,12 @@ int emulatorInitScreen(int emulatorMode)
         SDL_GetPixelFormatDetails(qlModes[0].surface->format),
         NULL, qlColors[i].r, qlColors[i].g, qlColors[i].b);
   }
+
+#ifdef QLAY_EMU
+  SDL_snprintf(fastfps, sizeof(fastfps), "%4d", emulatorOptionInt("fastfps"));
+#else
+  SDL_snprintf(fastfps, sizeof(fastfps), "%4d", 0);
+#endif
 
   return 0;
 }
@@ -350,10 +359,33 @@ void emulatorRenderScreen(void)
   SDL_RenderPresent(emulatorRenderer);
 }
 
-void emulatorFullScreen(void)
+void emulatorToggleFullScreen(void)
 {
-  emulatorFullscreen ^= 1;
+  emulatorScreenFull = !emulatorScreenFull;
 
   SDL_SetWindowFullscreen(emulatorWindow,
-      emulatorFullscreen ? SDL_WINDOW_FULLSCREEN : 0);
+      emulatorScreenFull ? SDL_WINDOW_FULLSCREEN : 0);
+}
+
+void emulatorSetRefresh(bool fast)
+{
+  char title[100];
+
+  emulatorScreenFast = fast;
+
+  if (fast) {
+    SDL_SetHint(SDL_HINT_MAIN_CALLBACK_RATE,
+        fastfps);
+    SDL_snprintf(title, sizeof(title), "%s - fast %s fps", EMU_STR, fastfps);
+    SDL_SetWindowTitle(emulatorWindow, title);
+  } else {
+    SDL_SetHint(SDL_HINT_MAIN_CALLBACK_RATE,
+        EMULATOR_FRAMERATE_NORMAL);
+    SDL_SetWindowTitle(emulatorWindow, EMU_STR);
+  }
+}
+
+void emulatorToggleRefresh(void)
+{
+  emulatorSetRefresh(!emulatorScreenFast);
 }
