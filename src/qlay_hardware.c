@@ -77,6 +77,7 @@ Uint8 qlHardwareRead8(unsigned int addr)
 	case PC_CLOCK + 3:
 		return EMU_PC_CLOCK & 0xFF;
 	case PC_IPCRD: // 18020
+		SDL_LogDebug(QLAY_LOG_HW, "PC_IPCRD");
 		return readQLHw(addr);
 	case PC_INTR: // 18021
 		return EMU_PC_INTR;
@@ -244,6 +245,7 @@ void qlHardwareWrite8(unsigned int addr, Uint8 val)
 		wrZX8302(val);
 		return;
 	case PC_IPCWR: // 18003
+		SDL_LogDebug(QLAY_LOG_HW, "PC_IPCWR %2.2x", val);
 		wr8049(val);
 		return;
 	case PC_MCTRL: // 18020
