@@ -7,9 +7,7 @@
 #include <SDL3/SDL.h>
 #include <stdbool.h>
 
-#include "emulator_hardware.h"
 #include "emulator_keyboard.h"
-#include "sdl-ps2.h"
 
 bool emulatorProcessEvents(SDL_Event *event)
 {
