@@ -144,6 +144,8 @@ struct emuOpts emuOptions[] = {
       NULL, NULL },
   { "exprom", "c", "romfile@address eg NFA.rom@0xC000", EMU_OPT_DEV, 0,
       NULL, NULL },
+  { "fastfps", "", "The FPS when running in fast mode, standard is 50", EMU_OPT_INT, 200,
+      NULL, NULL },
   { "ipcvol", "", "volume of IPC sound in range 0-10", EMU_OPT_INT, 3,
       NULL, NULL },
   { "mdvvol", "", "volume of MDV sound effect in range 0-10", EMU_OPT_INT,
